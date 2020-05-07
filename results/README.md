@@ -46,6 +46,10 @@ during the whole simulation compared to the baseline. This delta is coded in
 color and color intensity. Negative deltas (less deaths) are plotted in blue
 while positive deltas (more deaths) are plotted in yellow.
 
+### Mask efficacy: 30%
+
+![maskefficacy30](mask_efficacy_30.png 'Mask efficacy: 30%')
+
 ### Mask efficacy: 40%
 
 ![maskefficacy40](mask_efficacy_40.png 'Mask efficacy: 40%')
