@@ -188,8 +188,8 @@ class PeopleGroup(Agent):
             return
         infections_count = 0.0
         ics = 1.0 - self.covid_model.isolation_cheating_severity
-        me = 1.0 - self.covid_model.mask_efficacy
         p = self.daily_interaction_count * self.contagion_probability
+        me = 1.0 - pow(self.covid_model.mask_efficacy, self.covid_model.me_attenuation)
         for human in self.infected_people:
             if human.is_contagious():
                 if human.is_symptomatic():
@@ -237,6 +237,7 @@ class CovidModel(Model):
         self.incubation_period_stdev = kwargs.get("incubation_period_stdev", 2.0)
         self.disease_period_mean = kwargs.get("disease_period_mean", 20.0)
         self.disease_period_stdev = kwargs.get("disease_period_stdev", 5.0)
+        self.me_attenuation = kwargs.get("me_attenuation", 1.0)
         self.schedule = RandomActivation(self)
         self.groups = []
         self.listeners = []
