@@ -11,18 +11,47 @@ Simulation of scenarios described in the [article](https://towardsdatascience.co
 
 ### Scenario 2 - restrict mobility only for symptomatic people
 
+In this scenario we consider that 90% of symptomatic people are isolated.
+
+```
+symptomatic_isolation_rate = 0.9
+```
+
 ![scenario2](scenario2.png 'scenario2')
 [CSV data](scenario2.csv)
 
+### Scenario 2.1 - restrict mobility only for symptomatic people (30% people uses a wearable which detects symptoms 1 day earlier)
+
+```
+symptomatic_isolation_rate = 0.9
+weareable_adoption_rate = 0.3
+```
+
+![scenario2_1](scenario2_1.png 'scenario2_1')
+[CSV data](scenario2_1.csv)
+
 ### Scenario 3 - restrict mobility for everyone
+
+In this scenario we consider that 90% of symptomatic people and 80% of asymptomatic people are isolated.
+
+```
+symptomatic_isolation_rate = 0.9
+asymptomatic_isolation_rate = 0.8
+```
 
 ![scenario3](scenario3.png 'scenario3')
 [CSV data](scenario3.csv)
 
 ### Scenario 4 - restrict mobility after 10% of the population being infected and release the restrictions when more then 95% is safe
 
+In this scenario we use the same isolation rates used in scenario 3.
+
 ![scenario4](scenario4.png 'scenario4')
 [CSV data](scenario4.csv)
+
+## Simulations considering the use of a wearable which allows earlier detection of symptoms
+
+In this simulation we consider that 30% of people use a wearable with an app which detects COVID-19 symptoms 1 day earlier.
 
 ## Simulations considering the use of masks
 
@@ -46,6 +75,10 @@ during the whole simulation compared to the baseline. This delta is coded in
 color and color intensity. Negative deltas (less deaths) are plotted in blue
 while positive deltas (more deaths) are plotted in yellow.
 
+Mas adoption rate is the same in all scenarios (40%). Each scenario below
+consider a different efficacy for the use of masks to prevent that an infected
+person contamines a non-infected one.
+
 ### Mask efficacy: 30%
 
 ![maskefficacy30](mask_efficacy_30.png 'Mask efficacy: 30%')
@@ -61,4 +94,28 @@ while positive deltas (more deaths) are plotted in yellow.
 ### Mask efficacy: 60%
 
 ![maskefficacy60](mask_efficacy_60.png 'Mask efficacy: 60%')
+
+
+## Simulations considering the use of masks and a wearable which allows earlier detection of symptoms
+
+In this simulation we consider that 30% of people use a wearable with an app which detects COVID-19 symptoms 1 day earlier.
+
+We consider the same scenarios and parameters of the previous simulation.
+
+### Mask efficacy: 30%
+
+![maskefficacy30](wearable_mask_efficacy_30.png 'Mask efficacy: 30%')
+
+### Mask efficacy: 40%
+
+![maskefficacy40](wearable_mask_efficacy_40.png 'Mask efficacy: 40%')
+
+### Mask efficacy: 50%
+
+![maskefficacy50](wearable_mask_efficacy_50.png 'Mask efficacy: 50%')
+
+### Mask efficacy: 60%
+
+![maskefficacy60](wearable_mask_efficacy_60.png 'Mask efficacy: 60%')
+
 
