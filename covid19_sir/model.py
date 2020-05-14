@@ -46,6 +46,10 @@ class Human(object):
         self.infection_incubation = 0
         self.infection_duration = 0
         self.infection_status = InfectionStatus.SUSCEPTIBLE
+        if flip_coin(covid_model.weareable_adoption_rate):
+            self.early_symptom_detection = 1 # number of days
+        else:
+            self.early_symptom_detection = 0
         self.hospitalized = False
 
     def infect(self, index):
@@ -61,7 +65,7 @@ class Human(object):
             self.covid_model.infection_days_count = 0
             mean = self.covid_model.latency_period_mean
             stdev = self.covid_model.latency_period_stdev
-            self.infection_latency = np.random.normal(mean, stdev)
+            self.infection_latency = np.random.normal(mean, stdev) - self.early_symptom_detection
             if self.infection_latency < 1.0:
                 self.infection_latency = 1.0
             mean = self.covid_model.incubation_period_mean
@@ -238,6 +242,7 @@ class CovidModel(Model):
         self.disease_period_mean = kwargs.get("disease_period_mean", 20.0)
         self.disease_period_stdev = kwargs.get("disease_period_stdev", 5.0)
         self.me_attenuation = kwargs.get("me_attenuation", 1.0)
+        self.weareable_adoption_rate = kwargs.get("weareable_adoption_rate", 0.0)
         self.schedule = RandomActivation(self)
         self.groups = []
         self.listeners = []
