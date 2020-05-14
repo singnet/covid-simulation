@@ -49,10 +49,6 @@ In this scenario we use the same isolation rates used in scenario 3.
 ![scenario4](scenario4.png 'scenario4')
 [CSV data](scenario4.csv)
 
-## Simulations considering the use of a wearable which allows earlier detection of symptoms
-
-In this simulation we consider that 30% of people use a wearable with an app which detects COVID-19 symptoms 1 day earlier.
-
 ## Simulations considering the use of masks
 
 We've studied the effect of the use of masks in the rate of deaths during the
