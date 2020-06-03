@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-from model import CovidModel, PeopleGroup
+from model import CovidModel, PeopleGroup, get_parameters
 
 class SimpleGroup(PeopleGroup):
     def __init__(self, unique_id, model, size, **kwargs):
@@ -63,7 +63,7 @@ class BasicStatistics():
         fig, ax = plt.subplots()
         ax.set_title('Contagion Evolution')
         ax.set_xlim((0, self.cycles_count))
-        ax.axhline(y=self.covid_model.hospitalization_capacity, c="black", ls='--', label='Critical limit')
+        ax.axhline(y=get_parameters().hospitalization_capacity, c="black", ls='--', label='Critical limit')
         for col in df.columns.values:
             ax.plot(df.index.values, df[col].values, c=color[col], label=col)
         ax.set_xlabel("Days")

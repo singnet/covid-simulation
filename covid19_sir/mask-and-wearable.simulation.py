@@ -2,7 +2,7 @@ import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from model import CovidModel, PeopleGroup
+from model import CovidModel, PeopleGroup, SimulationParameters, set_parameters
 from utils import SimpleGroup, BasicStatistics
 
 ################################################################################
@@ -46,24 +46,26 @@ ICS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
 # Baseline
 
+set_parameters(SimulationParameters(
+    weareable_adoption_rate = 0.0,
+    mask_user_rate = 0.0,
+    mask_efficacy = 0.0,
+    isolation_cheater_rate = 0.0,
+    isolation_cheating_severity = 0.0,
+    imune_rate = imune_rate,
+    initial_infection_rate = initial_infection_rate,
+    hospitalization_capacity = hospitalization_capacity,
+    latency_period_mean = latency_period_mean,
+    latency_period_stdev = latency_period_stdev,
+    incubation_period_mean = incubation_period_mean,
+    incubation_period_stdev = incubation_period_stdev,
+    disease_period_mean = disease_period_mean,
+    disease_period_stdev = disease_period_stdev
+))
+
 sum = 0.0
 for k in range(epochs):
-    model = CovidModel(
-        weareable_adoption_rate = 0.0,
-        mask_user_rate = 0.0,
-        mask_efficacy = 0.0,
-        isolation_cheater_rate = 0.0,
-        isolation_cheating_severity = 0.0,
-        imune_rate = imune_rate,
-        initial_infection_rate = initial_infection_rate,
-        hospitalization_capacity = hospitalization_capacity,
-        latency_period_mean = latency_period_mean,
-        latency_period_stdev = latency_period_stdev,
-        incubation_period_mean = incubation_period_mean,
-        incubation_period_stdev = incubation_period_stdev,
-        disease_period_mean = disease_period_mean,
-        disease_period_stdev = disease_period_stdev
-    )
+    model = CovidModel()
     group = SimpleGroup(0, model, population_size,
         asymptomatic_isolation_rate = asymptomatic_isolation_rate,
         symptomatic_isolation_rate = symptomatic_isolation_rate,
@@ -89,7 +91,7 @@ for i in range(len(ICR)):
         sum = 0.0
         #print(str(i) + " " + str(j))
         for k in range(epochs):
-            model = CovidModel(
+            set_parameters(SimulationParameters(
                 weareable_adoption_rate = 0.3,
                 mask_user_rate = 0.4,
                 mask_efficacy = ME,
@@ -105,7 +107,8 @@ for i in range(len(ICR)):
                 incubation_period_stdev = incubation_period_stdev,
                 disease_period_mean = disease_period_mean,
                 disease_period_stdev = disease_period_stdev
-            )
+            ))
+            model = CovidModel()
             group = SimpleGroup(0, model, population_size,
                 asymptomatic_isolation_rate = asymptomatic_isolation_rate,
                 symptomatic_isolation_rate = symptomatic_isolation_rate,
