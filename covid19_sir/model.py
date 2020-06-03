@@ -19,8 +19,32 @@ def set_parameters(new_parameters):
     parameters = new_parameters
 
 def get_parameters():
+    global parameters
     return parameters
 
+def change_parameters(**kwargs):
+    global parameters
+    #TODO Set only parameters passed in kwargs
+    parameters.mask_user_rate = kwargs.get("mask_user_rate", parameters.mask_user_rate)
+    parameters.mask_efficacy = kwargs.get("mask_efficacy", parameters.mask_efficacy)
+    parameters.isolation_cheater_rate = kwargs.get("isolation_cheater_rate", parameters.isolation_cheater_rate)
+    parameters.isolation_cheating_severity = kwargs.get("isolation_cheating_severity", parameters.isolation_cheating_severity)
+    parameters.imune_rate = kwargs.get("imune_rate", parameters.imune_rate)
+    parameters.initial_infection_rate = kwargs.get("initial_infection_rate", parameters.initial_infection_rate)
+    parameters.hospitalization_capacity = kwargs.get("hospitalization_capacity", parameters.hospitalization_capacity)
+    parameters.latency_period_mean = kwargs.get("latency_period_mean", parameters.latency_period_mean)
+    parameters.latency_period_stdev = kwargs.get("latency_period_stdev", parameters.latency_period_stdev)
+    parameters.incubation_period_mean = kwargs.get("incubation_period_mean", parameters.incubation_period_mean)
+    parameters.incubation_period_stdev = kwargs.get("incubation_period_stdev", parameters.incubation_period_stdev)
+    parameters.disease_period_mean = kwargs.get("disease_period_mean", parameters.disease_period_mean)
+    parameters.disease_period_stdev = kwargs.get("disease_period_stdev", parameters.disease_period_stdev)
+    parameters.me_attenuation = kwargs.get("me_attenuation", parameters.me_attenuation)
+    parameters.weareable_adoption_rate = kwargs.get("weareable_adoption_rate", parameters.weareable_adoption_rate)
+    parameters.daily_interaction_count = kwargs.get("daily_interaction_count", parameters.daily_interaction_count)
+    parameters.contagion_probability = kwargs.get("contagion_probability", parameters.contagion_probability)
+    parameters.asymptomatic_isolation_rate = kwargs.get("asymptomatic_isolation_rate", parameters.asymptomatic_isolation_rate)
+    parameters.symptomatic_isolation_rate = kwargs.get("symptomatic_isolation_rate", parameters.symptomatic_isolation_rate)
+    
 class InfectionStatus(Enum):
     SUSCEPTIBLE = auto()
     INFECTED = auto()
@@ -50,6 +74,10 @@ class SimulationParameters(object):
         self.disease_period_stdev = kwargs.get("disease_period_stdev", 5.0)
         self.me_attenuation = kwargs.get("me_attenuation", 1.0)
         self.weareable_adoption_rate = kwargs.get("weareable_adoption_rate", 0.0)
+        self.daily_interaction_count = kwargs.get("daily_interaction_count", 5)
+        self.contagion_probability = kwargs.get("contagion_probability", 0.9)
+        self.asymptomatic_isolation_rate = kwargs.get("asymptomatic_isolation_rate", 0.0)
+        self.symptomatic_isolation_rate = kwargs.get("symptomatic_isolation_rate", 0.0)
 
 parameters = None
 
@@ -184,10 +212,6 @@ class PeopleGroup(Agent):
         super().__init__(unique_id, covid_model)
         self.size = size
         self.covid_model = covid_model
-        self.daily_interaction_count = kwargs.get("daily_interaction_count", 5)
-        self.contagion_probability = kwargs.get("contagion_probability", 0.9)
-        self.asymptomatic_isolation_rate = kwargs.get("asymptomatic_isolation_rate", 0.0)
-        self.symptomatic_isolation_rate = kwargs.get("symptomatic_isolation_rate", 0.0)
         self.infected_people = []
         self.non_infected_people = []
         self.dead_people = []
@@ -221,24 +245,24 @@ class PeopleGroup(Agent):
             return
         infections_count = 0.0
         ics = 1.0 - parameters.isolation_cheating_severity
-        p = self.daily_interaction_count * self.contagion_probability
+        p = parameters.daily_interaction_count * parameters.contagion_probability
         me = 1.0 - pow(parameters.mask_efficacy, parameters.me_attenuation)
         for human in self.infected_people:
             if human.is_contagious():
                 if human.is_symptomatic():
                     if human.isolation_cheater:
-                        p *= (1.0 - (self.symptomatic_isolation_rate * ics))
+                        p *= (1.0 - (parameters.symptomatic_isolation_rate * ics))
                     else:
-                        p *= (1.0 - self.symptomatic_isolation_rate)
+                        p *= (1.0 - parameters.symptomatic_isolation_rate)
                 else:
                     if human.isolation_cheater:
-                        p *= (1.0 - (self.asymptomatic_isolation_rate * ics))
+                        p *= (1.0 - (parameters.asymptomatic_isolation_rate * ics))
                     else:
-                        p *= (1.0 - self.asymptomatic_isolation_rate)
+                        p *= (1.0 - parameters.asymptomatic_isolation_rate)
                 if human.mask_user:
                     p *= me
             infections_count += p
-        targets = (1 - (self.asymptomatic_isolation_rate * ics) ) * self.non_infected_count + (1 - (self.asymptomatic_isolation_rate * ics) ) * self.asymptomatic_count + (1 - (self.symptomatic_isolation_rate * ics) ) * self.symptomatic_count
+        targets = (1 - (parameters.asymptomatic_isolation_rate * ics) ) * self.non_infected_count + (1 - (parameters.asymptomatic_isolation_rate * ics) ) * self.asymptomatic_count + (1 - (parameters.symptomatic_isolation_rate * ics) ) * self.symptomatic_count
         for i in range(int(math.ceil(infections_count))):
             if self.susceptible_count <= 0:
                 break
