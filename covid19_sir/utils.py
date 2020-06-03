@@ -4,12 +4,7 @@ from model import CovidModel, PeopleGroup, get_parameters
 
 class SimpleGroup(PeopleGroup):
     def __init__(self, unique_id, model, size, **kwargs):
-        super().__init__(unique_id, model, size,
-            daily_interaction_count = kwargs.get("daily_interaction_count", 4),
-            contagion_probability = kwargs.get("contagion_probability", 0.5),
-            asymptomatic_isolation_rate = kwargs.get("asymptomatic_isolation_rate", 0.0),
-            symptomatic_isolation_rate = kwargs.get("symptomatic_isolation_rate", 0.0)
-        )
+        super().__init__(unique_id, model, size)
         
 class BasicStatistics():
     def __init__(self, model):

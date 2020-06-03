@@ -17,9 +17,6 @@ incubation_period_mean = 7.0
 incubation_period_stdev = 4.0
 disease_period_mean = 20
 disease_period_stdev = 5
-
-# Population group
-
 daily_interaction_count = 4
 contagion_probability = 0.2
 asymptomatic_isolation_rate = 0.0
@@ -50,16 +47,15 @@ scenario[sc]['parameters'] = SimulationParameters(
     incubation_period_mean = incubation_period_mean,
     incubation_period_stdev = incubation_period_stdev,
     disease_period_mean = disease_period_mean,
-    disease_period_stdev = disease_period_stdev
-)
-set_parameters(scenario[sc]['parameters'])
-scenario[sc]['model'] = CovidModel()
-scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size,
+    disease_period_stdev = disease_period_stdev,
     daily_interaction_count = daily_interaction_count,
     contagion_probability = contagion_probability,
     asymptomatic_isolation_rate = asymptomatic_isolation_rate,
     symptomatic_isolation_rate = symptomatic_isolation_rate
 )
+set_parameters(scenario[sc]['parameters'])
+scenario[sc]['model'] = CovidModel()
+scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size)
 
 # ------------------------------------------------------------------------------
 
@@ -77,16 +73,15 @@ scenario[sc]['parameters'] = SimulationParameters(
     incubation_period_mean = incubation_period_mean,
     incubation_period_stdev = incubation_period_stdev,
     disease_period_mean = disease_period_mean,
-    disease_period_stdev = disease_period_stdev
-)
-set_parameters(scenario[sc]['parameters'])
-scenario[sc]['model'] = CovidModel()
-scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size,
+    disease_period_stdev = disease_period_stdev,
     symptomatic_isolation_rate = 0.9,
     asymptomatic_isolation_rate = asymptomatic_isolation_rate,
     daily_interaction_count = daily_interaction_count,
     contagion_probability = contagion_probability
 )
+set_parameters(scenario[sc]['parameters'])
+scenario[sc]['model'] = CovidModel()
+scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size)
 
 # ------------------------------------------------------------------------------
 
@@ -105,16 +100,15 @@ scenario[sc]['parameters'] = SimulationParameters(
     incubation_period_mean = incubation_period_mean,
     incubation_period_stdev = incubation_period_stdev,
     disease_period_mean = disease_period_mean,
-    disease_period_stdev = disease_period_stdev
-)
-set_parameters(scenario[sc]['parameters'])
-scenario[sc]['model'] = CovidModel()
-scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size,
+    disease_period_stdev = disease_period_stdev,
     symptomatic_isolation_rate = 0.9,
     asymptomatic_isolation_rate = 0.8,
     daily_interaction_count = daily_interaction_count,
     contagion_probability = contagion_probability
 )
+set_parameters(scenario[sc]['parameters'])
+scenario[sc]['model'] = CovidModel()
+scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size)
 
 ################################################################################
 # Simulation of all scenarios

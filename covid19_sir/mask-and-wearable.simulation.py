@@ -23,9 +23,6 @@ incubation_period_mean = 14.0
 incubation_period_stdev = 4.0
 disease_period_mean = 25
 disease_period_stdev = 5
-
-# Population group
-
 daily_interaction_count = 40
 contagion_probability = 0.9
 asymptomatic_isolation_rate = 0.2
@@ -60,18 +57,17 @@ set_parameters(SimulationParameters(
     incubation_period_mean = incubation_period_mean,
     incubation_period_stdev = incubation_period_stdev,
     disease_period_mean = disease_period_mean,
-    disease_period_stdev = disease_period_stdev
+    disease_period_stdev = disease_period_stdev,
+    asymptomatic_isolation_rate = asymptomatic_isolation_rate,
+    symptomatic_isolation_rate = symptomatic_isolation_rate,
+    daily_interaction_count = daily_interaction_count,
+    contagion_probability = contagion_probability
 ))
 
 sum = 0.0
 for k in range(epochs):
     model = CovidModel()
-    group = SimpleGroup(0, model, population_size,
-        asymptomatic_isolation_rate = asymptomatic_isolation_rate,
-        symptomatic_isolation_rate = symptomatic_isolation_rate,
-        daily_interaction_count = daily_interaction_count,
-        contagion_probability = contagion_probability
-    )
+    group = SimpleGroup(0, model, population_size)
     statistics = BasicStatistics(model)
     model.add_group(group)
     model.add_listener(statistics)
@@ -106,15 +102,14 @@ for i in range(len(ICR)):
                 incubation_period_mean = incubation_period_mean,
                 incubation_period_stdev = incubation_period_stdev,
                 disease_period_mean = disease_period_mean,
-                disease_period_stdev = disease_period_stdev
-            ))
-            model = CovidModel()
-            group = SimpleGroup(0, model, population_size,
+                disease_period_stdev = disease_period_stdev,
                 asymptomatic_isolation_rate = asymptomatic_isolation_rate,
                 symptomatic_isolation_rate = symptomatic_isolation_rate,
                 daily_interaction_count = daily_interaction_count,
                 contagion_probability = contagion_probability
-            )
+            ))
+            model = CovidModel()
+            group = SimpleGroup(0, model, population_size)
             statistics = BasicStatistics(model)
             model.add_group(group)
             model.add_listener(statistics)
