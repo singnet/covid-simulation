@@ -1,4 +1,4 @@
-from model import CovidModel, PeopleGroup
+from model import CovidModel, PeopleGroup, SimulationParameters, set_parameters, get_parameters, change_parameters
 from utils import SimpleGroup, BasicStatistics
 
 ################################################################################
@@ -17,9 +17,6 @@ incubation_period_mean = 7.0
 incubation_period_stdev = 4.0
 disease_period_mean = 20
 disease_period_stdev = 5
-
-# Population group
-
 daily_interaction_count = 4
 contagion_probability = 0.2
 asymptomatic_isolation_rate = 0.0
@@ -39,7 +36,7 @@ scenario = {}
 
 sc = 1 # Do nothing
 scenario[sc] = {}
-scenario[sc]['model'] = CovidModel(
+scenario[sc]['parameters'] = SimulationParameters(
     mask_user_rate = mask_user_rate,
     mask_efficacy = mask_efficacy,
     imune_rate = imune_rate,
@@ -50,20 +47,21 @@ scenario[sc]['model'] = CovidModel(
     incubation_period_mean = incubation_period_mean,
     incubation_period_stdev = incubation_period_stdev,
     disease_period_mean = disease_period_mean,
-    disease_period_stdev = disease_period_stdev
-)
-scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size,
+    disease_period_stdev = disease_period_stdev,
     daily_interaction_count = daily_interaction_count,
     contagion_probability = contagion_probability,
     asymptomatic_isolation_rate = asymptomatic_isolation_rate,
     symptomatic_isolation_rate = symptomatic_isolation_rate
 )
+set_parameters(scenario[sc]['parameters'])
+scenario[sc]['model'] = CovidModel()
+scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size)
 
 # ------------------------------------------------------------------------------
 
 sc = 2 # Restrict the mobility only for infected people
 scenario[sc] = {}
-scenario[sc]['model'] = CovidModel(
+scenario[sc]['parameters'] = SimulationParameters(
     mask_user_rate = mask_user_rate,
     mask_efficacy = mask_efficacy,
     imune_rate = imune_rate,
@@ -74,20 +72,21 @@ scenario[sc]['model'] = CovidModel(
     incubation_period_mean = incubation_period_mean,
     incubation_period_stdev = incubation_period_stdev,
     disease_period_mean = disease_period_mean,
-    disease_period_stdev = disease_period_stdev
-)
-scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size,
+    disease_period_stdev = disease_period_stdev,
     symptomatic_isolation_rate = 0.9,
     asymptomatic_isolation_rate = asymptomatic_isolation_rate,
     daily_interaction_count = daily_interaction_count,
     contagion_probability = contagion_probability
 )
+set_parameters(scenario[sc]['parameters'])
+scenario[sc]['model'] = CovidModel()
+scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size)
 
 # ------------------------------------------------------------------------------
 
 sc = 3 # restrict the mobility for everybody
 scenario[sc] = {}
-scenario[sc]['model'] = CovidModel(
+scenario[sc]['parameters'] = SimulationParameters(
     mask_user_rate = mask_user_rate,
     mask_efficacy = mask_efficacy,
     imune_rate = imune_rate,
@@ -98,14 +97,15 @@ scenario[sc]['model'] = CovidModel(
     incubation_period_mean = incubation_period_mean,
     incubation_period_stdev = incubation_period_stdev,
     disease_period_mean = disease_period_mean,
-    disease_period_stdev = disease_period_stdev
-)
-scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size,
+    disease_period_stdev = disease_period_stdev,
     symptomatic_isolation_rate = 0.9,
     asymptomatic_isolation_rate = 0.8,
     daily_interaction_count = daily_interaction_count,
     contagion_probability = contagion_probability
 )
+set_parameters(scenario[sc]['parameters'])
+scenario[sc]['model'] = CovidModel()
+scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size)
 
 # ------------------------------------------------------------------------------
 
@@ -127,16 +127,16 @@ class IsolationRule():
         if self.state == 0:
             if (group.infected_count / group.size) >= self.perc1:
                 self.state = 1
-                group.symptomatic_isolation_rate = 0.9
-                group.asymptomatic_isolation_rate = 0.8
+                change_parameters(symptomatic_isolation_rate = 0.9,
+                                  asymptomatic_isolation_rate = 0.8)
         elif self.state == 1:
             if (group.infected_count / group.size) <= (1.0 - self.perc2):
                 self.state = 2
-                group.symptomatic_isolation_rate = 0.0
-                group.asymptomatic_isolation_rate = 0.0
+                change_parameters(symptomatic_isolation_rate = 0.0,
+                                  asymptomatic_isolation_rate = 0.0)
 
 scenario[sc] = {}
-sc4_model = CovidModel(
+sc4_parameters = SimulationParameters(
     mask_user_rate = mask_user_rate,
     mask_efficacy = mask_efficacy,
     imune_rate = imune_rate,
@@ -147,15 +147,17 @@ sc4_model = CovidModel(
     incubation_period_mean = incubation_period_mean,
     incubation_period_stdev = incubation_period_stdev,
     disease_period_mean = disease_period_mean,
-    disease_period_stdev = disease_period_stdev
-)
-sc4_group = SimpleGroup(0, sc4_model, population_size,
+    disease_period_stdev = disease_period_stdev,
     symptomatic_isolation_rate = 0.0,
     asymptomatic_isolation_rate = 0.0,
     daily_interaction_count = daily_interaction_count,
     contagion_probability = contagion_probability
 )
+set_parameters(sc4_parameters)
+sc4_model = CovidModel()
+sc4_group = SimpleGroup(0, sc4_model, population_size)
 sc4_model.add_listener(IsolationRule(sc4_group, 0.1, 0.95))
+scenario[sc]['parameters'] = sc4_parameters
 scenario[sc]['model'] = sc4_model
 scenario[sc]['group'] = sc4_group
 
@@ -163,6 +165,7 @@ scenario[sc]['group'] = sc4_group
 # Simulation of all scenarios
 
 for sc in scenario:
+    set_parameters(scenario[sc]['parameters'])
     model = scenario[sc]['model']
     group = scenario[sc]['group']
     statistics = BasicStatistics(model)
