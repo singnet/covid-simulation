@@ -1,5 +1,5 @@
-from model import CovidModel, PeopleGroup, SimulationParameters, set_parameters
-from utils import SimpleGroup, BasicStatistics
+from model import CovidModel, Location, SimulationParameters, set_parameters
+from utils import SimpleLocation, BasicStatistics
 
 ################################################################################
 # Common parameters amongst all scenarios
@@ -55,7 +55,7 @@ scenario[sc]['parameters'] = SimulationParameters(
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
-scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size)
+scenario[sc]['location'] = SimpleLocation(0, scenario[sc]['model'], population_size)
 
 # ------------------------------------------------------------------------------
 
@@ -81,7 +81,7 @@ scenario[sc]['parameters'] = SimulationParameters(
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
-scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size)
+scenario[sc]['location'] = SimpleLocation(0, scenario[sc]['model'], population_size)
 
 # ------------------------------------------------------------------------------
 
@@ -108,7 +108,7 @@ scenario[sc]['parameters'] = SimulationParameters(
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
-scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size)
+scenario[sc]['location'] = SimpleLocation(0, scenario[sc]['model'], population_size)
 
 ################################################################################
 # Simulation of all scenarios
@@ -116,9 +116,9 @@ scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size)
 for sc in scenario:
     set_parameters(scenario[sc]['parameters'])
     model = scenario[sc]['model']
-    group = scenario[sc]['group']
+    location = scenario[sc]['location']
     statistics = BasicStatistics(model)
-    model.add_group(group)
+    model.add_location(location)
     model.add_listener(statistics)
     for i in range(simulation_cycles):
         model.step()

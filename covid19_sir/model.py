@@ -87,10 +87,10 @@ class AgentBase(Agent):
         super().__init__(unique_id, covid_model)
 
 class Human(AgentBase):
-    def __init__(self, covid_model, people_group):
+    def __init__(self, covid_model, location):
         super().__init__(human_unique_id(), covid_model)
         self.covid_model = covid_model
-        self.people_group = people_group
+        self.location = location
         moderate_severity_probs = [0.001, 0.003, 0.012, 0.032, 0.049, 0.102, 0.166, 0.243, 0.273, 0.273]
         high_severity_probs = [0.05, 0.05, 0.05, 0.05, 0.063, 0.122, 0.274, 0.432, 0.709, 0.709]
         death_probs = [0.002, 0.00006, 0.0003, 0.0008, 0.0015, 0.006, 0.022, 0.051, 0.093, 0.093]
@@ -118,14 +118,14 @@ class Human(AgentBase):
         
     def infect(self, index):
         if not self.immune:
-            self.people_group.non_infected_people.pop(index)
-            self.people_group.infected_people.append(self)
-            self.people_group.infected_count += 1
-            self.people_group.non_infected_count -= 1
-            self.people_group.susceptible_count -= 1
+            self.location.non_infected_people.pop(index)
+            self.location.infected_people.append(self)
+            self.location.infected_count += 1
+            self.location.non_infected_count -= 1
+            self.location.susceptible_count -= 1
             self.infection_status = InfectionStatus.INFECTED
             self.disease_severity = DiseaseSeverity.ASYMPTOMATIC
-            self.people_group.asymptomatic_count += 1
+            self.location.asymptomatic_count += 1
             mean = parameters.latency_period_mean
             stdev = parameters.latency_period_stdev
             self.infection_latency = np.random.normal(mean, stdev) - self.early_symptom_detection
@@ -143,31 +143,31 @@ class Human(AgentBase):
                 self.infection_duration = self.infection_incubation + 7
 
     def recover(self):
-        self.people_group.recovered_count += 1
+        self.location.recovered_count += 1
         if self.disease_severity == DiseaseSeverity.MODERATE:
-            self.people_group.moderate_severity_count -= 1
+            self.location.moderate_severity_count -= 1
         elif self.disease_severity == DiseaseSeverity.HIGH:
-            self.people_group.high_severity_count -= 1
-        self.people_group.infected_people.remove(self)
-        self.people_group.infected_count -= 1
-        self.people_group.non_infected_people.append(self)
+            self.location.high_severity_count -= 1
+        self.location.infected_people.remove(self)
+        self.location.infected_count -= 1
+        self.location.non_infected_people.append(self)
         if self.hospitalized:
             self.covid_model.total_hospitalized -= 1
             self.hospitalized = False
         self.infection_status == InfectionStatus.RECOVERED
         self.disease_severity == DiseaseSeverity.ASYMPTOMATIC
-        self.people_group.symptomatic_count -= 1
-        self.people_group.asymptomatic_count += 1
+        self.location.symptomatic_count -= 1
+        self.location.asymptomatic_count += 1
         self.immune = True
 
     def die(self):
-        self.people_group.symptomatic_count -= 1
+        self.location.symptomatic_count -= 1
         self.disease_severity = DiseaseSeverity.DEATH
-        self.people_group.high_severity_count -= 1
-        self.people_group.infected_count -= 1
-        self.people_group.death_count += 1
-        self.people_group.infected_people.remove(self)
-        self.people_group.dead_people.append(self)
+        self.location.high_severity_count -= 1
+        self.location.infected_count -= 1
+        self.location.death_count += 1
+        self.location.infected_people.remove(self)
+        self.location.dead_people.append(self)
         if self.hospitalized:
             self.covid_model.total_hospitalized -= 1
             self.hospitalized = False
@@ -178,20 +178,20 @@ class Human(AgentBase):
             if self.disease_severity == DiseaseSeverity.ASYMPTOMATIC:
                 if self.infection_days_count >= self.infection_incubation:
                     self.disease_severity = DiseaseSeverity.LOW
-                    self.people_group.asymptomatic_count -= 1
-                    self.people_group.symptomatic_count += 1
+                    self.location.asymptomatic_count -= 1
+                    self.location.symptomatic_count += 1
             elif self.disease_severity == DiseaseSeverity.LOW:
                 if flip_coin(self.moderate_severity_prob):
                     self.disease_severity = DiseaseSeverity.MODERATE
-                    self.people_group.moderate_severity_count += 1
+                    self.location.moderate_severity_count += 1
                     if not self.covid_model.reached_hospitalization_limit():
                         self.covid_model.total_hospitalized += 1
                         self.hospitalized = True
             elif self.disease_severity == DiseaseSeverity.MODERATE:
                 if flip_coin(self.high_severity_prob):
                     self.disease_severity = DiseaseSeverity.HIGH
-                    self.people_group.moderate_severity_count -= 1
-                    self.people_group.high_severity_count += 1
+                    self.location.moderate_severity_count -= 1
+                    self.location.high_severity_count += 1
                     if not self.hospitalized or self.death_mark:
                         self.die()
             elif self.disease_severity == DiseaseSeverity.HIGH:
@@ -210,7 +210,7 @@ class Human(AgentBase):
     def is_symptomatic(self):
         return self.is_infected() and self.infection_days_count >= self.infection_incubation
     
-class PeopleGroup(AgentBase):
+class Location(AgentBase):
     def __init__(self, unique_id, covid_model, size, **kwargs):
         super().__init__(unique_id, covid_model)
         self.size = size
@@ -285,7 +285,7 @@ class PeopleGroup(AgentBase):
 class CovidModel(Model):
     def __init__(self):
         self.schedule = RandomActivation(self)
-        self.groups = []
+        self.locations = []
         self.listeners = []
         self.total_population = 0
         self.total_hospitalized = 0
@@ -296,10 +296,10 @@ class CovidModel(Model):
     def add_listener(self, listener):
         self.listeners.append(listener)
 
-    def add_group(self, group):
-        self.schedule.add(group)
-        self.groups.append(group)
-        self.total_population += group.size
+    def add_location(self, location):
+        self.schedule.add(location)
+        self.locations.append(location)
+        self.total_population += location.size
 
     def step(self):
         for listener in self.listeners:

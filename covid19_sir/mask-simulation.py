@@ -2,8 +2,8 @@ import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from model import CovidModel, PeopleGroup, SimulationParameters, set_parameters
-from utils import SimpleGroup, BasicStatistics
+from model import CovidModel, Location, SimulationParameters, set_parameters
+from utils import SimpleLocation, BasicStatistics
 
 ################################################################################
 # Common parameters amongst all scenarios
@@ -66,9 +66,9 @@ set_parameters(SimulationParameters(
 sum = 0.0
 for k in range(epochs):
     model = CovidModel()
-    group = SimpleGroup(0, model, population_size)
+    location = SimpleLocation(0, model, population_size)
     statistics = BasicStatistics(model)
-    model.add_group(group)
+    model.add_location(location)
     model.add_listener(statistics)
     for i in range(simulation_cycles):
         model.step()
@@ -107,9 +107,9 @@ for i in range(len(ICR)):
                 contagion_probability = contagion_probability
             ))
             model = CovidModel()
-            group = SimpleGroup(0, model, population_size)
+            location = SimpleLocation(0, model, population_size)
             statistics = BasicStatistics(model)
-            model.add_group(group)
+            model.add_location(location)
             model.add_listener(statistics)
             for g in range(simulation_cycles):
                 model.step()
