@@ -81,8 +81,14 @@ class SimulationParameters(object):
 
 parameters = None
 
-class Human(object):
+class AgentBase(Agent):
+    # MESA agent
+    def __init__(self, unique_id, covid_model):
+        super().__init__(unique_id, covid_model)
+
+class Human(AgentBase):
     def __init__(self, covid_model, people_group):
+        super().__init__(human_unique_id(), covid_model)
         self.covid_model = covid_model
         self.people_group = people_group
         moderate_severity_probs = [0.001, 0.003, 0.012, 0.032, 0.049, 0.102, 0.166, 0.243, 0.273, 0.273]
@@ -204,10 +210,7 @@ class Human(object):
     def is_symptomatic(self):
         return self.is_infected() and self.infection_days_count >= self.infection_incubation
     
-class PeopleGroup(Agent):
-    # MESA agent
-    #
-    # This simulation runs on PeopleGroups instead of individual people.
+class PeopleGroup(AgentBase):
     def __init__(self, unique_id, covid_model, size, **kwargs):
         super().__init__(unique_id, covid_model)
         self.size = size
