@@ -1,5 +1,5 @@
-from model import CovidModel, PeopleGroup, SimulationParameters, set_parameters, get_parameters, change_parameters
-from utils import SimpleGroup, BasicStatistics
+from model import CovidModel, Location, SimulationParameters, set_parameters, get_parameters, change_parameters
+from utils import SimpleLocation, BasicStatistics
 
 ################################################################################
 # Common parameters amongst all scenarios
@@ -55,7 +55,7 @@ scenario[sc]['parameters'] = SimulationParameters(
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
-scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size)
+scenario[sc]['location'] = SimpleLocation(0, scenario[sc]['model'], population_size)
 
 # ------------------------------------------------------------------------------
 
@@ -80,7 +80,7 @@ scenario[sc]['parameters'] = SimulationParameters(
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
-scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size)
+scenario[sc]['location'] = SimpleLocation(0, scenario[sc]['model'], population_size)
 
 # ------------------------------------------------------------------------------
 
@@ -105,7 +105,7 @@ scenario[sc]['parameters'] = SimulationParameters(
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
-scenario[sc]['group'] = SimpleGroup(0, scenario[sc]['model'], population_size)
+scenario[sc]['location'] = SimpleLocation(0, scenario[sc]['model'], population_size)
 
 # ------------------------------------------------------------------------------
 
@@ -116,21 +116,21 @@ sc = 4 # Restrict the mobility after 10% of the population being infected
        # parameters during the simulation based in some dynamic criterion
 
 class IsolationRule():
-    def __init__(self, group, perc1, perc2):
+    def __init__(self, location, perc1, perc2):
         self.perc1 = perc1
         self.perc2 = perc2
-        self.group = group
+        self.location = location
         self.state = 0
     def start_cycle(self, model):
         pass
     def end_cycle(self, model):
         if self.state == 0:
-            if (group.infected_count / group.size) >= self.perc1:
+            if (location.infected_count / location.size) >= self.perc1:
                 self.state = 1
                 change_parameters(symptomatic_isolation_rate = 0.9,
                                   asymptomatic_isolation_rate = 0.8)
         elif self.state == 1:
-            if (group.infected_count / group.size) <= (1.0 - self.perc2):
+            if (location.infected_count / location.size) <= (1.0 - self.perc2):
                 self.state = 2
                 change_parameters(symptomatic_isolation_rate = 0.0,
                                   asymptomatic_isolation_rate = 0.0)
@@ -155,11 +155,11 @@ sc4_parameters = SimulationParameters(
 )
 set_parameters(sc4_parameters)
 sc4_model = CovidModel()
-sc4_group = SimpleGroup(0, sc4_model, population_size)
-sc4_model.add_listener(IsolationRule(sc4_group, 0.1, 0.95))
+sc4_location = SimpleLocation(0, sc4_model, population_size)
+sc4_model.add_listener(IsolationRule(sc4_location, 0.1, 0.95))
 scenario[sc]['parameters'] = sc4_parameters
 scenario[sc]['model'] = sc4_model
-scenario[sc]['group'] = sc4_group
+scenario[sc]['location'] = sc4_location
 
 ################################################################################
 # Simulation of all scenarios
@@ -167,9 +167,9 @@ scenario[sc]['group'] = sc4_group
 for sc in scenario:
     set_parameters(scenario[sc]['parameters'])
     model = scenario[sc]['model']
-    group = scenario[sc]['group']
+    location = scenario[sc]['location']
     statistics = BasicStatistics(model)
-    model.add_group(group)
+    model.add_location(location)
     model.add_listener(statistics)
     for i in range(simulation_cycles):
         model.step()

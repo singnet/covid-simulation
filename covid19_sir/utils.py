@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-from model import CovidModel, PeopleGroup, get_parameters
+from model import CovidModel, Location, get_parameters
 
-class SimpleGroup(PeopleGroup):
+class SimpleLocation(Location):
     def __init__(self, unique_id, model, size, **kwargs):
         super().__init__(unique_id, model, size)
         
@@ -21,13 +21,13 @@ class BasicStatistics():
         self.cycles_count += 1
         pop = model.total_population
         s1 = s2 = s3 = s4 = s5 = s6 = 0
-        for group in model.groups:
-            s1 += group.susceptible_count
-            s2 += group.infected_count
-            s3 += group.recovered_count
-            s4 += group.moderate_severity_count
-            s5 += group.high_severity_count
-            s6 += group.death_count
+        for location in model.locations:
+            s1 += location.susceptible_count
+            s2 += location.infected_count
+            s3 += location.recovered_count
+            s4 += location.moderate_severity_count
+            s5 += location.high_severity_count
+            s6 += location.death_count
         self.susceptible.append(s1 / pop)
         self.infected.append(s2 / pop)
         self.recovered.append(s3 / pop)
