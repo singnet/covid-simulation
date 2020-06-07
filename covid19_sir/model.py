@@ -87,18 +87,31 @@ class AgentBase(Agent):
         super().__init__(unique_id, covid_model)
 
 class Human(AgentBase):
-    def __init__(self, covid_model, location):
-        super().__init__(human_unique_id(), covid_model)
-        self.covid_model = covid_model
-        self.location = location
+
+    @staticmethod
+    def factory(covid_model, location):
         moderate_severity_probs = [0.001, 0.003, 0.012, 0.032, 0.049, 0.102, 0.166, 0.243, 0.273, 0.273]
         high_severity_probs = [0.05, 0.05, 0.05, 0.05, 0.063, 0.122, 0.274, 0.432, 0.709, 0.709]
         death_probs = [0.002, 0.00006, 0.0003, 0.0008, 0.0015, 0.006, 0.022, 0.051, 0.093, 0.093]
-        self.age = int(np.random.beta(2, 5, 1) * 100)
-        index = self.age // 10
-        self.moderate_severity_prob = moderate_severity_probs[index]
-        self.high_severity_prob = high_severity_probs[index]
-        self.death_mark = flip_coin(death_probs[index])
+        age = int(np.random.beta(2, 5, 1) * 100)
+        index = age // 10
+        msp = moderate_severity_probs[index]
+        hsp = high_severity_probs[index]
+        mfd = flip_coin(death_probs[index])
+        if age <= 1: return Infant(covid_model, location, age, msp, hsp, mfd)
+        if age <= 4: return Toddler(covid_model, location, age, msp, hsp, mfd)
+        if age <= 18: return K12Student(covid_model, location, age, msp, hsp, mfd)
+        if age <= 64: return Adult(covid_model, location, age, msp, hsp, mfd)
+        return Elder(covid_model, location, age, msp, hsp, mfd)
+
+    def __init__(self, covid_model, location, age, msp, hsp, mfd):
+        super().__init__(human_unique_id(), covid_model)
+        self.covid_model = covid_model
+        self.location = location
+        self.age = age
+        self.moderate_severity_prob = msp
+        self.high_severity_prob = hsp
+        self.death_mark = mfd
         self.infection_days_count = 0
         self.infection_latency = 0
         self.infection_incubation = 0
@@ -210,6 +223,24 @@ class Human(AgentBase):
     def is_symptomatic(self):
         return self.is_infected() and self.infection_days_count >= self.infection_incubation
     
+    def is_worker(self):
+        return self.age >= 15 and self.age <= 64
+
+class Infant(Human):
+    pass
+    
+class Toddler(Human):
+    pass
+    
+class K12Student(Human):
+    pass
+    
+class Adult(Human):
+    pass
+    
+class Elder(Human):
+    pass
+    
 class Location(AgentBase):
     def __init__(self, unique_id, covid_model, size, **kwargs):
         super().__init__(unique_id, covid_model)
@@ -230,7 +261,7 @@ class Location(AgentBase):
         self.asymptomatic_count = 0;
         count = 0
         for i in range(size):
-            human = Human(covid_model, self)
+            human = Human.factory(covid_model, self)
             self.non_infected_people.append(human)
             self.non_infected_count += 1
             if human.immune:
