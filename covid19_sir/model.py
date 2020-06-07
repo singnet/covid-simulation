@@ -11,6 +11,13 @@ def flip_coin(prob):
     else:
         return False
 
+def roulette_selection(v, w):
+    assert len(v) == len(w)
+    r = np.random.random()
+    for i in range(len(w)):
+        if r <= w[i]: return v[i]
+    return v[len(v) - 1]
+
 def human_unique_id():
     return uuid.uuid1()
 
@@ -57,7 +64,23 @@ class DiseaseSeverity(Enum):
     HIGH = auto() # hospitalization in ICU
     DEATH = auto()
 
-class SimulationParameters(object):
+class WorkClasses(Enum):
+    OFFICE = auto()
+    HOUSEBOND = auto()
+    FACTORY = auto()
+    RETAIL = auto()
+    ESSENTIAL = auto()
+    TRANSPORTATION = auto()
+
+class WorkInfo:
+    can_work_from_home = False
+    meet_non_coworkers_at_work = False
+    essential_worker = False
+    fixed_work_location = False
+    house_bound_worker = False
+    earnings = 0.0
+
+class SimulationParameters:
     def __init__(self, **kwargs):
         self.mask_user_rate = kwargs.get("mask_user_rate", 0.0)
         self.mask_efficacy = kwargs.get("mask_efficacy", 0.0)
@@ -118,6 +141,7 @@ class Human(AgentBase):
         self.infection_duration = 0
         self.infection_status = InfectionStatus.SUSCEPTIBLE
         self.hospitalized = False
+        if self.is_worker(): self.setup_work_info()
         self.parameter_changed()
 
     def parameter_changed(self):
@@ -225,6 +249,45 @@ class Human(AgentBase):
     
     def is_worker(self):
         return self.age >= 15 and self.age <= 64
+
+    def setup_work_info(self):
+        classes = [WorkClasses.OFFICE,
+                   WorkClasses.HOUSEBOND,
+                   WorkClasses.FACTORY,
+                   WorkClasses.RETAIL,
+                   WorkClasses.ESSENTIAL,
+                   WorkClasses.TRANSPORTATION]
+        roulette = []
+        count = 1
+        #TODO change to use some realistic distribution
+        for wclass in classes:
+            roulette.append(count / len(classes))
+            count = count + 1
+        selected_class = roulette_selection(classes, roulette)
+        
+        self.work_info = WorkInfo()
+
+        self.work_info.can_work_from_home = \
+            selected_class ==  WorkClasses.OFFICE or \
+            selected_class == WorkClasses.HOUSEBOND
+
+        self.work_info.meet_non_coworkers_at_work = \
+            selected_class == WorkClasses.RETAIL or \
+            selected_class == WorkClasses.ESSENTIAL or \
+            selected_class == WorkClasses.TRANSPORTATION
+           
+        self.work_info.essential_worker = WorkClasses.ESSENTIAL
+
+        self.work_info.fixed_work_location = \
+            selected_class == WorkClasses.OFFICE or \
+            selected_class == WorkClasses.HOUSEBOND or \
+            selected_class == WorkClasses.FACTORY or \
+            selected_class == WorkClasses.RETAIL or \
+            selected_class == WorkClasses.ESSENTIAL
+
+        self.work_info.house_bound_worker = WorkClasses.HOUSEBOND
+
+        self.work_info.earnings = 0.0
 
 class Infant(Human):
     pass
