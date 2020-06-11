@@ -52,6 +52,24 @@ def change_parameters(**kwargs):
     parameters.asymptomatic_isolation_rate = kwargs.get("asymptomatic_isolation_rate", parameters.asymptomatic_isolation_rate)
     parameters.symptomatic_isolation_rate = kwargs.get("symptomatic_isolation_rate", parameters.symptomatic_isolation_rate)
     
+class SimulationStatus:
+    def __init__(self):
+        self.infected_people = []
+        self.non_infected_people = []
+        self.dead_people = []
+        self.infected_count = 0
+        self.non_infected_count = 0
+        self.susceptible_count = 0
+        self.immune_count = 0
+        self.recovered_count = 0
+        self.moderate_severity_count = 0
+        self.high_severity_count = 0
+        self.death_count = 0
+        self.symptomatic_count = 0
+        self.asymptomatic_count = 0
+        self.total_hospitalized = 0
+        self.total_population = 0
+    
 class InfectionStatus(Enum):
     SUSCEPTIBLE = auto()
     INFECTED = auto()
@@ -155,14 +173,14 @@ class Human(AgentBase):
         
     def infect(self, index):
         if not self.immune:
-            self.location.non_infected_people.pop(index)
-            self.location.infected_people.append(self)
-            self.location.infected_count += 1
-            self.location.non_infected_count -= 1
-            self.location.susceptible_count -= 1
+            self.covid_model.global_count.non_infected_people.pop(index)
+            self.covid_model.global_count.infected_people.append(self)
+            self.covid_model.global_count.infected_count += 1
+            self.covid_model.global_count.non_infected_count -= 1
+            self.covid_model.global_count.susceptible_count -= 1
             self.infection_status = InfectionStatus.INFECTED
             self.disease_severity = DiseaseSeverity.ASYMPTOMATIC
-            self.location.asymptomatic_count += 1
+            self.covid_model.global_count.asymptomatic_count += 1
             mean = parameters.latency_period_mean
             stdev = parameters.latency_period_stdev
             self.infection_latency = np.random.normal(mean, stdev) - self.early_symptom_detection
@@ -180,33 +198,33 @@ class Human(AgentBase):
                 self.infection_duration = self.infection_incubation + 7
 
     def recover(self):
-        self.location.recovered_count += 1
+        self.covid_model.global_count.recovered_count += 1
         if self.disease_severity == DiseaseSeverity.MODERATE:
-            self.location.moderate_severity_count -= 1
+            self.covid_model.global_count.moderate_severity_count -= 1
         elif self.disease_severity == DiseaseSeverity.HIGH:
-            self.location.high_severity_count -= 1
-        self.location.infected_people.remove(self)
-        self.location.infected_count -= 1
-        self.location.non_infected_people.append(self)
+            self.covid_model.global_count.high_severity_count -= 1
+        self.covid_model.global_count.infected_people.remove(self)
+        self.covid_model.global_count.infected_count -= 1
+        self.covid_model.global_count.non_infected_people.append(self)
         if self.hospitalized:
-            self.covid_model.total_hospitalized -= 1
+            self.covid_model.global_count.total_hospitalized -= 1
             self.hospitalized = False
         self.infection_status == InfectionStatus.RECOVERED
         self.disease_severity == DiseaseSeverity.ASYMPTOMATIC
-        self.location.symptomatic_count -= 1
-        self.location.asymptomatic_count += 1
+        self.covid_model.global_count.symptomatic_count -= 1
+        self.covid_model.global_count.asymptomatic_count += 1
         self.immune = True
 
     def die(self):
-        self.location.symptomatic_count -= 1
+        self.covid_model.global_count.symptomatic_count -= 1
         self.disease_severity = DiseaseSeverity.DEATH
-        self.location.high_severity_count -= 1
-        self.location.infected_count -= 1
-        self.location.death_count += 1
-        self.location.infected_people.remove(self)
-        self.location.dead_people.append(self)
+        self.covid_model.global_count.high_severity_count -= 1
+        self.covid_model.global_count.infected_count -= 1
+        self.covid_model.global_count.death_count += 1
+        self.covid_model.global_count.infected_people.remove(self)
+        self.covid_model.global_count.dead_people.append(self)
         if self.hospitalized:
-            self.covid_model.total_hospitalized -= 1
+            self.covid_model.global_count.total_hospitalized -= 1
             self.hospitalized = False
 
     def disease_evolution(self):
@@ -215,20 +233,20 @@ class Human(AgentBase):
             if self.disease_severity == DiseaseSeverity.ASYMPTOMATIC:
                 if self.infection_days_count >= self.infection_incubation:
                     self.disease_severity = DiseaseSeverity.LOW
-                    self.location.asymptomatic_count -= 1
-                    self.location.symptomatic_count += 1
+                    self.covid_model.global_count.asymptomatic_count -= 1
+                    self.covid_model.global_count.symptomatic_count += 1
             elif self.disease_severity == DiseaseSeverity.LOW:
                 if flip_coin(self.moderate_severity_prob):
                     self.disease_severity = DiseaseSeverity.MODERATE
-                    self.location.moderate_severity_count += 1
+                    self.covid_model.global_count.moderate_severity_count += 1
                     if not self.covid_model.reached_hospitalization_limit():
-                        self.covid_model.total_hospitalized += 1
+                        self.covid_model.global_count.total_hospitalized += 1
                         self.hospitalized = True
             elif self.disease_severity == DiseaseSeverity.MODERATE:
                 if flip_coin(self.high_severity_prob):
                     self.disease_severity = DiseaseSeverity.HIGH
-                    self.location.moderate_severity_count -= 1
-                    self.location.high_severity_count += 1
+                    self.covid_model.global_count.moderate_severity_count -= 1
+                    self.covid_model.global_count.high_severity_count += 1
                     if not self.hospitalized or self.death_mark:
                         self.die()
             elif self.disease_severity == DiseaseSeverity.HIGH:
@@ -303,48 +321,35 @@ class Adult(Human):
     
 class Elder(Human):
     pass
-    
+
 class Location(AgentBase):
-    def __init__(self, unique_id, covid_model, size, **kwargs):
+    def __init__(self, unique_id, covid_model, size):
         super().__init__(unique_id, covid_model)
         self.size = size
         self.covid_model = covid_model
-        self.infected_people = []
-        self.non_infected_people = []
-        self.dead_people = []
-        self.infected_count = 0;
-        self.non_infected_count = 0;
-        self.susceptible_count = 0;
-        self.immune_count = 0;
-        self.recovered_count = 0;
-        self.moderate_severity_count = 0;
-        self.high_severity_count = 0;
-        self.death_count = 0;
-        self.symptomatic_count = 0;
-        self.asymptomatic_count = 0;
         count = 0
         for i in range(size):
             human = Human.factory(covid_model, self)
-            self.non_infected_people.append(human)
-            self.non_infected_count += 1
+            self.covid_model.global_count.non_infected_people.append(human)
+            self.covid_model.global_count.non_infected_count += 1
             if human.immune:
-                self.immune_count += 1
+                self.covid_model.global_count.immune_count += 1
             else:
-                self.susceptible_count += 1
+                self.covid_model.global_count.susceptible_count += 1
             if not flip_coin(parameters.initial_infection_rate):
                 count += 1
             else:
-                self.non_infected_people[count].infect(count)
+                self.covid_model.global_count.non_infected_people[count].infect(count)
 
     def step(self):
         self.disease_evolution()
-        if self.susceptible_count < 1:
+        if self.covid_model.global_count.susceptible_count < 1:
             return
         infections_count = 0.0
         ics = 1.0 - parameters.isolation_cheating_severity
         p = parameters.daily_interaction_count * parameters.contagion_probability
         me = 1.0 - pow(parameters.mask_efficacy, parameters.me_attenuation)
-        for human in self.infected_people:
+        for human in self.covid_model.global_count.infected_people:
             if human.is_contagious():
                 if human.is_symptomatic():
                     if human.isolation_cheater:
@@ -359,33 +364,32 @@ class Location(AgentBase):
                 if human.mask_user:
                     p *= me
             infections_count += p
-        targets = (1 - (parameters.asymptomatic_isolation_rate * ics) ) * self.non_infected_count + (1 - (parameters.asymptomatic_isolation_rate * ics) ) * self.asymptomatic_count + (1 - (parameters.symptomatic_isolation_rate * ics) ) * self.symptomatic_count
+        targets = (1 - (parameters.asymptomatic_isolation_rate * ics) ) * self.covid_model.global_count.non_infected_count + (1 - (parameters.asymptomatic_isolation_rate * ics) ) * self.covid_model.global_count.asymptomatic_count + (1 - (parameters.symptomatic_isolation_rate * ics) ) * self.covid_model.global_count.symptomatic_count
         for i in range(int(math.ceil(infections_count))):
-            if self.susceptible_count <= 0:
+            if self.covid_model.global_count.susceptible_count <= 0:
                 break
             if targets > 0:
                 selected_index = np.random.random_integers(0, targets - 1)
             else:
-                selected_index = self.non_infected_count
-            if selected_index < self.non_infected_count:
-                selected = self.non_infected_people[selected_index]
+                selected_index = self.covid_model.global_count.non_infected_count
+            if selected_index < self.covid_model.global_count.non_infected_count:
+                selected = self.covid_model.global_count.non_infected_people[selected_index]
                 if not selected.immune:
                     selected.infect(selected_index)
 
     def disease_evolution(self):
-        for human in self.infected_people:
+        for human in self.covid_model.global_count.infected_people:
             human.disease_evolution()
 
 class CovidModel(Model):
     def __init__(self):
+        self.global_count = SimulationStatus()
         self.schedule = RandomActivation(self)
         self.locations = []
         self.listeners = []
-        self.total_population = 0
-        self.total_hospitalized = 0
 
     def reached_hospitalization_limit(self):
-        return (self.total_hospitalized / self.total_population) >= parameters.hospitalization_capacity
+        return (self.global_count.total_hospitalized / self.global_count.total_population) >= parameters.hospitalization_capacity
 
     def add_listener(self, listener):
         self.listeners.append(listener)
@@ -393,7 +397,7 @@ class CovidModel(Model):
     def add_location(self, location):
         self.schedule.add(location)
         self.locations.append(location)
-        self.total_population += location.size
+        self.global_count.total_population += location.size
 
     def step(self):
         for listener in self.listeners:
