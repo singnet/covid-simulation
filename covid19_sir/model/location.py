@@ -1,7 +1,8 @@
 import math
 import numpy as np
 
-from model.base import AgentBase, Human, flip_coin, SimulationParameters, get_parameters
+from model.base import AgentBase, flip_coin, SimulationParameters, get_parameters
+from model.human import Human
 
 class Location(AgentBase):
     def __init__(self, unique_id, covid_model, size):
