@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-from model import CovidModel, Location, get_parameters
+from model.base import CovidModel, get_parameters
+from model.location import Location
 
 class SimpleLocation(Location):
-    def __init__(self, unique_id, model, size, **kwargs):
+    def __init__(self, unique_id, model, size):
         super().__init__(unique_id, model, size)
         
 class BasicStatistics():
@@ -19,21 +20,13 @@ class BasicStatistics():
 
     def start_cycle(self, model):
         self.cycles_count += 1
-        pop = model.total_population
-        s1 = s2 = s3 = s4 = s5 = s6 = 0
-        for location in model.locations:
-            s1 += location.susceptible_count
-            s2 += location.infected_count
-            s3 += location.recovered_count
-            s4 += location.moderate_severity_count
-            s5 += location.high_severity_count
-            s6 += location.death_count
-        self.susceptible.append(s1 / pop)
-        self.infected.append(s2 / pop)
-        self.recovered.append(s3 / pop)
-        self.hospitalization.append((s4 + s5) / pop)
-        self.icu.append(s5 / pop)
-        self.death.append(s6 / pop)
+        pop = self.covid_model.global_count.total_population
+        self.susceptible.append(self.covid_model.global_count.susceptible_count / pop)
+        self.infected.append(self.covid_model.global_count.infected_count / pop)
+        self.recovered.append(self.covid_model.global_count.recovered_count / pop)
+        self.hospitalization.append((self.covid_model.global_count.total_hospitalized) / pop)
+        self.icu.append(self.covid_model.global_count.high_severity_count / pop)
+        self.death.append(self.covid_model.global_count.death_count / pop)
 
     def end_cycle(self, model):
         pass
@@ -58,7 +51,7 @@ class BasicStatistics():
         fig, ax = plt.subplots()
         ax.set_title('Contagion Evolution')
         ax.set_xlim((0, self.cycles_count))
-        ax.axhline(y=get_parameters().hospitalization_capacity, c="black", ls='--', label='Critical limit')
+        ax.axhline(y=get_parameters().get('hospitalization_capacity'), c="black", ls='--', label='Critical limit')
         for col in df.columns.values:
             ax.plot(df.index.values, df[col].values, c=color[col], label=col)
         ax.set_xlabel("Days")

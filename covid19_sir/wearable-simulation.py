@@ -1,5 +1,12 @@
-from model import CovidModel, Location, SimulationParameters, set_parameters
+import sys
+import numpy as np
+from model.base import CovidModel, SimulationParameters, set_parameters
+from model.location import Location
 from utils import SimpleLocation, BasicStatistics
+
+if len(sys.argv) > 1:
+    seed = int(sys.argv[1])
+    np.random.seed(seed)
 
 ################################################################################
 # Common parameters amongst all scenarios

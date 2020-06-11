@@ -1,5 +1,12 @@
-from model import CovidModel, Location, SimulationParameters, set_parameters, get_parameters, change_parameters
+import sys
+import numpy as np
+from model.base import CovidModel, SimulationParameters, set_parameters, get_parameters, change_parameters
+from model.location import Location
 from utils import SimpleLocation, BasicStatistics
+
+if len(sys.argv) > 1:
+    seed = int(sys.argv[1])
+    np.random.seed(seed)
 
 ################################################################################
 # Common parameters amongst all scenarios
@@ -125,12 +132,12 @@ class IsolationRule():
         pass
     def end_cycle(self, model):
         if self.state == 0:
-            if (location.infected_count / location.size) >= self.perc1:
+            if (self.location.covid_model.global_count.infected_count / location.size) >= self.perc1:
                 self.state = 1
                 change_parameters(symptomatic_isolation_rate = 0.9,
                                   asymptomatic_isolation_rate = 0.8)
         elif self.state == 1:
-            if (location.infected_count / location.size) <= (1.0 - self.perc2):
+            if (self.location.covid_model.global_count.infected_count / location.size) <= (1.0 - self.perc2):
                 self.state = 2
                 change_parameters(symptomatic_isolation_rate = 0.0,
                                   asymptomatic_isolation_rate = 0.0)

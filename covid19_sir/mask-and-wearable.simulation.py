@@ -2,7 +2,8 @@ import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from model import CovidModel, Location, SimulationParameters, set_parameters
+from model.base import CovidModel, SimulationParameters, set_parameters
+from model.location import Location
 from utils import SimpleLocation, BasicStatistics
 
 ################################################################################
