@@ -50,7 +50,7 @@ class BasicStatistics():
         fig, ax = plt.subplots()
         ax.set_title('Contagion Evolution')
         ax.set_xlim((0, self.cycles_count))
-        ax.axhline(y=get_parameters().hospitalization_capacity, c="black", ls='--', label='Critical limit')
+        ax.axhline(y=get_parameters().get('hospitalization_capacity'), c="black", ls='--', label='Critical limit')
         for col in df.columns.values:
             ax.plot(df.index.values, df[col].values, c=color[col], label=col)
         ax.set_xlabel("Days")
