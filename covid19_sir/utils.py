@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-from model import CovidModel, Location, get_parameters
+from model.base import CovidModel, get_parameters
+from model.location import Location
 
 class SimpleLocation(Location):
     def __init__(self, unique_id, model, size):
