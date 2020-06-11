@@ -2,7 +2,7 @@ import uuid
 import numpy as np
 from enum import Enum, auto
 
-from model.base import AgentBase, InfectionStatus, DiseaseSeverity, flip_coin, roulette_selection, get_parameters
+from model.base import AgentBase, InfectionStatus, DiseaseSeverity, flip_coin, normal_cap, roulette_selection, get_parameters
 
 def human_unique_id():
     return uuid.uuid1()
@@ -22,6 +22,9 @@ class WorkInfo:
     fixed_work_location = False
     house_bound_worker = False
     earnings = 0.0
+
+class IndividualProperties:
+    base_health = 1.0
 
 class Human(AgentBase):
 
@@ -49,6 +52,8 @@ class Human(AgentBase):
         self.moderate_severity_prob = msp
         self.high_severity_prob = hsp
         self.death_mark = mfd
+        self.properties = IndividualProperties()
+        self.initialize_individual_properties()
         self.infection_days_count = 0
         self.infection_latency = 0
         self.infection_incubation = 0
@@ -56,7 +61,11 @@ class Human(AgentBase):
         self.infection_status = InfectionStatus.SUSCEPTIBLE
         self.hospitalized = False
         if self.is_worker(): self.setup_work_info()
+        self.current_health = self.properties.base_health
         self.parameter_changed()
+
+    def initialize_individual_properties(self):
+        pass
 
     def parameter_changed(self):
         self.mask_user = flip_coin(get_parameters().get('mask_user_rate'))
@@ -204,16 +213,21 @@ class Human(AgentBase):
         self.work_info.earnings = 0.0
 
 class Infant(Human):
-    pass
+    def initialize_individual_properties(self):
+      self.properties.base_health = normal_cap(0.8, 0.2, 0.0, 1.0)
     
 class Toddler(Human):
-    pass
+    def initialize_individual_properties(self):
+      self.properties.base_health = normal_cap(0.8, 0.2, 0.0, 1.0)
     
 class K12Student(Human):
-    pass
+    def initialize_individual_properties(self):
+      self.properties.base_health = normal_cap(0.8, 0.2, 0.0, 1.0)
     
 class Adult(Human):
-    pass
+    def initialize_individual_properties(self):
+      self.properties.base_health = normal_cap(0.8, 0.2, 0.0, 1.0)
     
 class Elder(Human):
-    pass
+    def initialize_individual_properties(self):
+      self.properties.base_health = normal_cap(0.8, 0.2, 0.0, 1.0)

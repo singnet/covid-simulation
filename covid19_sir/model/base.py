@@ -17,6 +17,12 @@ def roulette_selection(v, w):
         if r <= w[i]: return v[i]
     return v[len(v) - 1]
 
+def normal_cap(mean, stdev, lower_bound, upper_bound):
+    r = np.random.normal(mean, stdev)
+    if r < lower_bound: r = lower_bound
+    if r > upper_bound: r = upper_bound
+    return r
+
 def set_parameters(new_parameters):
     global parameters
     parameters = new_parameters
