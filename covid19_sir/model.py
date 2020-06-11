@@ -316,6 +316,7 @@ class Location(AgentBase):
         super().__init__(unique_id, covid_model)
         self.size = size
         self.covid_model = covid_model
+        self.custom_parameters = {}
         count = 0
         for i in range(size):
             human = Human.factory(covid_model, self)
@@ -331,7 +332,20 @@ class Location(AgentBase):
                 self.covid_model.global_count.non_infected_people[count].infect(count)
 
     def get_parameter(self, key):
-      return parameters.get(key)
+        if key in self.custom_parameters: return self.custom_parameters[key]
+        return parameters.get(key)
+
+    def set_custom_parameters(self, s, args):
+        for key in args:
+            # Only parameters in s (defined in constructor of super) can
+            # be overwritten
+            check = False
+            for k, v in s: 
+                if (k == key): check = True
+            assert(check)
+        self.custom_parameters = {}
+        for key, value in s:
+            self.custom_parameters[key] = args.get(key, value)
 
     def step(self):
         self.disease_evolution()
@@ -372,6 +386,41 @@ class Location(AgentBase):
     def disease_evolution(self):
         for human in self.covid_model.global_count.infected_people:
             human.disease_evolution()
+
+class House(Location):
+    def __init__(self, unique_id, covid_model, size, **kwargs):
+        super().__init__(unique_id, covid_model, size)
+        self.set_custom_parameters([('contagion_probability', 0.9)], kwargs)
+
+class Apartment(Location):
+    def __init__(self, unique_id, covid_model, size, **kwargs):
+        super().__init__(unique_id, covid_model, size)
+        self.set_custom_parameters([('contagion_probability', 0.9)], kwargs)
+
+class Office(Location):
+    def __init__(self, unique_id, covid_model, size, **kwargs):
+        super().__init__(unique_id, covid_model, size)
+        self.set_custom_parameters([('contagion_probability', 0.7)], kwargs)
+
+class Shop(Location):
+    def __init__(self, unique_id, covid_model, size, **kwargs):
+        super().__init__(unique_id, covid_model, size)
+        self.set_custom_parameters([('contagion_probability', 0.6)], kwargs)
+
+class Factory(Location):
+    def __init__(self, unique_id, covid_model, size, **kwargs):
+        super().__init__(unique_id, covid_model, size)
+        self.set_custom_parameters([('contagion_probability', 0.6)], kwargs)
+
+class FunGatheringSpot(Location):
+    def __init__(self, unique_id, covid_model, size, **kwargs):
+        super().__init__(unique_id, covid_model, size)
+        self.set_custom_parameters([('contagion_probability', 0.2)], kwargs)
+
+class Hospital(Location):
+    def __init__(self, unique_id, covid_model, size, **kwargs):
+        super().__init__(unique_id, covid_model, size)
+        self.set_custom_parameters([('contagion_probability', 0.7)], kwargs)
 
 class CovidModel(Model):
     def __init__(self):
