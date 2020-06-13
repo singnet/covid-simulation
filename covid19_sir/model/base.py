@@ -23,7 +23,7 @@ def normal_cap(mean, stdev, lower_bound, upper_bound):
     if r > upper_bound: r = upper_bound
     return r
 
-def human_unique_id():
+def unique_id():
     return uuid.uuid1()
 
 def set_parameters(new_parameters):
