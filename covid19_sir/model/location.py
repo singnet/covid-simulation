@@ -5,24 +5,9 @@ from model.base import AgentBase, flip_coin, SimulationParameters, get_parameter
 from model.human import Human
 
 class Location(AgentBase):
-    def __init__(self, unique_id, covid_model, size):
-        super().__init__(unique_id, covid_model)
-        self.size = size
-        self.covid_model = covid_model
+    def __init__(self, covid_model):
+        super().__init__(unique_id(), covid_model)
         self.custom_parameters = {}
-        count = 0
-        for i in range(size):
-            human = Human.factory(covid_model, self)
-            self.covid_model.global_count.non_infected_people.append(human)
-            self.covid_model.global_count.non_infected_count += 1
-            if human.immune:
-                self.covid_model.global_count.immune_count += 1
-            else:
-                self.covid_model.global_count.susceptible_count += 1
-            if not flip_coin(self.get_parameter('initial_infection_rate')):
-                count += 1
-            else:
-                self.covid_model.global_count.non_infected_people[count].infect(count)
 
     def get_parameter(self, key):
         if key in self.custom_parameters: return self.custom_parameters[key]
@@ -80,45 +65,48 @@ class Location(AgentBase):
         for human in self.covid_model.global_count.infected_people:
             human.disease_evolution()
 
+class SimpleLocation(Location):
+    def __init__(self, unique_id, covid_model):
+        super().__init__(unique_id, covid_model)
+
 class House(Location):
-    def __init__(self, unique_id, covid_model, size, **kwargs):
-        super().__init__(unique_id, covid_model, size)
+    def __init__(self, unique_id, covid_model, **kwargs):
+        super().__init__(unique_id, covid_model)
         self.set_custom_parameters([('contagion_probability', 0.9)], kwargs)
 
 class Apartment(Location):
-    def __init__(self, unique_id, covid_model, size, **kwargs):
-        super().__init__(unique_id, covid_model, size)
+    def __init__(self, unique_id, covid_model, **kwargs):
+        super().__init__(unique_id, covid_model)
         self.set_custom_parameters([('contagion_probability', 0.9)], kwargs)
 
 class Building(Location):
-    def __init__(self, unique_id, covid_model, size, **kwargs):
-        super().__init__(unique_id, covid_model, size)
+    def __init__(self, unique_id, covid_model, **kwargs):
+        super().__init__(unique_id, covid_model)
         self.apartments = []
         self.fun_spots = []
         self.offices = []
 
 class Office(Location):
-    def __init__(self, unique_id, covid_model, size, **kwargs):
-        super().__init__(unique_id, covid_model, size)
+    def __init__(self, unique_id, covid_model, **kwargs):
+        super().__init__(unique_id, covid_model)
         self.set_custom_parameters([('contagion_probability', 0.7)], kwargs)
 
 class Shop(Location):
-    def __init__(self, unique_id, covid_model, size, **kwargs):
-        super().__init__(unique_id, covid_model, size)
+    def __init__(self, unique_id, covid_model, **kwargs):
+        super().__init__(unique_id, covid_model)
         self.set_custom_parameters([('contagion_probability', 0.6)], kwargs)
 
 class Factory(Location):
-    def __init__(self, unique_id, covid_model, size, **kwargs):
-        super().__init__(unique_id, covid_model, size)
+    def __init__(self, unique_id, covid_model, **kwargs):
+        super().__init__(unique_id, covid_model)
         self.set_custom_parameters([('contagion_probability', 0.6)], kwargs)
 
 class FunGatheringSpot(Location):
-    def __init__(self, unique_id, covid_model, size, **kwargs):
-        super().__init__(unique_id, covid_model, size)
+    def __init__(self, unique_id, covid_model, **kwargs):
+        super().__init__(unique_id, covid_model)
         self.set_custom_parameters([('contagion_probability', 0.2)], kwargs)
 
 class Hospital(Location):
-    def __init__(self, unique_id, covid_model, size, **kwargs):
-        super().__init__(unique_id, covid_model, size)
+    def __init__(self, unique_id, covid_model, **kwargs):
+        super().__init__(unique_id, covid_model)
         self.set_custom_parameters([('contagion_probability', 0.7)], kwargs)
-

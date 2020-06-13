@@ -23,6 +23,9 @@ def normal_cap(mean, stdev, lower_bound, upper_bound):
     if r > upper_bound: r = upper_bound
     return r
 
+def human_unique_id():
+    return uuid.uuid1()
+
 def set_parameters(new_parameters):
     global parameters
     parameters = new_parameters
@@ -101,12 +104,14 @@ class AgentBase(Agent):
     # MESA agent
     def __init__(self, unique_id, covid_model):
         super().__init__(unique_id, covid_model)
+        self.id = unique_id
+        self.covid_model = covid_model
+        covid_model.schedule.add(self)
 
 class CovidModel(Model):
     def __init__(self):
         self.global_count = SimulationStatus()
         self.schedule = RandomActivation(self)
-        self.locations = []
         self.listeners = []
 
     def reached_hospitalization_limit(self):
@@ -117,7 +122,6 @@ class CovidModel(Model):
 
     def add_location(self, location):
         self.schedule.add(location)
-        self.locations.append(location)
         self.global_count.total_population += location.size
 
     def step(self):

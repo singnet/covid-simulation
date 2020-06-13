@@ -3,10 +3,6 @@ import pandas as pd
 from model.base import CovidModel, get_parameters
 from model.location import Location
 
-class SimpleLocation(Location):
-    def __init__(self, unique_id, model, size):
-        super().__init__(unique_id, model, size)
-        
 class BasicStatistics():
     def __init__(self, model):
         self.susceptible = []

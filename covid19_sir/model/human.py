@@ -1,10 +1,9 @@
-import uuid
 import numpy as np
 from enum import Enum, auto
 
 from model.base import AgentBase, InfectionStatus, DiseaseSeverity, flip_coin, normal_cap, roulette_selection, get_parameters
 
-def human_unique_id():
+def unique_id():
     return uuid.uuid1()
 
 class WorkClasses(Enum): 
@@ -29,7 +28,7 @@ class IndividualProperties:
 class Human(AgentBase):
 
     @staticmethod
-    def factory(covid_model, location):
+    def factory(covid_model):
         moderate_severity_probs = [0.001, 0.003, 0.012, 0.032, 0.049, 0.102, 0.166, 0.243, 0.273, 0.273]
         high_severity_probs = [0.05, 0.05, 0.05, 0.05, 0.063, 0.122, 0.274, 0.432, 0.709, 0.709]
         death_probs = [0.002, 0.00006, 0.0003, 0.0008, 0.0015, 0.006, 0.022, 0.051, 0.093, 0.093]
@@ -38,16 +37,26 @@ class Human(AgentBase):
         msp = moderate_severity_probs[index]
         hsp = high_severity_probs[index]
         mfd = flip_coin(death_probs[index])
-        if age <= 1: return Infant(covid_model, location, age, msp, hsp, mfd)
-        if age <= 4: return Toddler(covid_model, location, age, msp, hsp, mfd)
-        if age <= 18: return K12Student(covid_model, location, age, msp, hsp, mfd)
-        if age <= 64: return Adult(covid_model, location, age, msp, hsp, mfd)
-        return Elder(covid_model, location, age, msp, hsp, mfd)
+        if age <= 1: 
+            human = Infant(covid_model, age, msp, hsp, mfd)
+        elif age <= 4: 
+            human = Toddler(covid_model, age, msp, hsp, mfd)
+        elif age <= 18: 
+            human = K12Student(covid_model, age, msp, hsp, mfd)
+        elif age <= 64: 
+            human = Adult(covid_model, age, msp, hsp, mfd)
+        else:
+            human = Elder(covid_model, age, msp, hsp, mfd)
 
-    def __init__(self, covid_model, location, age, msp, hsp, mfd):
-        super().__init__(human_unique_id(), covid_model)
-        self.covid_model = covid_model
-        self.location = location
+        covid_model.global_count.non_infected_people.append(human)
+        covid_model.global_count.non_infected_count += 1
+        if human.immune:
+            covid_model.global_count.immune_count += 1
+        else:
+            covid_model.global_count.susceptible_count += 1
+
+    def __init__(self, covid_model, age, msp, hsp, mfd):
+        super().__init__(unique_id(), covid_model)
         self.age = age
         self.moderate_severity_prob = msp
         self.high_severity_prob = hsp
