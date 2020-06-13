@@ -10,6 +10,7 @@ class Location(AgentBase):
         self.custom_parameters = {}
         self.humans = []
         self.locations = []
+        self.container = None
 
     def get_parameter(self, key):
         if key in self.custom_parameters: return self.custom_parameters[key]
@@ -77,17 +78,16 @@ class SimpleLocation(Location, size):
             self.push_human(Human.factory(covid_model))
 
 class BuildingUnit(Location):
-    def __init__(self, building, capacity, covid_model, **kwargs):
+    def __init__(self, capacity, covid_model, **kwargs):
         super().__init__(unique_id, covid_model)
         self.set_custom_parameters([('contagion_probability', 0.9)], kwargs)
-        self.building = building
         self.capacity = capacity
         self.allocation = []
 
     def allocate(human_id):
         assert len(self.allocation) < self.capacity
         self.allocation.append(human_id)
-        self.building.allocation[human_id] = self
+        self.container.allocation[human_id] = self
 
 class HomogeneousBuilding(Location):
     def __init__(self, building_capacity, unit_capacity, covid_model, **kwargs):
@@ -96,15 +96,14 @@ class HomogeneousBuilding(Location):
         self.capacity = building_capacity
         self.unit_capacity = unit_capacity
         self.allocation = {}
-        self.units = []
 
     def get_unit(human_id):
         return self.allocation[human_id]
 
     def allocate(human_id):
         success = False
-        if len(units[-1]) < self.unit_capacity:
-            self.allocation[human_id] = units[-1]
+        if len(locations[-1]) < self.unit_capacity:
+            self.allocation[human_id] = locations[-1]
             success = True
         else:
             new_unit = get_empty_unit()
@@ -115,9 +114,10 @@ class HomogeneousBuilding(Location):
 
     def get_empty_unit():
         new_unity = None
-        if len(units) < self.capacity:
-            new_unit = BuildingUnit(self, self.unit_capacity, self.covid_model, self.unit_args)
-            units.append(new_unit)
+        if len(locations) < self.capacity:
+            new_unit = BuildingUnit(self.unit_capacity, self.covid_model, self.unit_args)
+            new_unit.container = self
+            locations.append(new_unit)
         return new_unit
 
 class House(Location):
@@ -154,3 +154,7 @@ class Hospital(Location):
     def __init__(self, unique_id, covid_model, **kwargs):
         super().__init__(unique_id, covid_model)
         self.set_custom_parameters([('contagion_probability', 0.7)], kwargs)
+
+class District(Location):
+    def __init__(self, unique_id, covid_model, **kwargs):
+        super().__init__(unique_id, covid_model)
