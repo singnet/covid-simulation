@@ -1,4 +1,3 @@
-import uuid
 from enum import Enum, auto
 from mesa import Agent, Model
 from mesa.time import RandomActivation

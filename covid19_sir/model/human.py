@@ -1,3 +1,4 @@
+import uuid
 import numpy as np
 from enum import Enum, auto
 
@@ -54,6 +55,7 @@ class Human(AgentBase):
             covid_model.global_count.immune_count += 1
         else:
             covid_model.global_count.susceptible_count += 1
+        return human
 
     def __init__(self, covid_model, age, msp, hsp, mfd):
         super().__init__(unique_id(), covid_model)
