@@ -21,14 +21,15 @@ mask_efficacy = 0.0
 imune_rate = 0.01
 initial_infection_rate = 0.01
 hospitalization_capacity = 0.05
-latency_period_mean = 2.0
+latency_period_mean = 3.0
 latency_period_stdev = 1.0
-incubation_period_mean = 4.0
-incubation_period_stdev = 2.0
+incubation_period_mean = 3.0
+incubation_period_stdev = 1.0
 disease_period_mean = 20
 disease_period_stdev = 5
 asymptomatic_isolation_rate = 0.0
 symptomatic_isolation_rate = 0.0
+asymptomatic_contagion_probability = 0.1
 
 # Simulation
 
@@ -131,7 +132,8 @@ scenario[sc]['parameters'] = SimulationParameters(
     disease_period_mean = disease_period_mean,
     disease_period_stdev = disease_period_stdev,
     asymptomatic_isolation_rate = asymptomatic_isolation_rate,
-    symptomatic_isolation_rate = symptomatic_isolation_rate
+    symptomatic_isolation_rate = symptomatic_isolation_rate,
+    asymptomatic_contagion_probability = asymptomatic_contagion_probability
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
@@ -158,6 +160,7 @@ scenario[sc]['parameters'] = SimulationParameters(
     disease_period_stdev = disease_period_stdev,
     symptomatic_isolation_rate = 0.9,
     asymptomatic_isolation_rate = asymptomatic_isolation_rate,
+    asymptomatic_contagion_probability = asymptomatic_contagion_probability
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
@@ -184,6 +187,7 @@ scenario[sc]['parameters'] = SimulationParameters(
     disease_period_stdev = disease_period_stdev,
     symptomatic_isolation_rate = 0.9,
     asymptomatic_isolation_rate = 0.8,
+    asymptomatic_contagion_probability = asymptomatic_contagion_probability
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
@@ -233,8 +237,9 @@ sc4_parameters = SimulationParameters(
     incubation_period_stdev = incubation_period_stdev,
     disease_period_mean = disease_period_mean,
     disease_period_stdev = disease_period_stdev,
+    asymptomatic_contagion_probability = asymptomatic_contagion_probability,
     symptomatic_isolation_rate = 0.0,
-    asymptomatic_isolation_rate = 0.0,
+    asymptomatic_isolation_rate = 0.0
 )
 set_parameters(sc4_parameters)
 sc4_model = CovidModel()

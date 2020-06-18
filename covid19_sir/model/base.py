@@ -66,6 +66,8 @@ class SimulationStatus:
         self.asymptomatic_count = 0
         self.total_hospitalized = 0
         self.total_population = 0
+        self.work_population = 0
+        self.total_income = 0.0
     
 class InfectionStatus(Enum):
     SUSCEPTIBLE = auto()
@@ -108,6 +110,7 @@ class SimulationParameters:
         self.params['spreading_rate'] = kwargs.get("spreading_rate", 0.0)
         self.params['asymptomatic_isolation_rate'] = kwargs.get("asymptomatic_isolation_rate", 0.0)
         self.params['symptomatic_isolation_rate'] = kwargs.get("symptomatic_isolation_rate", 0.0)
+        self.params['asymptomatic_contagion_probability'] = kwargs.get("asymptomatic_contagion_probability", 0.1)
 
     def get(self, key):
         return self.params[key]
@@ -155,6 +158,7 @@ class CovidModel(Model):
         for listener in self.listeners:
             listener.start_cycle(self)
 
+        self.global_count.total_income = 0.0
         flag = False
         while not flag:
             self.schedule.step()
