@@ -5,7 +5,7 @@ from model.base import AgentBase, InfectionStatus, DiseaseSeverity, SimulationSt
 
 class WorkClasses(Enum): 
     OFFICE = auto()
-    HOUSEBOND = auto()
+    HOUSEBOUND = auto()
     FACTORY = auto()
     RETAIL = auto()
     ESSENTIAL = auto()
@@ -17,7 +17,14 @@ class WorkInfo:
     essential_worker = False
     fixed_work_location = False
     house_bound_worker = False
-    earnings = 0.0
+    base_income = 0.0
+    income_loss_isolated = 0.0
+    isolated = False
+    def current_income(self):
+        if self.isolated:
+            return self.base_income * (1.0 - self.income_loss_isolated)
+        else:
+            return self.base_income
 
 class IndividualProperties:
     base_health = 1.0
@@ -59,22 +66,24 @@ class Human(AgentBase):
 
     def __init__(self, covid_model, age, msp, hsp, mfd):
         super().__init__(unique_id(), covid_model)
+        self.properties = IndividualProperties()
+        self.initialize_individual_properties()
         self.home_district = None
         self.work_district = None
         self.school_district = None
         self.age = age
-        self.moderate_severity_prob = msp
-        self.high_severity_prob = hsp
+        self.moderate_severity_prob = msp * (1.0 / self.properties.base_health)
+        self.high_severity_prob = hsp * (1.0 / self.properties.base_health)
         self.death_mark = mfd
-        self.properties = IndividualProperties()
-        self.initialize_individual_properties()
         self.infection_days_count = 0
         self.infection_latency = 0
         self.infection_incubation = 0
         self.infection_duration = 0
         self.infection_status = InfectionStatus.SUSCEPTIBLE
         self.hospitalized = False
-        if self.is_worker(): self.setup_work_info()
+        if self.is_worker(): 
+            self.setup_work_info()
+            self.covid_model.global_count.work_population += 1
         self.current_health = self.properties.base_health
         self.is_dead = False
         self.parameter_changed()
@@ -180,12 +189,19 @@ class Human(AgentBase):
         return self.infection_status == InfectionStatus.INFECTED
 
     def is_contagious(self):
-        return self.is_infected() and self.infection_days_count >= self.infection_latency
+        if self.is_infected() and self.infection_days_count >= self.infection_latency:
+            if self.is_symptomatic() or flip_coin(get_parameters().get('asymptomatic_contagion_probability')):
+                return True
+        return False
     
     def is_symptomatic(self):
         return self.is_infected() and self.infection_days_count >= self.infection_incubation
 
     def is_isolated(self):
+        if self.is_infected():
+            if self.disease_severity == DiseaseSeverity.MODERATE or \
+               self.disease_severity == DiseaseSeverity.HIGH:
+                return True
         if self.is_symptomatic():
             ir = get_parameters().get('symptomatic_isolation_rate')
         else:
@@ -199,28 +215,32 @@ class Human(AgentBase):
         
 
     def is_worker(self):
-        return self.age >= 15 and self.age <= 64
+        return self.age >= 19 and self.age <= 64
 
     def setup_work_info(self):
-        classes = [WorkClasses.OFFICE,
-                   WorkClasses.HOUSEBOND,
-                   WorkClasses.FACTORY,
-                   WorkClasses.RETAIL,
-                   WorkClasses.ESSENTIAL,
-                   WorkClasses.TRANSPORTATION]
+        income = {
+            WorkClasses.OFFICE: (1.0, 0.0),
+            WorkClasses.HOUSEBOUND: (1.0, 0.0),
+            WorkClasses.FACTORY: (1.0, 1.0),
+            WorkClasses.RETAIL: (1.0, 1.0),
+            WorkClasses.ESSENTIAL: (1.0, 1.0),
+            WorkClasses.TRANSPORTATION: (1.0, 1.0)
+        }
+        classes = [key for key in income.keys()]
         roulette = []
-        count = 1
+        self.work_info = WorkInfo()
+
         #TODO change to use some realistic distribution
+        count = 1
         for wclass in classes:
             roulette.append(count / len(classes))
             count = count + 1
         selected_class = roulette_selection(classes, roulette)
-        
-        self.work_info = WorkInfo()
+        self.work_info.base_income, self.work_info.income_loss_isolated = income[selected_class]
 
         self.work_info.can_work_from_home = \
             selected_class ==  WorkClasses.OFFICE or \
-            selected_class == WorkClasses.HOUSEBOND
+            selected_class == WorkClasses.HOUSEBOUND
 
         self.work_info.meet_non_coworkers_at_work = \
             selected_class == WorkClasses.RETAIL or \
@@ -231,14 +251,12 @@ class Human(AgentBase):
 
         self.work_info.fixed_work_location = \
             selected_class == WorkClasses.OFFICE or \
-            selected_class == WorkClasses.HOUSEBOND or \
+            selected_class == WorkClasses.HOUSEBOUND or \
             selected_class == WorkClasses.FACTORY or \
             selected_class == WorkClasses.RETAIL or \
             selected_class == WorkClasses.ESSENTIAL
 
-        self.work_info.house_bound_worker = WorkClasses.HOUSEBOND
-
-        self.work_info.earnings = 0.0
+        self.work_info.house_bound_worker = WorkClasses.HOUSEBOUND
 
     def move(self, source_district, target_district):
         source = source_district.get_buildings(self)[0].get_unit(self).humans
@@ -249,15 +267,15 @@ class Human(AgentBase):
 
 class Infant(Human):
     def initialize_individual_properties(self):
-      self.properties.base_health = normal_cap(0.8, 0.2, 0.0, 1.0)
+      self.properties.base_health = normal_cap(1.0, 0.2, 0.0, 1.0)
     
 class Toddler(Human):
     def initialize_individual_properties(self):
-      self.properties.base_health = normal_cap(0.8, 0.2, 0.0, 1.0)
+      self.properties.base_health = normal_cap(1.0, 0.2, 0.0, 1.0)
     
 class K12Student(Human):
     def initialize_individual_properties(self):
-      self.properties.base_health = normal_cap(0.8, 0.2, 0.0, 1.0)
+      self.properties.base_health = normal_cap(1.0, 0.2, 0.0, 1.0)
 
     def step(self):
         if self.is_dead: return
@@ -271,13 +289,17 @@ class K12Student(Human):
     
 class Adult(Human):
     def initialize_individual_properties(self):
-      self.properties.base_health = normal_cap(0.8, 0.2, 0.0, 1.0)
+      self.properties.base_health = normal_cap(0.9, 0.2, 0.0, 1.0)
 
     def step(self):
         if self.is_dead: return
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
-            if not self.is_isolated():
+            if self.is_isolated():
+                self.work_info.isolated = True
+            else:
+                self.work_info.isolated = False
                 self.move(self.home_district, self.work_district)
+            self.covid_model.global_count.total_income += self.work_info.current_income()
         elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
             self.move(self.work_district, self.home_district)
         elif self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
@@ -285,4 +307,4 @@ class Adult(Human):
     
 class Elder(Human):
     def initialize_individual_properties(self):
-      self.properties.base_health = normal_cap(0.8, 0.2, 0.0, 1.0)
+      self.properties.base_health = normal_cap(0.7, 0.2, 0.0, 1.0)
