@@ -95,3 +95,11 @@ class FamilyFactory:
                 if self._is_compatible(human, schema):
                     self._assign(human, family, schema)
                     flag = True
+
+    def __repr__(self):
+        txt = f"{len(self.families)} families - {self.human_count} people\n"
+        for family in self.families:
+            family.sort(reverse=True, key=lambda human: human.age)
+            txt = txt + str([type(human).__name__ for human in family]) + "\n"
+        return txt
+

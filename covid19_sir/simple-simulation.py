@@ -20,29 +20,35 @@ mask_user_rate = 0.0
 mask_efficacy = 0.0
 imune_rate = 0.01
 initial_infection_rate = 0.01
-hospitalization_capacity = 0.02
-latency_period_mean = 3.0
+hospitalization_capacity = 0.05
+latency_period_mean = 2.0
 latency_period_stdev = 1.0
-incubation_period_mean = 7.0
-incubation_period_stdev = 4.0
+incubation_period_mean = 4.0
+incubation_period_stdev = 2.0
 disease_period_mean = 20
 disease_period_stdev = 5
 asymptomatic_isolation_rate = 0.0
 symptomatic_isolation_rate = 0.0
-contagion_probability = 0.9
-spreading_rate = 0.9
 
 # Simulation
 
 population_size = 1000
 simulation_cycles = 90 # days
 
-def build_district(name, model, building_capacity, unit_capacity, occupacy_rate, spreading_rate, contagion_probability):
+def build_district(name, model, building_capacity, unit_capacity,
+                   occupacy_rate, spreading_rate, contagion_probability):
+
     district = District(name, model)
-    for i in range(math.ceil((math.ceil(population_size / unit_capacity) * (1 / occupacy_rate)) / building_capacity)):
+    building_count = math.ceil(
+        math.ceil(population_size / unit_capacity) * (1 / occupacy_rate) 
+        / building_capacity)
+    for i in range(building_count):
         building = HomogeneousBuilding(building_capacity, model)
         for j in range(building_capacity):
-            building.locations.append(BuildingUnit(unit_capacity, model, spreading_rate=spreading_rate, contagion_probability=contagion_probability))
+            unit = BuildingUnit(unit_capacity, model, 
+                                spreading_rate=spreading_rate, 
+                                contagion_probability=contagion_probability)
+            building.locations.append(unit)
         district.locations.append(building)
     return district
 
@@ -58,14 +64,30 @@ def setup_city_layout(model):
     classroom_capacity = 30
     school_accupacy_rate = 0.5
 
-    home_district = build_district("Home", model, appartment_building_capacity, appartment_capacity, appartment_building_accupacy_rate, 0.9, 0.9)
-    work_district = build_district("Work", model, work_building_capacity, office_capacity, work_building_accupacy_rate, 0.5, 0.6)
-    school_district = build_district("School", model, school_capacity, classroom_capacity, school_accupacy_rate, 0.5, 0.9)
+    home_district = build_district("Home", model, 
+                                   appartment_building_capacity, 
+                                   appartment_capacity,
+                                   appartment_building_accupacy_rate, 
+                                   0.9, 0.9)
+    work_district = build_district("Work", model, 
+                                   work_building_capacity, 
+                                   office_capacity, 
+                                   work_building_accupacy_rate, 
+                                   0.5, 0.6)
+    school_district = build_district("School", model, 
+                                     school_capacity, 
+                                     classroom_capacity, 
+                                     school_accupacy_rate, 
+                                     0.5, 0.9)
+    #print(home_district)
+    #print(work_district)
+    #print(school_district)
 
     family_factory = FamilyFactory(model)
     family_factory.factory(population_size)
-    model.global_count.total_population = population_size
+    model.global_count.total_population = family_factory.human_count
 
+    #print(family_factory)
 
     for family in family_factory.families:
         adults = [human for human in family if isinstance(human, Adult)]
@@ -80,6 +102,12 @@ def setup_city_layout(model):
             adult.work_district = work_district
         for student in students:
             student.school_district = school_district
+
+    #print(home_district)
+    #print(work_district)
+    #print(school_district)
+
+    #exit()
 
 ################################################################################
 # Scenarios
@@ -102,12 +130,14 @@ scenario[sc]['parameters'] = SimulationParameters(
     incubation_period_stdev = incubation_period_stdev,
     disease_period_mean = disease_period_mean,
     disease_period_stdev = disease_period_stdev,
-    contagion_probability = contagion_probability,
     asymptomatic_isolation_rate = asymptomatic_isolation_rate,
     symptomatic_isolation_rate = symptomatic_isolation_rate
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
+if len(sys.argv) > 1:
+    seed = int(sys.argv[1])
+    np.random.seed(seed)
 setup_city_layout(scenario[sc]['model'])
 
 # ------------------------------------------------------------------------------
@@ -128,10 +158,12 @@ scenario[sc]['parameters'] = SimulationParameters(
     disease_period_stdev = disease_period_stdev,
     symptomatic_isolation_rate = 0.9,
     asymptomatic_isolation_rate = asymptomatic_isolation_rate,
-    contagion_probability = contagion_probability
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
+if len(sys.argv) > 1:
+    seed = int(sys.argv[1])
+    np.random.seed(seed)
 setup_city_layout(scenario[sc]['model'])
 
 # ------------------------------------------------------------------------------
@@ -152,10 +184,12 @@ scenario[sc]['parameters'] = SimulationParameters(
     disease_period_stdev = disease_period_stdev,
     symptomatic_isolation_rate = 0.9,
     asymptomatic_isolation_rate = 0.8,
-    contagion_probability = contagion_probability
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
+if len(sys.argv) > 1:
+    seed = int(sys.argv[1])
+    np.random.seed(seed)
 setup_city_layout(scenario[sc]['model'])
 
 # ------------------------------------------------------------------------------
@@ -201,10 +235,12 @@ sc4_parameters = SimulationParameters(
     disease_period_stdev = disease_period_stdev,
     symptomatic_isolation_rate = 0.0,
     asymptomatic_isolation_rate = 0.0,
-    contagion_probability = contagion_probability
 )
 set_parameters(sc4_parameters)
 sc4_model = CovidModel()
+if len(sys.argv) > 1:
+    seed = int(sys.argv[1])
+    np.random.seed(seed)
 setup_city_layout(sc4_model)
 sc4_model.add_listener(IsolationRule(sc4_model, 0.1, 0.95))
 scenario[sc]['parameters'] = sc4_parameters
