@@ -34,6 +34,7 @@ RUN cd /tmp && \
 ADD . ${PROJECT_DIR}
 
 RUN cd ${PROJECT_DIR} && \
-    pip3 install -r requirements.txt
+    pip3 install -r requirements.txt && \
+    pip3 install pytest
 
 WORKDIR ${PROJECT_DIR}

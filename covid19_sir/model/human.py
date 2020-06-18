@@ -1,11 +1,7 @@
-import uuid
 import numpy as np
 from enum import Enum, auto
 
-from model.base import AgentBase, InfectionStatus, DiseaseSeverity, flip_coin, normal_cap, roulette_selection, get_parameters
-
-def human_unique_id():
-    return uuid.uuid1()
+from model.base import AgentBase, InfectionStatus, DiseaseSeverity, SimulationState, flip_coin, normal_cap, roulette_selection, get_parameters, unique_id
 
 class WorkClasses(Enum): 
     OFFICE = auto()
@@ -29,25 +25,43 @@ class IndividualProperties:
 class Human(AgentBase):
 
     @staticmethod
-    def factory(covid_model, location):
+    def factory(covid_model, forced_age):
         moderate_severity_probs = [0.001, 0.003, 0.012, 0.032, 0.049, 0.102, 0.166, 0.243, 0.273, 0.273]
         high_severity_probs = [0.05, 0.05, 0.05, 0.05, 0.063, 0.122, 0.274, 0.432, 0.709, 0.709]
         death_probs = [0.002, 0.00006, 0.0003, 0.0008, 0.0015, 0.006, 0.022, 0.051, 0.093, 0.093]
-        age = int(np.random.beta(2, 5, 1) * 100)
+        if forced_age is None:
+            age = int(np.random.beta(2, 5, 1) * 100)
+        else:
+            age = forced_age
         index = age // 10
         msp = moderate_severity_probs[index]
         hsp = high_severity_probs[index]
         mfd = flip_coin(death_probs[index])
-        if age <= 1: return Infant(covid_model, location, age, msp, hsp, mfd)
-        if age <= 4: return Toddler(covid_model, location, age, msp, hsp, mfd)
-        if age <= 18: return K12Student(covid_model, location, age, msp, hsp, mfd)
-        if age <= 64: return Adult(covid_model, location, age, msp, hsp, mfd)
-        return Elder(covid_model, location, age, msp, hsp, mfd)
+        if age <= 1: 
+            human = Infant(covid_model, age, msp, hsp, mfd)
+        elif age <= 4: 
+            human = Toddler(covid_model, age, msp, hsp, mfd)
+        elif age <= 18: 
+            human = K12Student(covid_model, age, msp, hsp, mfd)
+        elif age <= 64: 
+            human = Adult(covid_model, age, msp, hsp, mfd)
+        else:
+            human = Elder(covid_model, age, msp, hsp, mfd)
 
-    def __init__(self, covid_model, location, age, msp, hsp, mfd):
-        super().__init__(human_unique_id(), covid_model)
-        self.covid_model = covid_model
-        self.location = location
+        covid_model.global_count.non_infected_count += 1
+        if human.immune:
+            covid_model.global_count.immune_count += 1
+        else:
+            covid_model.global_count.susceptible_count += 1
+        if flip_coin(get_parameters().get('initial_infection_rate')):
+            human.infect()
+        return human
+
+    def __init__(self, covid_model, age, msp, hsp, mfd):
+        super().__init__(unique_id(), covid_model)
+        self.home_district = None
+        self.work_district = None
+        self.school_district = None
         self.age = age
         self.moderate_severity_prob = msp
         self.high_severity_prob = hsp
@@ -62,6 +76,7 @@ class Human(AgentBase):
         self.hospitalized = False
         if self.is_worker(): self.setup_work_info()
         self.current_health = self.properties.base_health
+        self.is_dead = False
         self.parameter_changed()
 
     def initialize_individual_properties(self):
@@ -76,10 +91,13 @@ class Human(AgentBase):
         else:
             self.early_symptom_detection = 0
         
-    def infect(self, index):
+    def step(self):
+        if self.is_dead: return
+        if self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
+            self.disease_evolution()
+
+    def infect(self):
         if not self.immune:
-            self.covid_model.global_count.non_infected_people.pop(index)
-            self.covid_model.global_count.infected_people.append(self)
             self.covid_model.global_count.infected_count += 1
             self.covid_model.global_count.non_infected_count -= 1
             self.covid_model.global_count.susceptible_count -= 1
@@ -108,14 +126,12 @@ class Human(AgentBase):
             self.covid_model.global_count.moderate_severity_count -= 1
         elif self.disease_severity == DiseaseSeverity.HIGH:
             self.covid_model.global_count.high_severity_count -= 1
-        self.covid_model.global_count.infected_people.remove(self)
         self.covid_model.global_count.infected_count -= 1
-        self.covid_model.global_count.non_infected_people.append(self)
         if self.hospitalized:
             self.covid_model.global_count.total_hospitalized -= 1
             self.hospitalized = False
-        self.infection_status == InfectionStatus.RECOVERED
-        self.disease_severity == DiseaseSeverity.ASYMPTOMATIC
+        self.infection_status = InfectionStatus.RECOVERED
+        self.disease_severity = DiseaseSeverity.ASYMPTOMATIC
         self.covid_model.global_count.symptomatic_count -= 1
         self.covid_model.global_count.asymptomatic_count += 1
         self.immune = True
@@ -126,11 +142,10 @@ class Human(AgentBase):
         self.covid_model.global_count.high_severity_count -= 1
         self.covid_model.global_count.infected_count -= 1
         self.covid_model.global_count.death_count += 1
-        self.covid_model.global_count.infected_people.remove(self)
-        self.covid_model.global_count.dead_people.append(self)
         if self.hospitalized:
             self.covid_model.global_count.total_hospitalized -= 1
             self.hospitalized = False
+        self.is_dead = True
 
     def disease_evolution(self):
         if self.is_infected():
@@ -169,7 +184,20 @@ class Human(AgentBase):
     
     def is_symptomatic(self):
         return self.is_infected() and self.infection_days_count >= self.infection_incubation
+
+    def is_isolated(self):
+        if self.is_symptomatic():
+            ir = get_parameters().get('symptomatic_isolation_rate')
+        else:
+            ir = get_parameters().get('asymptomatic_isolation_rate')
+        icr = get_parameters().get('isolation_cheater_rate')
+        return flip_coin(ir) and not flip_coin(icr)
     
+    def is_wearing_mask(self):
+        mur = get_parameters().get('mask_user_rate')
+        return flip_coin(mur)
+        
+
     def is_worker(self):
         return self.age >= 15 and self.age <= 64
 
@@ -212,6 +240,13 @@ class Human(AgentBase):
 
         self.work_info.earnings = 0.0
 
+    def move(self, source_district, target_district):
+        source = source_district.get_buildings(self)[0].get_unit(self).humans
+        target = target_district.get_buildings(self)[0].get_unit(self).humans
+        if self in source:
+            source.remove(self)
+            target.append(self)
+
 class Infant(Human):
     def initialize_individual_properties(self):
       self.properties.base_health = normal_cap(0.8, 0.2, 0.0, 1.0)
@@ -223,10 +258,30 @@ class Toddler(Human):
 class K12Student(Human):
     def initialize_individual_properties(self):
       self.properties.base_health = normal_cap(0.8, 0.2, 0.0, 1.0)
+
+    def step(self):
+        if self.is_dead: return
+        if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
+            if not self.is_isolated():
+                self.move(self.home_district, self.school_district)
+        elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
+            self.move(self.school_district, self.home_district)
+        elif self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
+            self.disease_evolution()
     
 class Adult(Human):
     def initialize_individual_properties(self):
       self.properties.base_health = normal_cap(0.8, 0.2, 0.0, 1.0)
+
+    def step(self):
+        if self.is_dead: return
+        if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
+            if not self.is_isolated():
+                self.move(self.home_district, self.work_district)
+        elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
+            self.move(self.work_district, self.home_district)
+        elif self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
+            self.disease_evolution()
     
 class Elder(Human):
     def initialize_individual_properties(self):

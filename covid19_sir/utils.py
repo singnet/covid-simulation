@@ -3,10 +3,6 @@ import pandas as pd
 from model.base import CovidModel, get_parameters
 from model.location import Location
 
-class SimpleLocation(Location):
-    def __init__(self, unique_id, model, size):
-        super().__init__(unique_id, model, size)
-        
 class BasicStatistics():
     def __init__(self, model):
         self.susceptible = []
@@ -21,6 +17,7 @@ class BasicStatistics():
     def start_cycle(self, model):
         self.cycles_count += 1
         pop = self.covid_model.global_count.total_population
+        #print(f"infected = {self.covid_model.global_count.infected_count} recovered = {self.covid_model.global_count.recovered_count}")
         self.susceptible.append(self.covid_model.global_count.susceptible_count / pop)
         self.infected.append(self.covid_model.global_count.infected_count / pop)
         self.recovered.append(self.covid_model.global_count.recovered_count / pop)
