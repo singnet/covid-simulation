@@ -17,6 +17,7 @@ class BasicStatistics():
     def start_cycle(self, model):
         self.cycles_count += 1
         pop = self.covid_model.global_count.total_population
+        #print(f"infected = {self.covid_model.global_count.infected_count} recovered = {self.covid_model.global_count.recovered_count}")
         self.susceptible.append(self.covid_model.global_count.susceptible_count / pop)
         self.infected.append(self.covid_model.global_count.infected_count / pop)
         self.recovered.append(self.covid_model.global_count.recovered_count / pop)

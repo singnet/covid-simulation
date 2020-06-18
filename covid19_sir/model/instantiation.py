@@ -5,8 +5,9 @@ from model.human import Human, Infant, Toddler, K12Student, Adult, Elder
 
 class FamilyFactory:
 
-    def __init__(self):
-        self.ready = []
+    def __init__(self, model):
+        self.covid_model = model
+        self.families = []
         self.pending = []
         self._schema_collection = [
             [Adult],
@@ -56,23 +57,29 @@ class FamilyFactory:
         schema.remove(type(human))
         if not schema:
             self.pending.remove((schema, family))
-            self.ready.append(family)
+            self.families.append(family)
             self.human_count += len(family)
 
-    def flush_pending_families(self):
+    def factory(self, population_size):
+        for i in range(population_size):
+            self._push(Human.factory(self.covid_model, None))
+        self._flush_pending_families()
+
+
+    def _flush_pending_families(self):
         self.done = True
-        print("FLUSH")
         for schema, family in self.pending:
             flag = False
             for human in family:
                 if isinstance(human, Adult) or isinstance(human, Elder):
                     flag = True
                     break
-            if flag:
-                self.ready.append(family)
-                self.human_count += len(family)
+            if not flag:
+                family.append(Human.factory(self.covid_model, 30))
+            self.families.append(family)
+            self.human_count += len(family)
 
-    def push(self, human):
+    def _push(self, human):
         assert not self.done
         flag = False
         for schema, family in self.pending:

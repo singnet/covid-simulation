@@ -1,8 +1,11 @@
 import sys
+import math
 import numpy as np
 from model.base import CovidModel, SimulationParameters, set_parameters, get_parameters, change_parameters
-from model.location import Location
-from utils import SimpleLocation, BasicStatistics
+from model.human import Human, Adult, K12Student
+from model.location import District, HomogeneousBuilding, BuildingUnit
+from model.instantiation import FamilyFactory
+from utils import BasicStatistics
 
 if len(sys.argv) > 1:
     seed = int(sys.argv[1])
@@ -24,15 +27,59 @@ incubation_period_mean = 7.0
 incubation_period_stdev = 4.0
 disease_period_mean = 20
 disease_period_stdev = 5
-daily_interaction_count = 4
-contagion_probability = 0.2
 asymptomatic_isolation_rate = 0.0
 symptomatic_isolation_rate = 0.0
+contagion_probability = 0.9
+spreading_rate = 0.9
 
 # Simulation
 
 population_size = 1000
 simulation_cycles = 90 # days
+
+def build_district(name, model, building_capacity, unit_capacity, occupacy_rate, spreading_rate, contagion_probability):
+    district = District(name, model)
+    for i in range(math.ceil((math.ceil(population_size / unit_capacity) * (1 / occupacy_rate)) / building_capacity)):
+        building = HomogeneousBuilding(building_capacity, model)
+        for j in range(building_capacity):
+            building.locations.append(BuildingUnit(unit_capacity, model, spreading_rate=spreading_rate, contagion_probability=contagion_probability))
+        district.locations.append(building)
+    return district
+
+def setup_city_layout(model):
+
+    work_building_capacity = 20
+    office_capacity = 10
+    work_building_accupacy_rate = 0.5
+    appartment_building_capacity = 20
+    appartment_capacity = 5
+    appartment_building_accupacy_rate = 0.5
+    school_capacity = 50
+    classroom_capacity = 30
+    school_accupacy_rate = 0.5
+
+    home_district = build_district("Home", model, appartment_building_capacity, appartment_capacity, appartment_building_accupacy_rate, 0.9, 0.9)
+    work_district = build_district("Work", model, work_building_capacity, office_capacity, work_building_accupacy_rate, 0.5, 0.6)
+    school_district = build_district("School", model, school_capacity, classroom_capacity, school_accupacy_rate, 0.5, 0.9)
+
+    family_factory = FamilyFactory(model)
+    family_factory.factory(population_size)
+    model.global_count.total_population = population_size
+
+
+    for family in family_factory.families:
+        adults = [human for human in family if isinstance(human, Adult)]
+        students = [human for human in family if isinstance(human, K12Student)]
+        home_district.allocate(family, True, True, True)
+        work_district.allocate(adults)
+        school_district.allocate(students, True)
+        for human in family:
+            human.home_district = home_district
+            home_district.get_buildings(human)[0].get_unit(human).humans.append(human)
+        for adult in adults:
+            adult.work_district = work_district
+        for student in students:
+            student.school_district = school_district
 
 ################################################################################
 # Scenarios
@@ -55,14 +102,13 @@ scenario[sc]['parameters'] = SimulationParameters(
     incubation_period_stdev = incubation_period_stdev,
     disease_period_mean = disease_period_mean,
     disease_period_stdev = disease_period_stdev,
-    daily_interaction_count = daily_interaction_count,
     contagion_probability = contagion_probability,
     asymptomatic_isolation_rate = asymptomatic_isolation_rate,
     symptomatic_isolation_rate = symptomatic_isolation_rate
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
-scenario[sc]['location'] = SimpleLocation(0, scenario[sc]['model'], population_size)
+setup_city_layout(scenario[sc]['model'])
 
 # ------------------------------------------------------------------------------
 
@@ -82,12 +128,11 @@ scenario[sc]['parameters'] = SimulationParameters(
     disease_period_stdev = disease_period_stdev,
     symptomatic_isolation_rate = 0.9,
     asymptomatic_isolation_rate = asymptomatic_isolation_rate,
-    daily_interaction_count = daily_interaction_count,
     contagion_probability = contagion_probability
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
-scenario[sc]['location'] = SimpleLocation(0, scenario[sc]['model'], population_size)
+setup_city_layout(scenario[sc]['model'])
 
 # ------------------------------------------------------------------------------
 
@@ -107,12 +152,11 @@ scenario[sc]['parameters'] = SimulationParameters(
     disease_period_stdev = disease_period_stdev,
     symptomatic_isolation_rate = 0.9,
     asymptomatic_isolation_rate = 0.8,
-    daily_interaction_count = daily_interaction_count,
     contagion_probability = contagion_probability
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
-scenario[sc]['location'] = SimpleLocation(0, scenario[sc]['model'], population_size)
+setup_city_layout(scenario[sc]['model'])
 
 # ------------------------------------------------------------------------------
 
@@ -123,21 +167,21 @@ sc = 4 # Restrict the mobility after 10% of the population being infected
        # parameters during the simulation based in some dynamic criterion
 
 class IsolationRule():
-    def __init__(self, location, perc1, perc2):
+    def __init__(self, model, perc1, perc2):
         self.perc1 = perc1
         self.perc2 = perc2
-        self.location = location
+        self.model = model
         self.state = 0
     def start_cycle(self, model):
         pass
     def end_cycle(self, model):
         if self.state == 0:
-            if (self.location.covid_model.global_count.infected_count / location.size) >= self.perc1:
+            if (self.model.global_count.infected_count / model.global_count.total_population) >= self.perc1:
                 self.state = 1
                 change_parameters(symptomatic_isolation_rate = 0.9,
                                   asymptomatic_isolation_rate = 0.8)
         elif self.state == 1:
-            if (self.location.covid_model.global_count.infected_count / location.size) <= (1.0 - self.perc2):
+            if (self.model.global_count.infected_count / model.global_count.total_population) <= (1.0 - self.perc2):
                 self.state = 2
                 change_parameters(symptomatic_isolation_rate = 0.0,
                                   asymptomatic_isolation_rate = 0.0)
@@ -157,16 +201,14 @@ sc4_parameters = SimulationParameters(
     disease_period_stdev = disease_period_stdev,
     symptomatic_isolation_rate = 0.0,
     asymptomatic_isolation_rate = 0.0,
-    daily_interaction_count = daily_interaction_count,
     contagion_probability = contagion_probability
 )
 set_parameters(sc4_parameters)
 sc4_model = CovidModel()
-sc4_location = SimpleLocation(0, sc4_model, population_size)
-sc4_model.add_listener(IsolationRule(sc4_location, 0.1, 0.95))
+setup_city_layout(sc4_model)
+sc4_model.add_listener(IsolationRule(sc4_model, 0.1, 0.95))
 scenario[sc]['parameters'] = sc4_parameters
 scenario[sc]['model'] = sc4_model
-scenario[sc]['location'] = sc4_location
 
 ################################################################################
 # Simulation of all scenarios
@@ -174,9 +216,7 @@ scenario[sc]['location'] = sc4_location
 for sc in scenario:
     set_parameters(scenario[sc]['parameters'])
     model = scenario[sc]['model']
-    location = scenario[sc]['location']
     statistics = BasicStatistics(model)
-    model.add_location(location)
     model.add_listener(statistics)
     for i in range(simulation_cycles):
         model.step()
