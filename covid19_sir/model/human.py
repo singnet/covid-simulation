@@ -1,17 +1,10 @@
 import numpy as np
 from enum import Enum, auto
 
-from model.base import AgentBase, InfectionStatus, DiseaseSeverity, SimulationState, flip_coin, normal_cap, roulette_selection, get_parameters, unique_id
-
-class WorkClasses(Enum): 
-    OFFICE = auto()
-    HOUSEBOUND = auto()
-    FACTORY = auto()
-    RETAIL = auto()
-    ESSENTIAL = auto()
-    TRANSPORTATION = auto()
+from model.base import WorkClasses, AgentBase, InfectionStatus, DiseaseSeverity, SimulationState, SocialPolicyUtil, flip_coin, normal_cap, roulette_selection, get_parameters, unique_id
 
 class WorkInfo:
+    work_class = None
     can_work_from_home = False
     meet_non_coworkers_at_work = False
     essential_worker = False
@@ -28,6 +21,7 @@ class WorkInfo:
 
 class IndividualProperties:
     base_health = 1.0
+    risk_tolerance = 0.0
 
 class Human(AgentBase):
 
@@ -197,20 +191,28 @@ class Human(AgentBase):
     def is_symptomatic(self):
         return self.is_infected() and self.infection_days_count >= self.infection_incubation
 
-    def is_isolated(self):
+    def main_activity_isolated(self):
         if self.is_infected():
             if self.disease_severity == DiseaseSeverity.MODERATE or \
                self.disease_severity == DiseaseSeverity.HIGH:
                 return True
-        if self.is_symptomatic():
-            ir = get_parameters().get('symptomatic_isolation_rate')
-        else:
-            if isinstance(self, Adult) and self.work_info.essential_worker:
-                return False
-            ir = get_parameters().get('asymptomatic_isolation_rate')
-        icr = get_parameters().get('isolation_cheater_rate')
-        return flip_coin(ir) and not flip_coin(icr)
-    
+            if self.is_symptomatic():
+                ir = get_parameters().get('symptomatic_isolation_rate')
+                if flip_coin(ir):
+                    return True
+        if isinstance(self, Adult):
+            for policy in get_parameters().get('social_policies'):
+                if policy in SocialPolicyUtil.locked_work_classes and \
+                   self.work_info.work_class in SocialPolicyUtil.locked_work_classes[policy]:
+                    return True
+        elif isinstance(self, K12Student):
+            for policy in get_parameters().get('social_policies'):
+                if policy in SocialPolicyUtil.locked_student_ages:
+                    lb, ub = SocialPolicyUtil.locked_student_ages[policy]
+                    if self.age >= lb and self.age <= ub:
+                        return True
+        return False
+        
     def is_wearing_mask(self):
         mur = get_parameters().get('mask_user_rate')
         return flip_coin(mur)
@@ -226,7 +228,6 @@ class Human(AgentBase):
             WorkClasses.FACTORY: (1.0, 1.0),
             WorkClasses.RETAIL: (1.0, 1.0),
             WorkClasses.ESSENTIAL: (1.0, 1.0),
-            WorkClasses.TRANSPORTATION: (1.0, 1.0)
         }
         classes = [key for key in income.keys()]
         roulette = []
@@ -238,6 +239,7 @@ class Human(AgentBase):
             roulette.append(count / len(classes))
             count = count + 1
         selected_class = roulette_selection(classes, roulette)
+        self.work_info.work_class = selected_class
         self.work_info.base_income, self.work_info.income_loss_isolated = income[selected_class]
 
         self.work_info.can_work_from_home = \
@@ -246,8 +248,7 @@ class Human(AgentBase):
 
         self.work_info.meet_non_coworkers_at_work = \
             selected_class == WorkClasses.RETAIL or \
-            selected_class == WorkClasses.ESSENTIAL or \
-            selected_class == WorkClasses.TRANSPORTATION
+            selected_class == WorkClasses.ESSENTIAL
            
         self.work_info.essential_worker = \
             selected_class == WorkClasses.ESSENTIAL
@@ -283,7 +284,7 @@ class K12Student(Human):
     def step(self):
         if self.is_dead: return
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
-            if not self.is_isolated():
+            if not self.main_activity_isolated():
                 self.move(self.home_district, self.school_district)
         elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
             self.move(self.school_district, self.home_district)
@@ -297,7 +298,7 @@ class Adult(Human):
     def step(self):
         if self.is_dead: return
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
-            if self.is_isolated():
+            if self.main_activity_isolated():
                 self.work_info.isolated = True
             else:
                 self.work_info.isolated = False

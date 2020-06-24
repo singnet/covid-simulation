@@ -88,9 +88,49 @@ class SimulationState(Enum):
     MORNING_AT_HOME = auto()
     EVENING_AT_HOME = auto()
 
+
+class WorkClasses(Enum): 
+    OFFICE = auto()
+    HOUSEBOUND = auto()
+    FACTORY = auto()
+    RETAIL = auto()
+    ESSENTIAL = auto()
+
+class SocialPolicy(Enum):
+    SOCIAL_DISTANCING = auto()
+    LOCKDOWN_OFFICE = auto()
+    LOCKDOWN_FACTORY = auto()
+    LOCKDOWN_RETAIL = auto()
+    LOCKDOWN_ELEMENTARY_SCHOOL = auto()
+    LOCKDOWN_MIDDLE_SCHOOL = auto()
+    LOCKDOWN_HIGH_SCHOOL = auto()
+    locked_work_classes = {
+        LOCKDOWN_OFFICE: [WorkClasses.OFFICE],
+        LOCKDOWN_FACTORY: [WorkClasses.FACTORY],
+        LOCKDOWN_RETAIL: [WorkClasses.RETAIL]
+    }
+    locked_student_ages = {
+        LOCKDOWN_ELEMENTARY_SCHOOL: (5, 11),
+        LOCKDOWN_MIDDLE_SCHOOL: (12, 14),
+        LOCKDOWN_HIGH_SCHOOL: (15, 18)
+    }
+
+class SocialPolicyUtil():
+    locked_work_classes = {
+        SocialPolicy.LOCKDOWN_OFFICE: [WorkClasses.OFFICE],
+        SocialPolicy.LOCKDOWN_FACTORY: [WorkClasses.FACTORY],
+        SocialPolicy.LOCKDOWN_RETAIL: [WorkClasses.RETAIL]
+    }
+    locked_student_ages = {
+        SocialPolicy.LOCKDOWN_ELEMENTARY_SCHOOL: (5, 11),
+        SocialPolicy.LOCKDOWN_MIDDLE_SCHOOL: (12, 14),
+        SocialPolicy.LOCKDOWN_HIGH_SCHOOL: (15, 18)
+    }
+
 class SimulationParameters:
     def __init__(self, **kwargs):
         self.params = {}
+        self.params['social_policies'] = kwargs.get("social_policies", [])
         self.params['mask_user_rate'] = kwargs.get("mask_user_rate", 0.0)
         self.params['mask_efficacy'] = kwargs.get("mask_efficacy", 0.0)
         self.params['isolation_cheater_rate'] = kwargs.get("isolation_cheater_rate", 0.0)
@@ -108,7 +148,6 @@ class SimulationParameters:
         self.params['weareable_adoption_rate'] = kwargs.get("weareable_adoption_rate", 0.0)
         self.params['contagion_probability'] = kwargs.get("contagion_probability", 0.9)
         self.params['spreading_rate'] = kwargs.get("spreading_rate", 0.0)
-        self.params['asymptomatic_isolation_rate'] = kwargs.get("asymptomatic_isolation_rate", 0.0)
         self.params['symptomatic_isolation_rate'] = kwargs.get("symptomatic_isolation_rate", 0.0)
         self.params['asymptomatic_contagion_probability'] = kwargs.get("asymptomatic_contagion_probability", 0.1)
 
