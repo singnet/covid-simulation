@@ -205,6 +205,8 @@ class Human(AgentBase):
         if self.is_symptomatic():
             ir = get_parameters().get('symptomatic_isolation_rate')
         else:
+            if isinstance(self, Adult) and self.work_info.essential_worker:
+                return False
             ir = get_parameters().get('asymptomatic_isolation_rate')
         icr = get_parameters().get('isolation_cheater_rate')
         return flip_coin(ir) and not flip_coin(icr)
@@ -247,7 +249,8 @@ class Human(AgentBase):
             selected_class == WorkClasses.ESSENTIAL or \
             selected_class == WorkClasses.TRANSPORTATION
            
-        self.work_info.essential_worker = WorkClasses.ESSENTIAL
+        self.work_info.essential_worker = \
+            selected_class == WorkClasses.ESSENTIAL
 
         self.work_info.fixed_work_location = \
             selected_class == WorkClasses.OFFICE or \

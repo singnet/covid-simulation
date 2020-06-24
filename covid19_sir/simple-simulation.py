@@ -57,28 +57,28 @@ def setup_city_layout(model):
 
     work_building_capacity = 20
     office_capacity = 10
-    work_building_accupacy_rate = 0.5
+    work_building_occupacy_rate = 0.5
     appartment_building_capacity = 20
     appartment_capacity = 5
-    appartment_building_accupacy_rate = 0.5
+    appartment_building_occupacy_rate = 0.5
     school_capacity = 50
     classroom_capacity = 30
-    school_accupacy_rate = 0.5
+    school_occupacy_rate = 0.5
 
     home_district = build_district("Home", model, 
                                    appartment_building_capacity, 
                                    appartment_capacity,
-                                   appartment_building_accupacy_rate, 
+                                   appartment_building_occupacy_rate, 
                                    0.9, 0.9)
     work_district = build_district("Work", model, 
                                    work_building_capacity, 
                                    office_capacity, 
-                                   work_building_accupacy_rate, 
+                                   work_building_occupacy_rate, 
                                    0.5, 0.6)
     school_district = build_district("School", model, 
                                      school_capacity, 
                                      classroom_capacity, 
-                                     school_accupacy_rate, 
+                                     school_occupacy_rate, 
                                      0.5, 0.9)
     #print(home_district)
     #print(work_district)
