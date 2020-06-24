@@ -1,7 +1,7 @@
 import sys
 import math
 import numpy as np
-from model.base import CovidModel, SimulationParameters, set_parameters, get_parameters, change_parameters
+from model.base import CovidModel, SimulationParameters, SocialPolicy, set_parameters, get_parameters, change_parameters
 from model.human import Human, Adult, K12Student
 from model.location import District, HomogeneousBuilding, BuildingUnit
 from model.instantiation import FamilyFactory
@@ -27,7 +27,6 @@ incubation_period_mean = 3.0
 incubation_period_stdev = 1.0
 disease_period_mean = 20
 disease_period_stdev = 5
-asymptomatic_isolation_rate = 0.0
 symptomatic_isolation_rate = 0.0
 asymptomatic_contagion_probability = 0.1
 
@@ -131,7 +130,6 @@ scenario[sc]['parameters'] = SimulationParameters(
     incubation_period_stdev = incubation_period_stdev,
     disease_period_mean = disease_period_mean,
     disease_period_stdev = disease_period_stdev,
-    asymptomatic_isolation_rate = asymptomatic_isolation_rate,
     symptomatic_isolation_rate = symptomatic_isolation_rate,
     asymptomatic_contagion_probability = asymptomatic_contagion_probability
 )
@@ -159,7 +157,6 @@ scenario[sc]['parameters'] = SimulationParameters(
     disease_period_mean = disease_period_mean,
     disease_period_stdev = disease_period_stdev,
     symptomatic_isolation_rate = 0.9,
-    asymptomatic_isolation_rate = asymptomatic_isolation_rate,
     asymptomatic_contagion_probability = asymptomatic_contagion_probability
 )
 set_parameters(scenario[sc]['parameters'])
@@ -185,9 +182,14 @@ scenario[sc]['parameters'] = SimulationParameters(
     incubation_period_stdev = incubation_period_stdev,
     disease_period_mean = disease_period_mean,
     disease_period_stdev = disease_period_stdev,
+    asymptomatic_contagion_probability = asymptomatic_contagion_probability,
     symptomatic_isolation_rate = 0.9,
-    asymptomatic_isolation_rate = 0.8,
-    asymptomatic_contagion_probability = asymptomatic_contagion_probability
+    social_policies = [SocialPolicy.LOCKDOWN_OFFICE,
+                       SocialPolicy.LOCKDOWN_FACTORY,
+                       SocialPolicy.LOCKDOWN_RETAIL,
+                       SocialPolicy.LOCKDOWN_ELEMENTARY_SCHOOL,
+                       SocialPolicy.LOCKDOWN_MIDDLE_SCHOOL,
+                       SocialPolicy.LOCKDOWN_HIGH_SCHOOL]
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
@@ -196,67 +198,13 @@ if len(sys.argv) > 1:
     np.random.seed(seed)
 setup_city_layout(scenario[sc]['model'])
 
-# ------------------------------------------------------------------------------
-
-sc = 4 # Restrict the mobility after 10% of the population being infected
-       # and release the restrictions when more then 95% is safe
-
-       # This scenarios illustrates the use of listeners to change simulation
-       # parameters during the simulation based in some dynamic criterion
-
-class IsolationRule():
-    def __init__(self, model, perc1, perc2):
-        self.perc1 = perc1
-        self.perc2 = perc2
-        self.model = model
-        self.state = 0
-    def start_cycle(self, model):
-        pass
-    def end_cycle(self, model):
-        if self.state == 0:
-            if (self.model.global_count.infected_count / model.global_count.total_population) >= self.perc1:
-                self.state = 1
-                change_parameters(symptomatic_isolation_rate = 0.9,
-                                  asymptomatic_isolation_rate = 0.8)
-        elif self.state == 1:
-            if (self.model.global_count.infected_count / model.global_count.total_population) <= (1.0 - self.perc2):
-                self.state = 2
-                change_parameters(symptomatic_isolation_rate = 0.0,
-                                  asymptomatic_isolation_rate = 0.0)
-
-scenario[sc] = {}
-sc4_parameters = SimulationParameters(
-    mask_user_rate = mask_user_rate,
-    mask_efficacy = mask_efficacy,
-    imune_rate = imune_rate,
-    initial_infection_rate = initial_infection_rate,
-    hospitalization_capacity = hospitalization_capacity,
-    latency_period_mean = latency_period_mean,
-    latency_period_stdev = latency_period_stdev,
-    incubation_period_mean = incubation_period_mean,
-    incubation_period_stdev = incubation_period_stdev,
-    disease_period_mean = disease_period_mean,
-    disease_period_stdev = disease_period_stdev,
-    asymptomatic_contagion_probability = asymptomatic_contagion_probability,
-    symptomatic_isolation_rate = 0.0,
-    asymptomatic_isolation_rate = 0.0
-)
-set_parameters(sc4_parameters)
-sc4_model = CovidModel()
-if len(sys.argv) > 1:
-    seed = int(sys.argv[1])
-    np.random.seed(seed)
-setup_city_layout(sc4_model)
-sc4_model.add_listener(IsolationRule(sc4_model, 0.1, 0.95))
-scenario[sc]['parameters'] = sc4_parameters
-scenario[sc]['model'] = sc4_model
-
 ################################################################################
 # Simulation of all scenarios
 
 for sc in scenario:
     set_parameters(scenario[sc]['parameters'])
     model = scenario[sc]['model']
+    model.reset_randomizer(seed)
     statistics = BasicStatistics(model)
     model.add_listener(statistics)
     for i in range(simulation_cycles):
