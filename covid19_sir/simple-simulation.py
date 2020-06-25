@@ -3,7 +3,7 @@ import math
 import numpy as np
 from model.base import CovidModel, SimulationParameters, SocialPolicy, TribeSelector, set_parameters, get_parameters, change_parameters
 from model.human import Human, Elder, Adult, K12Student, Toddler, Infant
-from model.location import District, HomogeneousBuilding, BuildingUnit
+from model.location import District, HomogeneousBuilding, BuildingUnit, FunGatheringSpot
 from model.instantiation import FamilyFactory
 from utils import BasicStatistics
 
@@ -27,8 +27,12 @@ incubation_period_mean = 3.0
 incubation_period_stdev = 1.0
 disease_period_mean = 20
 disease_period_stdev = 5
-symptomatic_isolation_rate = 0.0
+symptomatic_isolation_rate = 0.9
 asymptomatic_contagion_probability = 0.1
+risk_tolerance_mean = 0.8
+risk_tolerance_stdev = 0.2
+herding_behavior_mean = 0.7
+herding_behavior_stdev = 0.2
 
 # Simulation
 
@@ -43,6 +47,7 @@ def build_district(name, model, building_capacity, unit_capacity,
         math.ceil(population_size / unit_capacity) * (1 / occupacy_rate) 
         / building_capacity)
     for i in range(building_count):
+        district.locations.append(FunGatheringSpot(10, model))
         building = HomogeneousBuilding(building_capacity, model)
         for j in range(building_capacity):
             unit = BuildingUnit(unit_capacity, model, 
@@ -155,8 +160,12 @@ scenario[sc]['parameters'] = SimulationParameters(
     incubation_period_stdev = incubation_period_stdev,
     disease_period_mean = disease_period_mean,
     disease_period_stdev = disease_period_stdev,
-    symptomatic_isolation_rate = symptomatic_isolation_rate,
-    asymptomatic_contagion_probability = asymptomatic_contagion_probability
+    symptomatic_isolation_rate = 0.0,
+    asymptomatic_contagion_probability = asymptomatic_contagion_probability,
+    herding_behavior_mean = herding_behavior_mean,
+    herding_behavior_stdev = herding_behavior_stdev,
+    risk_tolerance_mean = risk_tolerance_mean,
+    risk_tolerance_stdev = risk_tolerance_stdev
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
@@ -167,33 +176,7 @@ setup_city_layout(scenario[sc]['model'])
 
 # ------------------------------------------------------------------------------
 
-sc = 2 # Restrict the mobility only for infected people
-scenario[sc] = {}
-scenario[sc]['parameters'] = SimulationParameters(
-    mask_user_rate = mask_user_rate,
-    mask_efficacy = mask_efficacy,
-    imune_rate = imune_rate,
-    initial_infection_rate = initial_infection_rate,
-    hospitalization_capacity = hospitalization_capacity,
-    latency_period_mean = latency_period_mean,
-    latency_period_stdev = latency_period_stdev,
-    incubation_period_mean = incubation_period_mean,
-    incubation_period_stdev = incubation_period_stdev,
-    disease_period_mean = disease_period_mean,
-    disease_period_stdev = disease_period_stdev,
-    symptomatic_isolation_rate = 0.9,
-    asymptomatic_contagion_probability = asymptomatic_contagion_probability
-)
-set_parameters(scenario[sc]['parameters'])
-scenario[sc]['model'] = CovidModel()
-if len(sys.argv) > 1:
-    seed = int(sys.argv[1])
-    np.random.seed(seed)
-setup_city_layout(scenario[sc]['model'])
-
-# ------------------------------------------------------------------------------
-
-sc = 3 # restrict the mobility for everybody
+sc = 2 # complete lockdown
 scenario[sc] = {}
 scenario[sc]['parameters'] = SimulationParameters(
     mask_user_rate = mask_user_rate,
@@ -208,13 +191,98 @@ scenario[sc]['parameters'] = SimulationParameters(
     disease_period_mean = disease_period_mean,
     disease_period_stdev = disease_period_stdev,
     asymptomatic_contagion_probability = asymptomatic_contagion_probability,
-    symptomatic_isolation_rate = 0.9,
-    social_policies = [SocialPolicy.LOCKDOWN_OFFICE,
-                       SocialPolicy.LOCKDOWN_FACTORY,
-                       SocialPolicy.LOCKDOWN_RETAIL,
-                       SocialPolicy.LOCKDOWN_ELEMENTARY_SCHOOL,
-                       SocialPolicy.LOCKDOWN_MIDDLE_SCHOOL,
-                       SocialPolicy.LOCKDOWN_HIGH_SCHOOL]
+    herding_behavior_mean = herding_behavior_mean,
+    herding_behavior_stdev = herding_behavior_stdev,
+    risk_tolerance_mean = risk_tolerance_mean,
+    risk_tolerance_stdev = risk_tolerance_stdev,
+    symptomatic_isolation_rate = symptomatic_isolation_rate,
+    social_policies = [
+        SocialPolicy.LOCKDOWN_OFFICE,
+        SocialPolicy.LOCKDOWN_FACTORY,
+        SocialPolicy.LOCKDOWN_RETAIL,
+        SocialPolicy.LOCKDOWN_ELEMENTARY_SCHOOL,
+        SocialPolicy.LOCKDOWN_MIDDLE_SCHOOL,
+        SocialPolicy.LOCKDOWN_HIGH_SCHOOL,
+        SocialPolicy.SOCIAL_DISTANCING
+    ]
+)
+set_parameters(scenario[sc]['parameters'])
+scenario[sc]['model'] = CovidModel()
+if len(sys.argv) > 1:
+    seed = int(sys.argv[1])
+    np.random.seed(seed)
+setup_city_layout(scenario[sc]['model'])
+
+# ------------------------------------------------------------------------------
+
+sc = 3 # all schools open
+scenario[sc] = {}
+scenario[sc]['parameters'] = SimulationParameters(
+    mask_user_rate = mask_user_rate,
+    mask_efficacy = mask_efficacy,
+    imune_rate = imune_rate,
+    initial_infection_rate = initial_infection_rate,
+    hospitalization_capacity = hospitalization_capacity,
+    latency_period_mean = latency_period_mean,
+    latency_period_stdev = latency_period_stdev,
+    incubation_period_mean = incubation_period_mean,
+    incubation_period_stdev = incubation_period_stdev,
+    disease_period_mean = disease_period_mean,
+    disease_period_stdev = disease_period_stdev,
+    asymptomatic_contagion_probability = asymptomatic_contagion_probability,
+    herding_behavior_mean = herding_behavior_mean,
+    herding_behavior_stdev = herding_behavior_stdev,
+    risk_tolerance_stdev = risk_tolerance_stdev,
+    symptomatic_isolation_rate = symptomatic_isolation_rate,
+    risk_tolerance_mean = risk_tolerance_mean,
+    social_policies = [
+        SocialPolicy.LOCKDOWN_OFFICE,
+        SocialPolicy.LOCKDOWN_FACTORY,
+        SocialPolicy.LOCKDOWN_RETAIL,
+        #SocialPolicy.LOCKDOWN_ELEMENTARY_SCHOOL,
+        #SocialPolicy.LOCKDOWN_MIDDLE_SCHOOL,
+        #SocialPolicy.LOCKDOWN_HIGH_SCHOOL,
+        SocialPolicy.SOCIAL_DISTANCING
+    ]
+)
+set_parameters(scenario[sc]['parameters'])
+scenario[sc]['model'] = CovidModel()
+if len(sys.argv) > 1:
+    seed = int(sys.argv[1])
+    np.random.seed(seed)
+setup_city_layout(scenario[sc]['model'])
+
+# ------------------------------------------------------------------------------
+
+sc = 4 # all schools open + risk tolerance low
+scenario[sc] = {}
+scenario[sc]['parameters'] = SimulationParameters(
+    mask_user_rate = mask_user_rate,
+    mask_efficacy = mask_efficacy,
+    imune_rate = imune_rate,
+    initial_infection_rate = initial_infection_rate,
+    hospitalization_capacity = hospitalization_capacity,
+    latency_period_mean = latency_period_mean,
+    latency_period_stdev = latency_period_stdev,
+    incubation_period_mean = incubation_period_mean,
+    incubation_period_stdev = incubation_period_stdev,
+    disease_period_mean = disease_period_mean,
+    disease_period_stdev = disease_period_stdev,
+    asymptomatic_contagion_probability = asymptomatic_contagion_probability,
+    herding_behavior_stdev = herding_behavior_stdev,
+    risk_tolerance_stdev = risk_tolerance_stdev,
+    symptomatic_isolation_rate = symptomatic_isolation_rate,
+    herding_behavior_mean = 0.2,
+    risk_tolerance_mean = 0.2,
+    social_policies = [
+        SocialPolicy.LOCKDOWN_OFFICE,
+        SocialPolicy.LOCKDOWN_FACTORY,
+        SocialPolicy.LOCKDOWN_RETAIL,
+        #SocialPolicy.LOCKDOWN_ELEMENTARY_SCHOOL,
+        #SocialPolicy.LOCKDOWN_MIDDLE_SCHOOL,
+        SocialPolicy.LOCKDOWN_HIGH_SCHOOL,
+        SocialPolicy.SOCIAL_DISTANCING
+    ]
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
@@ -227,6 +295,8 @@ setup_city_layout(scenario[sc]['model'])
 # Simulation of all scenarios
 
 for sc in scenario:
+#for sc in [3]:
+    #print("--------------------------------------------------------------------------------")
     set_parameters(scenario[sc]['parameters'])
     model = scenario[sc]['model']
     model.reset_randomizer(seed)

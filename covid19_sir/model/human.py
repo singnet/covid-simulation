@@ -1,7 +1,8 @@
+import math
 import numpy as np
 from enum import Enum, auto
 
-from model.base import Dilemma, WorkClasses, AgentBase, InfectionStatus, DiseaseSeverity, SimulationState, SocialPolicyUtil, TribeSelector, flip_coin, normal_cap, roulette_selection, get_parameters, unique_id
+from model.base import Dilemma, WorkClasses, WeekDay, AgentBase, InfectionStatus, DiseaseSeverity, SimulationState, SocialPolicy, SocialPolicyUtil, TribeSelector, flip_coin, normal_cap, roulette_selection, get_parameters, unique_id
 
 class WorkInfo:
     work_class = None
@@ -13,6 +14,15 @@ class WorkInfo:
     base_income = 0.0
     income_loss_isolated = 0.0
     isolated = False
+    work_days = [
+        WeekDay.MONDAY,
+        WeekDay.TUESDAY,
+        WeekDay.WEDNESDAY,
+        WeekDay.THURSDAY,
+        WeekDay.FRIDAY,
+        WeekDay.SATURDAY
+    ]
+
     def current_income(self):
         if self.isolated:
             return self.base_income * (1.0 - self.income_loss_isolated)
@@ -195,18 +205,50 @@ class Human(AgentBase):
     def is_symptomatic(self):
         return self.is_infected() and self.infection_days_count >= self.infection_incubation
 
+    def _standard_decision(self, pd, hd):
+        if hd is None:
+            return pd
+        else:
+            if flip_coin(self.properties.herding_behavior):
+                return hd
+            else:
+                return pd
+        
     def personal_decision(self, dilemma):
         answer = False
         if dilemma == Dilemma.GO_TO_WORK_ON_LOCKDOWN:
-            pd = flip_coin(self.properties.risk_tolerance)
+            #pd = flip_coin(self.properties.risk_tolerance)
+            #hd = self.covid_model.dilemma_history.herding_decision(dilemma, TribeSelector.COWORKER, 10)
+            #answer = self._standard_decision(pd, hd)
+            return False
+        elif dilemma == Dilemma.INVITE_COWORKERS_TO_GET_OUT:
+            if self.social_event is not None:
+                # don't update dilemma_history since it's a compulsory decision
+                return False
+            rt = self.properties.risk_tolerance * self.properties.risk_tolerance
+            if SocialPolicy.SOCIAL_DISTANCING in get_parameters().get('social_policies'):
+                rt = rt * rt
+            k = 3
+            if self.covid_model.global_count.day_count >= 10:
+                d = self.covid_model.global_count.infected_count / self.covid_model.global_count.total_population
+                rt = rt * math.exp(-k * d)
+            pd = flip_coin(rt)
             hd = self.covid_model.dilemma_history.herding_decision(dilemma, TribeSelector.COWORKER, 10)
-            if hd is None:
-                answer = pd
-            else:
-                if flip_coin(self.properties.herding_behavior):
-                    answer = hd
-                else:
-                    answer = pd
+            answer = self._standard_decision(pd, hd)
+        elif dilemma == Dilemma.ACCEPT_COWORKER_INVITATION_TO_GET_OUT:
+            if self.social_event is not None:
+                # don't update dilemma_history since it's a compulsory decision
+                return False
+            rt = self.properties.risk_tolerance
+            if SocialPolicy.SOCIAL_DISTANCING in get_parameters().get('social_policies'):
+                rt = rt * rt
+            k = 3
+            if self.covid_model.global_count.day_count >= 10:
+                d = self.covid_model.global_count.infected_count / self.covid_model.global_count.total_population
+                rt = rt * math.exp(-k * d)
+            pd = flip_coin(rt)
+            hd = self.covid_model.dilemma_history.herding_decision(dilemma, TribeSelector.COWORKER, 10)
+            answer = self._standard_decision(pd, hd)
         else: assert False
         for tribe in TribeSelector:
             self.covid_model.dilemma_history.history[dilemma][tribe].append(answer)
@@ -248,10 +290,10 @@ class Human(AgentBase):
     def setup_work_info(self):
         income = {
             WorkClasses.OFFICE: (1.0, 0.0),
-            #WorkClasses.HOUSEBOUND: (1.0, 0.0),
+            WorkClasses.HOUSEBOUND: (1.0, 0.0),
             WorkClasses.FACTORY: (1.0, 1.0),
-            WorkClasses.RETAIL: (1.0, 1.0)
-            #WorkClasses.ESSENTIAL: (1.0, 1.0),
+            WorkClasses.RETAIL: (1.0, 1.0),
+            WorkClasses.ESSENTIAL: (1.0, 1.0),
         }
         classes = [key for key in income.keys()]
         roulette = []
@@ -286,12 +328,6 @@ class Human(AgentBase):
 
         self.work_info.house_bound_worker = WorkClasses.HOUSEBOUND
 
-    def move(self, source_district, target_district):
-        source = source_district.get_buildings(self)[0].get_unit(self).humans
-        target = target_district.get_buildings(self)[0].get_unit(self).humans
-        if self in source:
-            source.remove(self)
-            target.append(self)
 
 class Infant(Human):
     def initialize_individual_properties(self):
@@ -309,29 +345,76 @@ class K12Student(Human):
         if self.is_dead: return
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
             if not self.main_activity_isolated():
-                self.move(self.home_district, self.school_district)
+                self.home_district.move_to(self, self.school_district)
         elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
-            self.move(self.school_district, self.home_district)
+            self.school_district.move_to(self, self.home_district)
         elif self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
             self.disease_evolution()
     
 class Adult(Human):
+    def __init__(self, covid_model, age, msp, hsp, mfd):
+        super().__init__(covid_model, age, msp, hsp, mfd)
+        self.social_event = None
+        self.days_since_last_social_event = 0
+
     def initialize_individual_properties(self):
       self.properties.base_health = normal_cap(0.9, 0.2, 0.0, 1.0)
+      mean = get_parameters().get('risk_tolerance_mean')
+      stdev = get_parameters().get('risk_tolerance_stdev')
+      self.properties.risk_tolerance = normal_cap(mean, stdev, 0.0, 1.0)
+      mean = get_parameters().get('herding_behavior_mean')
+      stdev = get_parameters().get('herding_behavior_stdev')
+      self.properties.herding_behavior = normal_cap(mean, stdev, 0.0, 1.0)
 
-    def step(self):
-        if self.is_dead: return
+    def is_working_day(self):
+        return self.covid_model.get_week_day() in self.work_info.work_days
+
+    def invite_coworkers_to_get_out(self):
+        #print("PARTY")
+        event = self.work_district.get_available_gathering_spot()
+        if event is not None:
+            flag = False
+            for human in self.tribe[TribeSelector.COWORKER]:
+                if human.personal_decision(Dilemma.ACCEPT_COWORKER_INVITATION_TO_GET_OUT):
+                    flag = True
+                    human.social_event = event
+            if flag:
+                self.social_event = event
+
+    def working_day(self):
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
             if self.main_activity_isolated():
                 self.work_info.isolated = True
             else:
                 self.work_info.isolated = False
-                self.move(self.home_district, self.work_district)
+                self.home_district.move_to(self, self.work_district)
             self.covid_model.global_count.total_income += self.work_info.current_income()
         elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
-            self.move(self.work_district, self.home_district)
+            if self.personal_decision(Dilemma.INVITE_COWORKERS_TO_GET_OUT):
+                self.invite_coworkers_to_get_out()
+            self.work_district.move_to(self, self.home_district)
         elif self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
             self.disease_evolution()
+            self.days_since_last_social_event += 1
+
+    def non_working_day(self):
+        if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
+            if self.social_event is not None:
+                self.home_district.move_to(self, self.social_event)
+        elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
+            if self.social_event is not None:
+                self.social_event.move_to(self, self.home_district)
+                self.social_event.available = True
+                self.days_since_last_social_event = 0
+        elif self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
+            self.disease_evolution()
+
+    def step(self):
+        if self.is_dead: return
+        if self.is_working_day():
+            self.working_day()
+        else:
+            self.non_working_day()
     
 class Elder(Human):
     def initialize_individual_properties(self):

@@ -28,6 +28,11 @@ class Location(AgentBase):
         for key, value in s:
             self.custom_parameters[key] = args.get(key, value)
 
+    def move_to(self, human, target):
+        if human in self.humans:
+            self.humans.remove(human)
+            target.humans.append(human)
+
     def step(self):
         pass
 
@@ -86,9 +91,11 @@ class Factory(Location):
         self.set_custom_parameters([('contagion_probability', 0.6)], kwargs)
 
 class FunGatheringSpot(Location):
-    def __init__(self, covid_model, **kwargs):
+    def __init__(self, capacity, covid_model, **kwargs):
         super().__init__(covid_model)
         self.set_custom_parameters([('contagion_probability', 0.2)], kwargs)
+        self.capacity = capacity
+        self.available = True
 
 class Hospital(Location):
     def __init__(self, covid_model, **kwargs):
@@ -105,6 +112,21 @@ class District(Location):
         if human in self.allocation:
             return self.allocation[human]
         return []
+
+    def get_available_gathering_spot(self):
+        for location in self.locations:
+            if isinstance(location, FunGatheringSpot) and location.available:
+                location.available = False
+                return location
+        return None
+
+    def move_to(self, human, target):
+        s = self.get_buildings(human)[0].get_unit(human)
+        if isinstance(target, District):
+            t = target.get_buildings(human)[0].get_unit(human)
+        else:
+            t = target
+        s.move_to(human, t)
 
     def _select(self, building_type, n, same_unit, exclusive):
         count = 0
