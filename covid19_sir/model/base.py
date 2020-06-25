@@ -84,8 +84,10 @@ class DiseaseSeverity(Enum):
 
 class SimulationState(Enum):
     COMMUTING_TO_MAIN_ACTIVITY = auto()
+    COMMUTING_TO_POST_WORK_ACTIVITY = auto()
     COMMUTING_TO_HOME = auto()
     MAIN_ACTIVITY = auto()
+    POST_WORK_ACTIVITY = auto()
     MORNING_AT_HOME = auto()
     EVENING_AT_HOME = auto()
 
@@ -240,6 +242,7 @@ class CovidModel(Model):
         self.listeners.append(listener)
 
     def step(self):
+        #print("---------------------------------------------------------------------------------")
         assert self.current_state == SimulationState.MORNING_AT_HOME
         for listener in self.listeners:
             listener.start_cycle(self)

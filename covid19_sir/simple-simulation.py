@@ -31,7 +31,7 @@ symptomatic_isolation_rate = 0.9
 asymptomatic_contagion_probability = 0.1
 risk_tolerance_mean = 0.8
 risk_tolerance_stdev = 0.2
-herding_behavior_mean = 0.7
+herding_behavior_mean = 0.8
 herding_behavior_stdev = 0.2
 
 # Simulation
@@ -47,7 +47,9 @@ def build_district(name, model, building_capacity, unit_capacity,
         math.ceil(population_size / unit_capacity) * (1 / occupacy_rate) 
         / building_capacity)
     for i in range(building_count):
-        district.locations.append(FunGatheringSpot(10, model))
+        district.locations.append(FunGatheringSpot(10, model,
+                                spreading_rate=spreading_rate, 
+                                contagion_probability=contagion_probability))
         building = HomogeneousBuilding(building_capacity, model)
         for j in range(building_capacity):
             unit = BuildingUnit(unit_capacity, model, 
@@ -241,7 +243,7 @@ scenario[sc]['parameters'] = SimulationParameters(
         SocialPolicy.LOCKDOWN_RETAIL,
         #SocialPolicy.LOCKDOWN_ELEMENTARY_SCHOOL,
         #SocialPolicy.LOCKDOWN_MIDDLE_SCHOOL,
-        #SocialPolicy.LOCKDOWN_HIGH_SCHOOL,
+        SocialPolicy.LOCKDOWN_HIGH_SCHOOL,
         SocialPolicy.SOCIAL_DISTANCING
     ]
 )
@@ -294,8 +296,8 @@ setup_city_layout(scenario[sc]['model'])
 ################################################################################
 # Simulation of all scenarios
 
-for sc in scenario:
-#for sc in [3]:
+#for sc in scenario:
+for sc in [1, 2, 3, 4]:
     #print("--------------------------------------------------------------------------------")
     set_parameters(scenario[sc]['parameters'])
     model = scenario[sc]['model']
