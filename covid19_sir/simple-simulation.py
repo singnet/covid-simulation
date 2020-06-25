@@ -1,8 +1,8 @@
 import sys
 import math
 import numpy as np
-from model.base import CovidModel, SimulationParameters, SocialPolicy, set_parameters, get_parameters, change_parameters
-from model.human import Human, Adult, K12Student
+from model.base import CovidModel, SimulationParameters, SocialPolicy, TribeSelector, set_parameters, get_parameters, change_parameters
+from model.human import Human, Elder, Adult, K12Student, Toddler, Infant
 from model.location import District, HomogeneousBuilding, BuildingUnit
 from model.instantiation import FamilyFactory
 from utils import BasicStatistics
@@ -64,6 +64,7 @@ def setup_city_layout(model):
     classroom_capacity = 30
     school_occupacy_rate = 0.5
 
+    # Build empty districts
     home_district = build_district("Home", model, 
                                    appartment_building_capacity, 
                                    appartment_capacity,
@@ -83,11 +84,23 @@ def setup_city_layout(model):
     #print(work_district)
     #print(school_district)
 
+    # Build families
+
     family_factory = FamilyFactory(model)
     family_factory.factory(population_size)
     model.global_count.total_population = family_factory.human_count
 
     #print(family_factory)
+
+    age_class_tribes = {
+        Infant: [],
+        Toddler: [],
+        K12Student: [],
+        Adult: [],
+        Elder: []
+    }
+
+    # Allocate buildings to people
 
     for family in family_factory.families:
         adults = [human for human in family if isinstance(human, Adult)]
@@ -96,6 +109,7 @@ def setup_city_layout(model):
         work_district.allocate(adults)
         school_district.allocate(students, True)
         for human in family:
+            age_class_tribes[type(human)].append(human)
             human.home_district = home_district
             home_district.get_buildings(human)[0].get_unit(human).humans.append(human)
         for adult in adults:
@@ -103,6 +117,17 @@ def setup_city_layout(model):
         for student in students:
             student.school_district = school_district
 
+    # Set tribes
+
+    for family in family_factory.families:
+        for human in family:
+            human.tribe[TribeSelector.AGE_CLASS] = age_class_tribes[type(human)]
+            human.tribe[TribeSelector.FAMILY] = family
+            if isinstance(human, Adult):
+                human.tribe[TribeSelector.COWORKER] = work_district.get_buildings(human)[0].get_unit(human).allocation
+            if isinstance(human, K12Student):
+                human.tribe[TribeSelector.CLASSMATE] = school_district.get_buildings(human)[0].get_unit(human).allocation
+        
     #print(home_district)
     #print(work_district)
     #print(school_district)

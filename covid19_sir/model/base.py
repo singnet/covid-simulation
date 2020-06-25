@@ -104,16 +104,6 @@ class SocialPolicy(Enum):
     LOCKDOWN_ELEMENTARY_SCHOOL = auto()
     LOCKDOWN_MIDDLE_SCHOOL = auto()
     LOCKDOWN_HIGH_SCHOOL = auto()
-    locked_work_classes = {
-        LOCKDOWN_OFFICE: [WorkClasses.OFFICE],
-        LOCKDOWN_FACTORY: [WorkClasses.FACTORY],
-        LOCKDOWN_RETAIL: [WorkClasses.RETAIL]
-    }
-    locked_student_ages = {
-        LOCKDOWN_ELEMENTARY_SCHOOL: (5, 11),
-        LOCKDOWN_MIDDLE_SCHOOL: (12, 14),
-        LOCKDOWN_HIGH_SCHOOL: (15, 18)
-    }
 
 class SocialPolicyUtil():
     locked_work_classes = {
@@ -126,6 +116,32 @@ class SocialPolicyUtil():
         SocialPolicy.LOCKDOWN_MIDDLE_SCHOOL: (12, 14),
         SocialPolicy.LOCKDOWN_HIGH_SCHOOL: (15, 18)
     }
+
+class TribeSelector(Enum):
+    FAMILY = auto()
+    COWORKER = auto()
+    CLASSMATE = auto()
+    AGE_CLASS = auto()
+
+class Dilemma(Enum):
+    GO_TO_WORK_ON_LOCKDOWN = auto()
+
+class DilemmaDecisionHistory:
+    def __init__(self):
+        self.history = {}
+        for dilemma in Dilemma:
+            self.history[dilemma] = {}
+            for tribe in TribeSelector:
+                self.history[dilemma][tribe] = []
+
+    def herding_decision(self, dilemma, tribe, n):
+        if len(self.history[dilemma][tribe]) < n:
+            return None
+        count = 0
+        for i in range(n):
+            if self.history[dilemma][tribe][-(i + 1)]: count += 1
+        return count > (n / 2)
+            
 
 class SimulationParameters:
     def __init__(self, **kwargs):
@@ -184,7 +200,7 @@ class CovidModel(Model):
             SimulationState.COMMUTING_TO_HOME: SimulationState.EVENING_AT_HOME,
             SimulationState.EVENING_AT_HOME: SimulationState.MORNING_AT_HOME
         }
-        
+        self.dilemma_history = DilemmaDecisionHistory()
 
     def reached_hospitalization_limit(self):
         return (self.global_count.total_hospitalized / self.global_count.total_population) >= parameters.get('hospitalization_capacity')
