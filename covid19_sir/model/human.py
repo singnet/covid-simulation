@@ -225,13 +225,12 @@ class Human(AgentBase):
             if self.social_event is not None:
                 # don't update dilemma_history since it's a compulsory decision
                 return False
-            rt = self.properties.risk_tolerance * self.properties.risk_tolerance
+            rt = self.properties.risk_tolerance
             if SocialPolicy.SOCIAL_DISTANCING in get_parameters().get('social_policies'):
                 rt = rt * rt
-            k = 3
-            if self.covid_model.global_count.day_count >= 10:
-                d = self.covid_model.global_count.infected_count / self.covid_model.global_count.total_population
-                rt = rt * math.exp(-k * d)
+            k = 3 #TODO parameter
+            d = self.covid_model.global_count.infected_count / self.covid_model.global_count.total_population
+            rt = rt * math.exp(-k * d)
             pd = flip_coin(rt)
             hd = self.covid_model.dilemma_history.herding_decision(dilemma, TribeSelector.COWORKER, 10)
             answer = self._standard_decision(pd, hd)
@@ -242,10 +241,9 @@ class Human(AgentBase):
             rt = self.properties.risk_tolerance
             if SocialPolicy.SOCIAL_DISTANCING in get_parameters().get('social_policies'):
                 rt = rt * rt
-            k = 3
-            if self.covid_model.global_count.day_count >= 10:
-                d = self.covid_model.global_count.infected_count / self.covid_model.global_count.total_population
-                rt = rt * math.exp(-k * d)
+            k = 3 # TODO parameter
+            d = self.covid_model.global_count.infected_count / self.covid_model.global_count.total_population
+            rt = rt * math.exp(-k * d)
             pd = flip_coin(rt)
             hd = self.covid_model.dilemma_history.herding_decision(dilemma, TribeSelector.COWORKER, 10)
             answer = self._standard_decision(pd, hd)
@@ -370,16 +368,19 @@ class Adult(Human):
         return self.covid_model.get_week_day() in self.work_info.work_days
 
     def invite_coworkers_to_get_out(self):
-        #print("PARTY")
         event = self.work_district.get_available_gathering_spot()
         if event is not None:
+            assert not event.humans
             flag = False
             for human in self.tribe[TribeSelector.COWORKER]:
-                if human.personal_decision(Dilemma.ACCEPT_COWORKER_INVITATION_TO_GET_OUT):
+                if human != self and human.personal_decision(Dilemma.ACCEPT_COWORKER_INVITATION_TO_GET_OUT):
                     flag = True
                     human.social_event = event
             if flag:
                 self.social_event = event
+                #print("PARTY")
+            else:
+                event.available = True
 
     def working_day(self):
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
@@ -403,9 +404,10 @@ class Adult(Human):
                 self.home_district.move_to(self, self.social_event)
         elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
             if self.social_event is not None:
-                self.social_event.move_to(self, self.home_district)
+                self.home_district.move_from(self, self.social_event)
                 self.social_event.available = True
                 self.days_since_last_social_event = 0
+                self.social_event = None
         elif self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
             self.disease_evolution()
 

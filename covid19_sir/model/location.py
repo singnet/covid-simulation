@@ -71,7 +71,6 @@ class HomogeneousBuilding(Location):
         self.unit_args = kwargs
         self.capacity = building_capacity
         self.allocation = {}
-
     def get_unit(self, human):
         return self.allocation[human]
 
@@ -93,9 +92,16 @@ class Factory(Location):
 class FunGatheringSpot(Location):
     def __init__(self, capacity, covid_model, **kwargs):
         super().__init__(covid_model)
-        self.set_custom_parameters([('contagion_probability', 0.2)], kwargs)
+        self.set_custom_parameters([\
+            ('contagion_probability', 0.9),\
+            ('spreading_rate', 0.5)\
+        ], kwargs)
         self.capacity = capacity
         self.available = True
+    def step(self):
+        if self.covid_model.current_state == SimulationState.MAIN_ACTIVITY:
+            #if self.humans: print(f"SPREADING {len(self.humans)}")
+            self.spread_infection()
 
 class Hospital(Location):
     def __init__(self, covid_model, **kwargs):
@@ -117,7 +123,9 @@ class District(Location):
         for location in self.locations:
             if isinstance(location, FunGatheringSpot) and location.available:
                 location.available = False
+                #print("GATHERING SPOT AVAILABLE")
                 return location
+        #print("NO GATHERING SPOT")
         return None
 
     def move_to(self, human, target):
@@ -126,6 +134,14 @@ class District(Location):
             t = target.get_buildings(human)[0].get_unit(human)
         else:
             t = target
+        s.move_to(human, t)
+
+    def move_from(self, human, source):
+        t = self.get_buildings(human)[0].get_unit(human)
+        if isinstance(source, District):
+            s = source.get_buildings(human)[0].get_unit(human)
+        else:
+            s = source
         s.move_to(human, t)
 
     def _select(self, building_type, n, same_unit, exclusive):
