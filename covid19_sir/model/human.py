@@ -1,7 +1,7 @@
 import numpy as np
 from enum import Enum, auto
 
-from model.base import WorkClasses, AgentBase, InfectionStatus, DiseaseSeverity, SimulationState, SocialPolicyUtil, flip_coin, normal_cap, roulette_selection, get_parameters, unique_id
+from model.base import Dilemma, WorkClasses, AgentBase, InfectionStatus, DiseaseSeverity, SimulationState, SocialPolicyUtil, TribeSelector, flip_coin, normal_cap, roulette_selection, get_parameters, unique_id
 
 class WorkInfo:
     work_class = None
@@ -22,6 +22,7 @@ class WorkInfo:
 class IndividualProperties:
     base_health = 1.0
     risk_tolerance = 0.0
+    herding_behavior = 0.0
 
 class Human(AgentBase):
 
@@ -80,6 +81,9 @@ class Human(AgentBase):
             self.covid_model.global_count.work_population += 1
         self.current_health = self.properties.base_health
         self.is_dead = False
+        self.tribe = {}
+        for sel in TribeSelector:
+            self.tribe[sel] = []
         self.parameter_changed()
 
     def initialize_individual_properties(self):
@@ -191,6 +195,23 @@ class Human(AgentBase):
     def is_symptomatic(self):
         return self.is_infected() and self.infection_days_count >= self.infection_incubation
 
+    def personal_decision(self, dilemma):
+        answer = False
+        if dilemma == Dilemma.GO_TO_WORK_ON_LOCKDOWN:
+            pd = flip_coin(self.properties.risk_tolerance)
+            hd = self.covid_model.dilemma_history.herding_decision(dilemma, TribeSelector.COWORKER, 10)
+            if hd is None:
+                answer = pd
+            else:
+                if flip_coin(self.properties.herding_behavior):
+                    answer = hd
+                else:
+                    answer = pd
+        else: assert False
+        for tribe in TribeSelector:
+            self.covid_model.dilemma_history.history[dilemma][tribe].append(answer)
+        return answer
+
     def main_activity_isolated(self):
         if self.is_infected():
             if self.disease_severity == DiseaseSeverity.MODERATE or \
@@ -204,7 +225,7 @@ class Human(AgentBase):
             for policy in get_parameters().get('social_policies'):
                 if policy in SocialPolicyUtil.locked_work_classes and \
                    self.work_info.work_class in SocialPolicyUtil.locked_work_classes[policy]:
-                    return True
+                    return not self.personal_decision(Dilemma.GO_TO_WORK_ON_LOCKDOWN)
         elif isinstance(self, K12Student):
             for policy in get_parameters().get('social_policies'):
                 if policy in SocialPolicyUtil.locked_student_ages:
@@ -221,13 +242,16 @@ class Human(AgentBase):
     def is_worker(self):
         return self.age >= 19 and self.age <= 64
 
+    def get_tribe(self, tribe_selector):
+        pass
+            
     def setup_work_info(self):
         income = {
             WorkClasses.OFFICE: (1.0, 0.0),
-            WorkClasses.HOUSEBOUND: (1.0, 0.0),
+            #WorkClasses.HOUSEBOUND: (1.0, 0.0),
             WorkClasses.FACTORY: (1.0, 1.0),
-            WorkClasses.RETAIL: (1.0, 1.0),
-            WorkClasses.ESSENTIAL: (1.0, 1.0),
+            WorkClasses.RETAIL: (1.0, 1.0)
+            #WorkClasses.ESSENTIAL: (1.0, 1.0),
         }
         classes = [key for key in income.keys()]
         roulette = []
