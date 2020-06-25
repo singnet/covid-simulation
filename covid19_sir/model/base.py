@@ -54,6 +54,7 @@ def change_parameters(**kwargs):
     
 class SimulationStatus:
     def __init__(self):
+        self.day_count = 0
         self.infected_count = 0
         self.non_infected_count = 0
         self.susceptible_count = 0
@@ -96,6 +97,15 @@ class WorkClasses(Enum):
     RETAIL = auto()
     ESSENTIAL = auto()
 
+class WeekDay(Enum):
+    SUNDAY = auto()
+    MONDAY = auto()
+    TUESDAY = auto()
+    WEDNESDAY = auto()
+    THURSDAY = auto()
+    FRIDAY = auto()
+    SATURDAY = auto()
+
 class SocialPolicy(Enum):
     SOCIAL_DISTANCING = auto()
     LOCKDOWN_OFFICE = auto()
@@ -125,6 +135,8 @@ class TribeSelector(Enum):
 
 class Dilemma(Enum):
     GO_TO_WORK_ON_LOCKDOWN = auto()
+    INVITE_COWORKERS_TO_GET_OUT = auto()
+    ACCEPT_COWORKER_INVITATION_TO_GET_OUT = auto()
 
 class DilemmaDecisionHistory:
     def __init__(self):
@@ -166,6 +178,10 @@ class SimulationParameters:
         self.params['spreading_rate'] = kwargs.get("spreading_rate", 0.0)
         self.params['symptomatic_isolation_rate'] = kwargs.get("symptomatic_isolation_rate", 0.0)
         self.params['asymptomatic_contagion_probability'] = kwargs.get("asymptomatic_contagion_probability", 0.1)
+        self.params['risk_tolerance_mean'] = kwargs.get("risk_tolerance_mean", 0.4)
+        self.params['risk_tolerance_stdev'] = kwargs.get("risk_tolerance_stdev", 0.3)
+        self.params['herding_behavior_mean'] = kwargs.get("herding_behavior_mean", 0.4)
+        self.params['herding_behavior_stdev'] = kwargs.get("herding_behavior_stdev", 0.3)
 
     def get(self, key):
         return self.params[key]
@@ -205,6 +221,21 @@ class CovidModel(Model):
     def reached_hospitalization_limit(self):
         return (self.global_count.total_hospitalized / self.global_count.total_population) >= parameters.get('hospitalization_capacity')
 
+    def get_week_day(self):
+        wd = [WeekDay.MONDAY,
+              WeekDay.TUESDAY,
+              WeekDay.WEDNESDAY,
+              WeekDay.THURSDAY,
+              WeekDay.FRIDAY,
+              WeekDay.SATURDAY,
+              WeekDay.SUNDAY]
+        return wd[self.global_count.day_count % 7]
+        
+
+    def is_week_day(self, wd):
+        return self.get_week_day() == wd
+
+
     def add_listener(self, listener):
         self.listeners.append(listener)
 
@@ -213,7 +244,8 @@ class CovidModel(Model):
         for listener in self.listeners:
             listener.start_cycle(self)
 
-        self.global_count.total_income = 0.0
+        if not self.is_week_day(WeekDay.SUNDAY):
+            self.global_count.total_income = 0.0
         flag = False
         while not flag:
             self.schedule.step()
@@ -223,3 +255,4 @@ class CovidModel(Model):
         
         for listener in self.listeners:
             listener.end_cycle(self)
+        self.global_count.day_count += 1
