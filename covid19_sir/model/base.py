@@ -10,8 +10,20 @@ def flip_coin(prob):
     else:
         return False
 
-def random_selection(v):
+def _random_selection(v):
     return(v[np.random.random_integers(0, len(v) - 1)])
+
+def random_selection(v, n=1):
+    if n == 1: 
+        return _random_selection(v)
+    assert n <= (len(v) / 2)
+    a = v.copy()
+    selected = []
+    for i in range(n):
+        s = _random_selection(a)
+        a.remove(s)
+        selected.append(s)
+    return selected
 
 def build_roulette(w):
     r = []
@@ -134,6 +146,7 @@ class TribeSelector(Enum):
     COWORKER = auto()
     CLASSMATE = auto()
     AGE_CLASS = auto()
+    FRIEND = auto()
 
 class Dilemma(Enum):
     GO_TO_WORK_ON_LOCKDOWN = auto()
@@ -200,13 +213,17 @@ class AgentBase(Agent):
         self.id = unique_id
         self.covid_model = covid_model
         covid_model.schedule.add(self)
+        covid_model.agents.append(self)
 
     def __repr__(self):
         return f'<{type(self).__name__} {self.id}>'
 
+    def initialize_individual_properties(self):
+        pass
+
 class CovidModel(Model):
     def __init__(self):
-        self.all_agents = []
+        self.agents = []
         self.global_count = SimulationStatus()
         self.schedule = RandomActivation(self)
         self.listeners = []
@@ -214,7 +231,9 @@ class CovidModel(Model):
         self.next_state = {
             SimulationState.MORNING_AT_HOME: SimulationState.COMMUTING_TO_MAIN_ACTIVITY,
             SimulationState.COMMUTING_TO_MAIN_ACTIVITY: SimulationState.MAIN_ACTIVITY,
-            SimulationState.MAIN_ACTIVITY: SimulationState.COMMUTING_TO_HOME,
+            SimulationState.MAIN_ACTIVITY: SimulationState.COMMUTING_TO_POST_WORK_ACTIVITY,
+            SimulationState.COMMUTING_TO_POST_WORK_ACTIVITY: SimulationState.POST_WORK_ACTIVITY,
+            SimulationState.POST_WORK_ACTIVITY: SimulationState.COMMUTING_TO_HOME,
             SimulationState.COMMUTING_TO_HOME: SimulationState.EVENING_AT_HOME,
             SimulationState.EVENING_AT_HOME: SimulationState.MORNING_AT_HOME
         }
@@ -237,6 +256,9 @@ class CovidModel(Model):
     def is_week_day(self, wd):
         return self.get_week_day() == wd
 
+    def reroll_human_properties(self):
+        for agent in self.agents:
+            agent.initialize_individual_properties()
 
     def add_listener(self, listener):
         self.listeners.append(listener)
