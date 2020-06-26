@@ -12,6 +12,9 @@ class Location(AgentBase):
         self.locations = []
         self.container = None
 
+    def initialize_individual_properties(self):
+        pass
+
     def get_parameter(self, key):
         if key in self.custom_parameters: return self.custom_parameters[key]
         return get_parameters().get(key)
@@ -99,7 +102,7 @@ class FunGatheringSpot(Location):
         self.capacity = capacity
         self.available = True
     def step(self):
-        if self.covid_model.current_state == SimulationState.MAIN_ACTIVITY:
+        if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
             #if self.humans: print(f"SPREADING {len(self.humans)}")
             self.spread_infection()
 
