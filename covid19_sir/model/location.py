@@ -1,5 +1,6 @@
 import math
 import numpy as np
+from enum import Enum, auto
 
 from model.base import AgentBase, SimulationState, flip_coin, SimulationParameters, get_parameters, unique_id, random_selection
 from model.human import Human
@@ -116,15 +117,15 @@ class Restaurant(Location):
         # https://www.wbap.com/2020/07/06/texas-medical-association-provides-guidance-on-coronavirus-risk-levels/
         cp = {
             RestaurantType.FAST_FOOD: {
-                INDOOR: 0.5
+                INDOOR: 0.5,
                 OUTDOOR: 0.2
-            }
+            },
             RestaurantType.FANCY: {
-                INDOOR: 0.7
+                INDOOR: 0.7,
                 OUTDOOR: 0.4
-            }
+            },
             RestaurantType.BAR: {
-                INDOOR: 0.9
+                INDOOR: 0.9,
                 OUTDOOR: 0.6
             }
         }
@@ -133,15 +134,15 @@ class Restaurant(Location):
         assert capacity >= spreading_count
         sr = {
             RestaurantType.FAST_FOOD: {
-                INDOOR: spreading_count / capacity
+                INDOOR: spreading_count / capacity,
                 OUTDOOR: (spreading_count / 2.0) / capacity
-            }
+            },
             RestaurantType.FANCY: {
-                INDOOR: spreading_count / capacity
+                INDOOR: spreading_count / capacity,
                 OUTDOOR: (spreading_count / 2.0) / capacity
-            }
+            },
             RestaurantType.BAR: {
-                INDOOR: (spreading_count * 2.0) / capacity if (spreading_count * 2.0) <= capacity else 1.0
+                INDOOR: (spreading_count * 2.0) / capacity if (spreading_count * 2.0) <= capacity else 1.0,
                 OUTDOOR: spreading_count / capacity
             }
         }
