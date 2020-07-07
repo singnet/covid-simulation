@@ -48,6 +48,9 @@ def normal_cap(mean, stdev, lower_bound, upper_bound):
     if r > upper_bound: r = upper_bound
     return r
 
+def linear_rescale(x, l2, u2, l1 = 0, u1 = 1):
+    return ((x / (u1 - l1)) * (u2  - l2)) + l2
+
 def unique_id():
     return uuid.uuid1()
 
@@ -152,6 +155,8 @@ class Dilemma(Enum):
     GO_TO_WORK_ON_LOCKDOWN = auto()
     INVITE_FRIENDS_TO_GET_OUT = auto()
     ACCEPT_FRIEND_INVITATION_TO_GET_OUT = auto()
+    INVITE_COWORKERS_TO_RESTAURANT = auto()
+    ACCEPT_COWORKER_INVITATION_TO_RESTAURANT = auto()
 
 class DilemmaDecisionHistory:
     def __init__(self):
@@ -197,6 +202,7 @@ class SimulationParameters:
         self.params['risk_tolerance_stdev'] = kwargs.get("risk_tolerance_stdev", 0.3)
         self.params['herding_behavior_mean'] = kwargs.get("herding_behavior_mean", 0.4)
         self.params['herding_behavior_stdev'] = kwargs.get("herding_behavior_stdev", 0.3)
+        self.params['allowed_restaurant_capacity'] = kwargs.get("allowed_restaurant_capacity", 1.0)
 
     def get(self, key):
         return self.params[key]
@@ -264,7 +270,6 @@ class CovidModel(Model):
         self.listeners.append(listener)
 
     def step(self):
-        #print("---------------------------------------------------------------------------------")
         assert self.current_state == SimulationState.MORNING_AT_HOME
         for listener in self.listeners:
             listener.start_cycle(self)

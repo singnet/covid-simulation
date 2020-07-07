@@ -2,7 +2,7 @@ import math
 import numpy as np
 from enum import Enum, auto
 
-from model.base import Dilemma, WorkClasses, WeekDay, AgentBase, InfectionStatus, DiseaseSeverity, SimulationState, SocialPolicy, SocialPolicyUtil, TribeSelector, flip_coin, normal_cap, roulette_selection, get_parameters, unique_id
+from model.base import Dilemma, WorkClasses, WeekDay, AgentBase, InfectionStatus, DiseaseSeverity, SimulationState, SocialPolicy, SocialPolicyUtil, TribeSelector, flip_coin, normal_cap, roulette_selection, get_parameters, unique_id, linear_rescale
 
 class WorkInfo:
     work_class = None
@@ -224,6 +224,32 @@ class Human(AgentBase):
                 answer = self._standard_decision(pd, hd)
             else:
                 answer = False
+        elif dilemma == Dilemma.INVITE_COWORKERS_TO_RESTAURANT:
+            if self.social_event is not None or self.is_symptomatic():
+                # don't update dilemma_history since it's a compulsory decision
+                return False
+            rt = self.properties.risk_tolerance
+            if SocialPolicy.SOCIAL_DISTANCING in get_parameters().get('social_policies'):
+                rt = rt * rt
+            k = 3 #TODO parameter
+            d = self.covid_model.global_count.infected_count / self.covid_model.global_count.total_population
+            rt = rt * math.exp(-k * d)
+            pd = flip_coin(rt)
+            hd = self.covid_model.dilemma_history.herding_decision(dilemma, TribeSelector.COWORKER, 10)
+            answer = self._standard_decision(pd, hd)
+        elif dilemma == Dilemma.ACCEPT_COWORKER_INVITATION_TO_RESTAURANT:
+            if self.social_event is not None or self.is_symptomatic():
+                # don't update dilemma_history since it's a compulsory decision
+                return False
+            rt = self.properties.risk_tolerance
+            if SocialPolicy.SOCIAL_DISTANCING in get_parameters().get('social_policies'):
+                rt = rt * rt
+            k = 3 # TODO parameter
+            d = self.covid_model.global_count.infected_count / self.covid_model.global_count.total_population
+            rt = rt * math.exp(-k * d)
+            pd = flip_coin(rt)
+            hd = self.covid_model.dilemma_history.herding_decision(dilemma, TribeSelector.COWORKER, 10)
+            answer = self._standard_decision(pd, hd)
         elif dilemma == Dilemma.INVITE_FRIENDS_TO_GET_OUT:
             if self.social_event is not None or self.is_symptomatic():
                 # don't update dilemma_history since it's a compulsory decision
@@ -381,9 +407,27 @@ class Adult(Human):
                     human.social_event = event
             if flag:
                 self.social_event = event
-                #print(f"PARTY {XXX}")
             else:
                 event.available = True
+
+    def invite_coworkers_to_restaurant(self):
+        accepted = [self]
+        for human in self.tribe[TribeSelector.COWORKER]:
+            if human != self and human.personal_decision(Dilemma.ACCEPT_COWORKER_INVITATION_TO_RESTAURANT):
+                accepted.append(human)
+        if len(accepted) == 1: return
+        outdoor = flip_coin(linear_rescale(self.properties.risk_tolerance, 0, 0.5))
+        if flip_coin(linear_rescale(self.work_info.base_income, 0, 1/5)):
+            restaurant_type = RestaurantType.FANCY
+        else:
+            restaurant_type = RestaurantType.FASTFOOD
+        event = self.work_district.get_available_restaurant(len(accepted), outdoor, restaurant_type)
+        if event is not None and not outdoor:
+            event = self.work_district.get_available_restaurant(len(accepted), True, restaurant_type)
+        if event is None: return
+        event.available -= len(accepted)
+        for human in accepted:
+            human.social_event = event
 
     def working_day(self):
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
@@ -393,7 +437,7 @@ class Adult(Human):
                 self.work_info.isolated = False
                 self.home_district.move_to(self, self.work_district)
             if self.personal_decision(Dilemma.INVITE_FRIENDS_TO_GET_OUT):
-                self.invite_friends_to_get_out()
+                self.invite_coworkers_to_restaurant()
             self.covid_model.global_count.total_income += self.work_info.current_income()
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_POST_WORK_ACTIVITY:
             if self.social_event is not None:

@@ -101,7 +101,6 @@ class FunGatheringSpot(Location):
         self.available = True
     def step(self):
         if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
-            #if self.humans: print(f"SPREADING {len(self.humans)}")
             self.spread_infection()
 
 class RestaurantType(Enum):
@@ -147,6 +146,7 @@ class Restaurant(Location):
             }
         }
         self.capacity = capacity
+        self.available = capacity
         self.restaurant_type = restaurant_type
         self.is_outdoor = is_outdoor
         self.set_custom_parameters([\
@@ -155,7 +155,6 @@ class Restaurant(Location):
         ], kwargs)
     def step(self):
         if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
-            #if self.humans: print(f"SPREADING {len(self.humans)}")
             self.spread_infection()
 
 class Hospital(Location):
@@ -174,13 +173,20 @@ class District(Location):
             return self.allocation[human]
         return []
 
+    def get_available_restaurant(self, people_count, outdoor, restaurant_type):
+        for location in self.locations:
+            if isinstance(location, Restaurant) and 
+                location.restaurant_type == restaurant_type and
+                location.is_outdoor == outdoor and
+                (location.available * self.get_parameter('allowed_restaurant_capacity')) >= people_count:
+                return location
+        return None
+
     def get_available_gathering_spot(self):
         for location in self.locations:
             if isinstance(location, FunGatheringSpot) and location.available:
                 location.available = False
-                #print("GATHERING SPOT AVAILABLE")
                 return location
-        #print("NO GATHERING SPOT")
         return None
 
     def move_to(self, human, target):
