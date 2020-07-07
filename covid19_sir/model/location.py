@@ -12,9 +12,6 @@ class Location(AgentBase):
         self.locations = []
         self.container = None
 
-    def initialize_individual_properties(self):
-        pass
-
     def get_parameter(self, key):
         if key in self.custom_parameters: return self.custom_parameters[key]
         return get_parameters().get(key)
@@ -101,6 +98,60 @@ class FunGatheringSpot(Location):
         ], kwargs)
         self.capacity = capacity
         self.available = True
+    def step(self):
+        if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
+            #if self.humans: print(f"SPREADING {len(self.humans)}")
+            self.spread_infection()
+
+class RestaurantType(Enum):
+    FAST_FOOD = auto()
+    FANCY = auto()
+    BAR = auto()
+
+class Restaurant(Location):
+    def __init__(self, capacity, restaurant_type, is_outdoor, covid_model, **kwargs):
+        super().__init__(covid_model)
+        OUTDOOR = True
+        INDOOR = False
+        # https://www.wbap.com/2020/07/06/texas-medical-association-provides-guidance-on-coronavirus-risk-levels/
+        cp = {
+            RestaurantType.FAST_FOOD: {
+                INDOOR: 0.5
+                OUTDOOR: 0.2
+            }
+            RestaurantType.FANCY: {
+                INDOOR: 0.7
+                OUTDOOR: 0.4
+            }
+            RestaurantType.BAR: {
+                INDOOR: 0.9
+                OUTDOOR: 0.6
+            }
+        }
+        # https://wwwnc.cdc.gov/eid/article/26/7/20-0764_article
+        spreading_count = 10 # number of people
+        assert capacity >= spreading_count
+        sr = {
+            RestaurantType.FAST_FOOD: {
+                INDOOR: spreading_count / capacity
+                OUTDOOR: (spreading_count / 2.0) / capacity
+            }
+            RestaurantType.FANCY: {
+                INDOOR: spreading_count / capacity
+                OUTDOOR: (spreading_count / 2.0) / capacity
+            }
+            RestaurantType.BAR: {
+                INDOOR: (spreading_count * 2.0) / capacity if (spreading_count * 2.0) <= capacity else 1.0
+                OUTDOOR: spreading_count / capacity
+            }
+        }
+        self.capacity = capacity
+        self.restaurant_type = restaurant_type
+        self.is_outdoor = is_outdoor
+        self.set_custom_parameters([\
+            ('contagion_probability', cp[restaurant_type][is_outdoor]),\
+            ('spreading_rate', sr[restaurant_type][is_outdoor])\
+        ], kwargs)
     def step(self):
         if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
             #if self.humans: print(f"SPREADING {len(self.humans)}")

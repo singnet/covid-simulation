@@ -224,7 +224,7 @@ class Human(AgentBase):
                 answer = self._standard_decision(pd, hd)
             else:
                 answer = False
-        elif dilemma == Dilemma.INVITE_COWORKERS_TO_GET_OUT:
+        elif dilemma == Dilemma.INVITE_FRIENDS_TO_GET_OUT:
             if self.social_event is not None or self.is_symptomatic():
                 # don't update dilemma_history since it's a compulsory decision
                 return False
@@ -237,7 +237,7 @@ class Human(AgentBase):
             pd = flip_coin(rt)
             hd = self.covid_model.dilemma_history.herding_decision(dilemma, TribeSelector.FRIEND, 10)
             answer = self._standard_decision(pd, hd)
-        elif dilemma == Dilemma.ACCEPT_COWORKER_INVITATION_TO_GET_OUT:
+        elif dilemma == Dilemma.ACCEPT_FRIEND_INVITATION_TO_GET_OUT:
             if self.social_event is not None or self.is_symptomatic():
                 # don't update dilemma_history since it's a compulsory decision
                 return False
@@ -248,7 +248,7 @@ class Human(AgentBase):
             d = self.covid_model.global_count.infected_count / self.covid_model.global_count.total_population
             rt = rt * math.exp(-k * d)
             pd = flip_coin(rt)
-            hd = self.covid_model.dilemma_history.herding_decision(dilemma, TribeSelector.COWORKER, 10)
+            hd = self.covid_model.dilemma_history.herding_decision(dilemma, TribeSelector.FRIEND, 10)
             answer = self._standard_decision(pd, hd)
         else: assert False
         for tribe in TribeSelector:
@@ -376,7 +376,7 @@ class Adult(Human):
             assert not event.humans
             flag = False
             for human in self.tribe[TribeSelector.FRIEND]:
-                if human != self and human.personal_decision(Dilemma.ACCEPT_COWORKER_INVITATION_TO_GET_OUT):
+                if human != self and human.personal_decision(Dilemma.ACCEPT_FRIEND_INVITATION_TO_GET_OUT):
                     flag = True
                     human.social_event = event
             if flag:
@@ -392,7 +392,7 @@ class Adult(Human):
             else:
                 self.work_info.isolated = False
                 self.home_district.move_to(self, self.work_district)
-            if self.personal_decision(Dilemma.INVITE_COWORKERS_TO_GET_OUT):
+            if self.personal_decision(Dilemma.INVITE_FRIENDS_TO_GET_OUT):
                 self.invite_friends_to_get_out()
             self.covid_model.global_count.total_income += self.work_info.current_income()
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_POST_WORK_ACTIVITY:
