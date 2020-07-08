@@ -3,6 +3,7 @@ import numpy as np
 from enum import Enum, auto
 from mesa import Agent, Model
 from mesa.time import RandomActivation
+from model.utils import TribeSelector, SimulationState, DilemmaDecisionHistory, WeekDay
 
 def flip_coin(prob):
     if np.random.random() < prob:
@@ -48,6 +49,9 @@ def normal_cap(mean, stdev, lower_bound, upper_bound):
     if r > upper_bound: r = upper_bound
     return r
 
+def linear_rescale(x, l2, u2, l1 = 0, u1 = 1):
+    return ((x / (u1 - l1)) * (u2  - l2)) + l2
+
 def unique_id():
     return uuid.uuid1()
 
@@ -82,94 +86,6 @@ class SimulationStatus:
         self.work_population = 0
         self.total_income = 0.0
     
-class InfectionStatus(Enum):
-    SUSCEPTIBLE = auto()
-    INFECTED = auto()
-    RECOVERED = auto()
-
-class DiseaseSeverity(Enum):
-    ASYMPTOMATIC = auto()
-    LOW = auto() # No hospitalization
-    MODERATE = auto() # hospitalization
-    HIGH = auto() # hospitalization in ICU
-    DEATH = auto()
-
-class SimulationState(Enum):
-    COMMUTING_TO_MAIN_ACTIVITY = auto()
-    COMMUTING_TO_POST_WORK_ACTIVITY = auto()
-    COMMUTING_TO_HOME = auto()
-    MAIN_ACTIVITY = auto()
-    POST_WORK_ACTIVITY = auto()
-    MORNING_AT_HOME = auto()
-    EVENING_AT_HOME = auto()
-
-
-class WorkClasses(Enum): 
-    OFFICE = auto()
-    HOUSEBOUND = auto()
-    FACTORY = auto()
-    RETAIL = auto()
-    ESSENTIAL = auto()
-
-class WeekDay(Enum):
-    SUNDAY = auto()
-    MONDAY = auto()
-    TUESDAY = auto()
-    WEDNESDAY = auto()
-    THURSDAY = auto()
-    FRIDAY = auto()
-    SATURDAY = auto()
-
-class SocialPolicy(Enum):
-    SOCIAL_DISTANCING = auto()
-    LOCKDOWN_OFFICE = auto()
-    LOCKDOWN_FACTORY = auto()
-    LOCKDOWN_RETAIL = auto()
-    LOCKDOWN_ELEMENTARY_SCHOOL = auto()
-    LOCKDOWN_MIDDLE_SCHOOL = auto()
-    LOCKDOWN_HIGH_SCHOOL = auto()
-
-class SocialPolicyUtil():
-    locked_work_classes = {
-        SocialPolicy.LOCKDOWN_OFFICE: [WorkClasses.OFFICE],
-        SocialPolicy.LOCKDOWN_FACTORY: [WorkClasses.FACTORY],
-        SocialPolicy.LOCKDOWN_RETAIL: [WorkClasses.RETAIL]
-    }
-    locked_student_ages = {
-        SocialPolicy.LOCKDOWN_ELEMENTARY_SCHOOL: (5, 11),
-        SocialPolicy.LOCKDOWN_MIDDLE_SCHOOL: (12, 14),
-        SocialPolicy.LOCKDOWN_HIGH_SCHOOL: (15, 18)
-    }
-
-class TribeSelector(Enum):
-    FAMILY = auto()
-    COWORKER = auto()
-    CLASSMATE = auto()
-    AGE_CLASS = auto()
-    FRIEND = auto()
-
-class Dilemma(Enum):
-    GO_TO_WORK_ON_LOCKDOWN = auto()
-    INVITE_FRIENDS_TO_GET_OUT = auto()
-    ACCEPT_FRIEND_INVITATION_TO_GET_OUT = auto()
-
-class DilemmaDecisionHistory:
-    def __init__(self):
-        self.history = {}
-        for dilemma in Dilemma:
-            self.history[dilemma] = {}
-            for tribe in TribeSelector:
-                self.history[dilemma][tribe] = []
-
-    def herding_decision(self, dilemma, tribe, n):
-        if len(self.history[dilemma][tribe]) < n:
-            return None
-        count = 0
-        for i in range(n):
-            if self.history[dilemma][tribe][-(i + 1)]: count += 1
-        return count > (n / 2)
-            
-
 class SimulationParameters:
     def __init__(self, **kwargs):
         self.params = {}
@@ -197,6 +113,7 @@ class SimulationParameters:
         self.params['risk_tolerance_stdev'] = kwargs.get("risk_tolerance_stdev", 0.3)
         self.params['herding_behavior_mean'] = kwargs.get("herding_behavior_mean", 0.4)
         self.params['herding_behavior_stdev'] = kwargs.get("herding_behavior_stdev", 0.3)
+        self.params['allowed_restaurant_capacity'] = kwargs.get("allowed_restaurant_capacity", 1.0)
 
     def get(self, key):
         return self.params[key]
@@ -264,7 +181,6 @@ class CovidModel(Model):
         self.listeners.append(listener)
 
     def step(self):
-        #print("---------------------------------------------------------------------------------")
         assert self.current_state == SimulationState.MORNING_AT_HOME
         for listener in self.listeners:
             listener.start_cycle(self)

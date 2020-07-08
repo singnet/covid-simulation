@@ -1,7 +1,9 @@
 import sys
 import math
 import numpy as np
-from model.base import CovidModel, SimulationParameters, SocialPolicy, TribeSelector, set_parameters, get_parameters, change_parameters, random_selection
+from model.base import (CovidModel, SimulationParameters, set_parameters, 
+get_parameters, change_parameters, random_selection)
+from model.utils import SocialPolicy, TribeSelector
 from model.human import Human, Elder, Adult, K12Student, Toddler, Infant
 from model.location import District, HomogeneousBuilding, BuildingUnit, FunGatheringSpot
 from model.instantiation import FamilyFactory
