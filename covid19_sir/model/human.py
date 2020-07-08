@@ -2,7 +2,11 @@ import math
 import numpy as np
 from enum import Enum, auto
 
-from model.base import Dilemma, WorkClasses, WeekDay, AgentBase, InfectionStatus, DiseaseSeverity, SimulationState, SocialPolicy, SocialPolicyUtil, TribeSelector, flip_coin, normal_cap, roulette_selection, get_parameters, unique_id, linear_rescale
+from model.base import (AgentBase, flip_coin, normal_cap, roulette_selection,
+get_parameters, unique_id, linear_rescale)
+from model.utils import (WorkClasses, WeekDay, InfectionStatus, DiseaseSeverity,
+SocialPolicy, SocialPolicyUtil, InfectionStatus, SimulationState, Dilemma, 
+TribeSelector, RestaurantType)
 
 class WorkInfo:
     work_class = None
@@ -420,7 +424,7 @@ class Adult(Human):
         if flip_coin(linear_rescale(self.work_info.base_income, 0, 1/5)):
             restaurant_type = RestaurantType.FANCY
         else:
-            restaurant_type = RestaurantType.FASTFOOD
+            restaurant_type = RestaurantType.FAST_FOOD
         event = self.work_district.get_available_restaurant(len(accepted), outdoor, restaurant_type)
         if event is not None and not outdoor:
             event = self.work_district.get_available_restaurant(len(accepted), True, restaurant_type)

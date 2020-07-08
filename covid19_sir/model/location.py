@@ -2,7 +2,9 @@ import math
 import numpy as np
 from enum import Enum, auto
 
-from model.base import AgentBase, SimulationState, flip_coin, SimulationParameters, get_parameters, unique_id, random_selection
+from model.base import (AgentBase, SimulationState, flip_coin, SimulationParameters,
+get_parameters, unique_id, random_selection)
+from model.utils import RestaurantType
 from model.human import Human
 
 class Location(AgentBase):
@@ -103,11 +105,6 @@ class FunGatheringSpot(Location):
         if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
             self.spread_infection()
 
-class RestaurantType(Enum):
-    FAST_FOOD = auto()
-    FANCY = auto()
-    BAR = auto()
-
 class Restaurant(Location):
     def __init__(self, capacity, restaurant_type, is_outdoor, covid_model, **kwargs):
         super().__init__(covid_model)
@@ -141,7 +138,7 @@ class Restaurant(Location):
                 OUTDOOR: (spreading_count / 2.0) / capacity
             },
             RestaurantType.BAR: {
-                INDOOR: (spreading_count * 2.0) / capacity if (spreading_count * 2.0) <= capacity else 1.0,
+                INDOOR: (spreading_count * 2.0) / capacity if (spreading_count * 2.0) < capacity else 1.0,
                 OUTDOOR: spreading_count / capacity
             }
         }
@@ -175,9 +172,9 @@ class District(Location):
 
     def get_available_restaurant(self, people_count, outdoor, restaurant_type):
         for location in self.locations:
-            if isinstance(location, Restaurant) and 
-                location.restaurant_type == restaurant_type and
-                location.is_outdoor == outdoor and
+            if isinstance(location, Restaurant) and \
+                location.restaurant_type == restaurant_type and \
+                location.is_outdoor == outdoor and \
                 (location.available * self.get_parameter('allowed_restaurant_capacity')) >= people_count:
                 return location
         return None
