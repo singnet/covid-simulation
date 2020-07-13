@@ -128,17 +128,16 @@ class Human(AgentBase):
             self.covid_model.global_count.asymptomatic_count += 1
             mean = get_parameters().get('latency_period_mean')
             stdev = get_parameters().get('latency_period_stdev')
-            self.infection_latency = np.random.normal(mean, stdev) - self.early_symptom_detection
+            self.infection_latency = np.random.lognormal(mean, stdev) - self.early_symptom_detection
             if self.infection_latency < 1.0:
                 self.infection_latency = 1.0
             mean = get_parameters().get('incubation_period_mean')
             stdev = get_parameters().get('incubation_period_stdev')
-            self.infection_incubation = np.random.normal(mean, stdev)
-            if self.infection_incubation <= self.infection_latency:
-                self.infection_incubation = self.infection_latency + 1
+            # https://www.acpjournals.org/doi/10.7326/M20-0504
+            self.infection_incubation = self.infection_latency + np.random.lognormal(mean, stdev)
             mean = get_parameters().get('disease_period_mean')
             stdev = get_parameters().get('disease_period_stdev')
-            self.infection_duration = np.random.normal(mean, stdev)
+            self.infection_duration = np.random.lognormal(mean, stdev)
             if self.infection_duration < (self.infection_incubation + 7):
                 self.infection_duration = self.infection_incubation + 7
 
