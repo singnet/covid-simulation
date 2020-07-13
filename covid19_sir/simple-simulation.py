@@ -9,9 +9,10 @@ from model.location import District, HomogeneousBuilding, BuildingUnit, FunGathe
 from model.instantiation import FamilyFactory
 from utils import BasicStatistics
 
+seed = 31415
 if len(sys.argv) > 1:
     seed = int(sys.argv[1])
-    np.random.seed(seed)
+np.random.seed(seed)
 
 ################################################################################
 # Common parameters amongst all scenarios
@@ -201,7 +202,7 @@ scenario = {}
 # ------------------------------------------------------------------------------
 
 sc = 1 # Do nothing
-print(f"Setting up scenario {sc}")
+#print(f"Setting up scenario {sc}")
 scenario[sc] = {}
 scenario[sc]['parameters'] = SimulationParameters(
     mask_user_rate = mask_user_rate,
@@ -224,15 +225,13 @@ scenario[sc]['parameters'] = SimulationParameters(
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
-if len(sys.argv) > 1:
-    seed = int(sys.argv[1])
-    np.random.seed(seed)
+np.random.seed(seed)
 setup_city_layout(scenario[sc]['model'])
 
 # ------------------------------------------------------------------------------
 
 sc = 2 # complete lockdown
-print(f"Setting up scenario {sc}")
+#print(f"Setting up scenario {sc}")
 scenario[sc] = {}
 scenario[sc]['parameters'] = SimulationParameters(
     mask_user_rate = mask_user_rate,
@@ -264,15 +263,13 @@ scenario[sc]['parameters'] = SimulationParameters(
 )
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
-if len(sys.argv) > 1:
-    seed = int(sys.argv[1])
-    np.random.seed(seed)
+np.random.seed(seed)
 setup_city_layout(scenario[sc]['model'])
 
 # ------------------------------------------------------------------------------
 
 sc = 3 
-print(f"Setting up scenario {sc}")
+#print(f"Setting up scenario {sc}")
 
 scenario[sc] = {}
 sc3_parameters = SimulationParameters(
@@ -305,9 +302,7 @@ sc3_parameters = SimulationParameters(
 )
 set_parameters(sc3_parameters)
 sc3_model = CovidModel()
-if len(sys.argv) > 1:
-    seed = int(sys.argv[1])
-    np.random.seed(seed)
+np.random.seed(seed)
 setup_city_layout(sc3_model)
 sc3_model.add_listener(RemovePolicy(sc3_model, SocialPolicy.LOCKDOWN_ELEMENTARY_SCHOOL, 30))
 sc3_model.add_listener(RemovePolicy(sc3_model, SocialPolicy.LOCKDOWN_MIDDLE_SCHOOL, 60))
@@ -319,7 +314,7 @@ scenario[sc]['model'] = sc3_model
 # ------------------------------------------------------------------------------
 
 sc = 4 
-print(f"Setting up scenario {sc}")
+#print(f"Setting up scenario {sc}")
 
 scenario[sc] = {}
 sc4_parameters = SimulationParameters(
@@ -352,9 +347,7 @@ sc4_parameters = SimulationParameters(
 )
 set_parameters(sc4_parameters)
 sc4_model = CovidModel()
-if len(sys.argv) > 1:
-    seed = int(sys.argv[1])
-    np.random.seed(seed)
+np.random.seed(seed)
 setup_city_layout(sc4_model)
 sc4_model.add_listener(Propaganda(sc4_model, 30))
 sc4_model.add_listener(RemovePolicy(sc4_model, SocialPolicy.LOCKDOWN_ELEMENTARY_SCHOOL, 30))
@@ -366,7 +359,7 @@ scenario[sc]['model'] = sc4_model
 # ------------------------------------------------------------------------------
 
 sc = 5 
-print(f"Setting up scenario {sc}")
+#print(f"Setting up scenario {sc}")
 
 scenario[sc] = {}
 sc5_parameters = SimulationParameters(
@@ -399,9 +392,7 @@ sc5_parameters = SimulationParameters(
 )
 set_parameters(sc5_parameters)
 sc5_model = CovidModel()
-if len(sys.argv) > 1:
-    seed = int(sys.argv[1])
-    np.random.seed(seed)
+np.random.seed(seed)
 setup_city_layout(sc5_model)
 sc5_model.add_listener(Propaganda(sc5_model, 1))
 sc5_model.add_listener(RemovePolicy(sc5_model, SocialPolicy.LOCKDOWN_ELEMENTARY_SCHOOL, 30))
@@ -414,7 +405,7 @@ scenario[sc]['model'] = sc5_model
 # ------------------------------------------------------------------------------
 
 sc = 6 
-print(f"Setting up scenario {sc}")
+#print(f"Setting up scenario {sc}")
 
 scenario[sc] = {}
 sc6_parameters = SimulationParameters(
@@ -447,9 +438,7 @@ sc6_parameters = SimulationParameters(
 )
 set_parameters(sc6_parameters)
 sc6_model = CovidModel()
-if len(sys.argv) > 1:
-    seed = int(sys.argv[1])
-    np.random.seed(seed)
+np.random.seed(seed)
 setup_city_layout(sc6_model)
 sc6_model.add_listener(RemovePolicy(sc6_model, SocialPolicy.LOCKDOWN_RETAIL, 30))
 sc6_model.add_listener(RemovePolicy(sc6_model, SocialPolicy.LOCKDOWN_FACTORY, 60))
@@ -463,7 +452,7 @@ scenario[sc]['model'] = sc6_model
 # ------------------------------------------------------------------------------
 
 sc = 7 
-print(f"Setting up scenario {sc}")
+#print(f"Setting up scenario {sc}")
 
 scenario[sc] = {}
 sc7_parameters = SimulationParameters(
@@ -496,9 +485,7 @@ sc7_parameters = SimulationParameters(
 )
 set_parameters(sc7_parameters)
 sc7_model = CovidModel()
-if len(sys.argv) > 1:
-    seed = int(sys.argv[1])
-    np.random.seed(seed)
+np.random.seed(seed)
 setup_city_layout(sc7_model)
 sc7_model.add_listener(Propaganda(sc7_model, 30))
 sc7_model.add_listener(RemovePolicy(sc7_model, SocialPolicy.LOCKDOWN_RETAIL, 30))
@@ -513,7 +500,7 @@ scenario[sc]['model'] = sc7_model
 # ------------------------------------------------------------------------------
 
 sc = 8 
-print(f"Setting up scenario {sc}")
+#print(f"Setting up scenario {sc}")
 
 scenario[sc] = {}
 sc8_parameters = SimulationParameters(
@@ -546,9 +533,7 @@ sc8_parameters = SimulationParameters(
 )
 set_parameters(sc8_parameters)
 sc8_model = CovidModel()
-if len(sys.argv) > 1:
-    seed = int(sys.argv[1])
-    np.random.seed(seed)
+np.random.seed(seed)
 setup_city_layout(sc8_model)
 sc8_model.add_listener(Propaganda(sc8_model, 1))
 sc8_model.add_listener(RemovePolicy(sc8_model, SocialPolicy.LOCKDOWN_RETAIL, 30))
@@ -567,7 +552,7 @@ scenario[sc]['model'] = sc8_model
 for sc in scenario:
 #for sc in [1, 2, 3, 4, 5, 6, 7, 8]:
     #print("--------------------------------------------------------------------------------")
-    print(f"Running scenario {sc}")
+    #print(f"Running scenario {sc}")
     set_parameters(scenario[sc]['parameters'])
     model = scenario[sc]['model']
     model.reset_randomizer(seed)
