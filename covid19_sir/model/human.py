@@ -34,6 +34,7 @@ class WorkInfo:
             return self.base_income
 
 class IndividualProperties:
+    # All in [0..1]
     base_health = 1.0
     risk_tolerance = 0.0
     herding_behavior = 0.0
@@ -104,6 +105,8 @@ class Human(AgentBase):
         pass
 
     def parameter_changed(self):
+        # When a parameter is changed in the middle of simulation
+        # the user may want to reroll some human's properties
         self.mask_user = flip_coin(get_parameters().get('mask_user_rate'))
         self.isolation_cheater = flip_coin(get_parameters().get('isolation_cheater_rate'))
         self.immune = flip_coin(get_parameters().get('imune_rate'))
@@ -114,30 +117,34 @@ class Human(AgentBase):
         self.initialize_individual_properties()
         
     def step(self):
+        # The default nehavior for Humans are just stay at home all day. Disease is
+        # evolved in EVENING_AT_HOME
         if self.is_dead: return
         if self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
             self.disease_evolution()
 
     def infect(self):
         if not self.immune:
+            # Evolve disease severity based in this human's specific
+            # attributes and update global counts
             self.covid_model.global_count.infected_count += 1
             self.covid_model.global_count.non_infected_count -= 1
             self.covid_model.global_count.susceptible_count -= 1
             self.infection_status = InfectionStatus.INFECTED
             self.disease_severity = DiseaseSeverity.ASYMPTOMATIC
             self.covid_model.global_count.asymptomatic_count += 1
-            mean = get_parameters().get('latency_period_mean')
-            stdev = get_parameters().get('latency_period_stdev')
-            self.infection_latency = np.random.lognormal(mean, stdev) - self.early_symptom_detection
+            shape = get_parameters().get('latency_period_shape')
+            scale = get_parameters().get('latency_period_scale')
+            self.infection_latency = np.random.gamma(shape, scale) - self.early_symptom_detection
             if self.infection_latency < 1.0:
                 self.infection_latency = 1.0
-            mean = get_parameters().get('incubation_period_mean')
-            stdev = get_parameters().get('incubation_period_stdev')
+            shape = get_parameters().get('incubation_period_shape')
+            scale = get_parameters().get('incubation_period_scale')
             # https://www.acpjournals.org/doi/10.7326/M20-0504
-            self.infection_incubation = self.infection_latency + np.random.lognormal(mean, stdev)
-            mean = get_parameters().get('disease_period_mean')
-            stdev = get_parameters().get('disease_period_stdev')
-            self.infection_duration = np.random.lognormal(mean, stdev)
+            self.infection_incubation = self.infection_latency + np.random.gamma(shape, scale)
+            shape = get_parameters().get('disease_period_shape')
+            scale = get_parameters().get('disease_period_scale')
+            self.infection_duration = np.random.gamma(shape, scale) # TODO: confirm this is OK
             if self.infection_duration < (self.infection_incubation + 7):
                 self.infection_duration = self.infection_incubation + 7
 
@@ -178,6 +185,7 @@ class Human(AgentBase):
                     self.covid_model.global_count.symptomatic_count += 1
             elif self.disease_severity == DiseaseSeverity.LOW:
                 if flip_coin(self.moderate_severity_prob):
+                    # MODERATE cases requires hospitalization
                     self.disease_severity = DiseaseSeverity.MODERATE
                     self.covid_model.global_count.moderate_severity_count += 1
                     if not self.covid_model.reached_hospitalization_limit():
@@ -188,6 +196,8 @@ class Human(AgentBase):
                     self.disease_severity = DiseaseSeverity.HIGH
                     self.covid_model.global_count.moderate_severity_count -= 1
                     self.covid_model.global_count.high_severity_count += 1
+                    # If the disease evolves to HIGH and the person could not
+                    # be accomodated in a hospital, he/she will die.
                     if not self.hospitalized or self.death_mark:
                         self.die()
             elif self.disease_severity == DiseaseSeverity.HIGH:
@@ -319,6 +329,7 @@ class Human(AgentBase):
             
     def setup_work_info(self):
         income = {
+            # Income (in [0..1]) when the people is working and when he/she is isolated at home
             WorkClasses.OFFICE: (1.0, 0.0),
             WorkClasses.HOUSEBOUND: (1.0, 0.0),
             WorkClasses.FACTORY: (1.0, 1.0),

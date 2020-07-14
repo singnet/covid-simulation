@@ -97,12 +97,12 @@ class SimulationParameters:
         self.params['imune_rate'] = kwargs.get("imune_rate", 0.05)
         self.params['initial_infection_rate'] = kwargs.get("initial_infection_rate", 0.05)
         self.params['hospitalization_capacity'] = kwargs.get("hospitalization_capacity", 0.05)
-        self.params['latency_period_mean'] = kwargs.get("latency_period_mean", 4.0)
-        self.params['latency_period_stdev'] = kwargs.get("latency_period_stdev", 1.0)
-        self.params['incubation_period_mean'] = kwargs.get("incubation_period_mean", 7.0)
-        self.params['incubation_period_stdev'] = kwargs.get("incubation_period_stdev", 2.0)
-        self.params['disease_period_mean'] = kwargs.get("disease_period_mean", 20.0)
-        self.params['disease_period_stdev'] = kwargs.get("disease_period_stdev", 5.0)
+        self.params['latency_period_shape'] = kwargs.get("latency_period_shape", 4.0)
+        self.params['latency_period_scale'] = kwargs.get("latency_period_scale", 1.0)
+        self.params['incubation_period_shape'] = kwargs.get("incubation_period_shape", 7.0)
+        self.params['incubation_period_scale'] = kwargs.get("incubation_period_scale", 2.0)
+        self.params['disease_period_shape'] = kwargs.get("disease_period_shape", 20.0)
+        self.params['disease_period_scale'] = kwargs.get("disease_period_scale", 5.0)
         self.params['me_attenuation'] = kwargs.get("me_attenuation", 1.0)
         self.params['weareable_adoption_rate'] = kwargs.get("weareable_adoption_rate", 0.0)
         self.params['contagion_probability'] = kwargs.get("contagion_probability", 0.9)
@@ -145,6 +145,7 @@ class CovidModel(Model):
         self.schedule = RandomActivation(self)
         self.listeners = []
         self.current_state = SimulationState.MORNING_AT_HOME
+        # State machine which controls agent's behavior
         self.next_state = {
             SimulationState.MORNING_AT_HOME: SimulationState.COMMUTING_TO_MAIN_ACTIVITY,
             SimulationState.COMMUTING_TO_MAIN_ACTIVITY: SimulationState.MAIN_ACTIVITY,
@@ -154,6 +155,7 @@ class CovidModel(Model):
             SimulationState.COMMUTING_TO_HOME: SimulationState.EVENING_AT_HOME,
             SimulationState.EVENING_AT_HOME: SimulationState.MORNING_AT_HOME
         }
+        # Keep track of personal decisions on dilemmas in order to compute herding behavior
         self.dilemma_history = DilemmaDecisionHistory()
 
     def reached_hospitalization_limit(self):
@@ -178,6 +180,8 @@ class CovidModel(Model):
             agent.initialize_individual_properties()
 
     def add_listener(self, listener):
+        # listeners are external entities which are notified just before a cycle begin
+        # and just after its end.
         self.listeners.append(listener)
 
     def step(self):
@@ -188,6 +192,7 @@ class CovidModel(Model):
         if not self.is_week_day(WeekDay.SUNDAY):
             self.global_count.total_income = 0.0
         flag = False
+        # Cycles thru all the states before ending a simulation step
         while not flag:
             self.schedule.step()
             self.current_state = self.next_state[self.current_state]
