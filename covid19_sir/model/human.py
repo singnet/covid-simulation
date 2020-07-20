@@ -88,7 +88,8 @@ class Human(AgentBase):
         self.infection_days_count = 0
         self.infection_latency = 0
         self.infection_incubation = 0
-        self.infection_duration = 0
+        self.mild_duration = 0
+        self.hospitalization_duration = 0
         self.infection_status = InfectionStatus.SUSCEPTIBLE
         self.hospitalized = False
         if self.is_worker(): 
@@ -124,6 +125,9 @@ class Human(AgentBase):
             self.disease_evolution()
 
     def infect(self):
+        # https://www.acpjournals.org/doi/10.7326/M20-0504
+        # https://media.tghn.org/medialibrary/2020/06/ISARIC_Data_Platform_COVID-19_Report_8JUN20.pdf
+        # https://www.ecdc.europa.eu/en/covid-19/latest-evidence
         if not self.immune:
             # Evolve disease severity based in this human's specific
             # attributes and update global counts
@@ -140,13 +144,53 @@ class Human(AgentBase):
                 self.infection_latency = 1.0
             shape = get_parameters().get('incubation_period_shape')
             scale = get_parameters().get('incubation_period_scale')
-            # https://www.acpjournals.org/doi/10.7326/M20-0504
             self.infection_incubation = self.infection_latency + np.random.gamma(shape, scale)
-            shape = get_parameters().get('disease_period_shape')
-            scale = get_parameters().get('disease_period_scale')
-            self.infection_duration = np.random.gamma(shape, scale) # TODO: confirm this is OK
-            if self.infection_duration < (self.infection_incubation + 7):
-                self.infection_duration = self.infection_incubation + 7
+            shape = get_parameters().get('mild_period_duration_shape')
+            scale = get_parameters().get('mild_period_duration_scale')
+            self.mild_duration = np.random.gamma(shape, scale) + self.infection_incubation
+
+    def disease_evolution(self):
+        # https://media.tghn.org/medialibrary/2020/06/ISARIC_Data_Platform_COVID-19_Report_8JUN20.pdf
+        # https://www.ecdc.europa.eu/en/covid-19/latest-evidence
+        if self.is_infected():
+            self.infection_days_count += 1
+            if self.disease_severity == DiseaseSeverity.ASYMPTOMATIC:
+                if self.infection_days_count >= self.infection_incubation:
+                    self.disease_severity = DiseaseSeverity.LOW
+                    self.covid_model.global_count.asymptomatic_count -= 1
+                    self.covid_model.global_count.symptomatic_count += 1
+            elif self.disease_severity == DiseaseSeverity.LOW:
+                if self.infection_days_count > self.mild_duration:
+                    # By the end of this period, either the pacient is already with antibodies at
+                    # a level sufficient to cure the disease or the simptoms will get worse and he/she
+                    # will require hospitalization
+                    if flip_coin(self.moderate_severity_prob):
+                        # MODERATE cases requires hospitalization
+                        self.disease_severity = DiseaseSeverity.MODERATE
+                        self.covid_model.global_count.moderate_severity_count += 1
+                        if not self.covid_model.reached_hospitalization_limit():
+                            self.covid_model.global_count.total_hospitalized += 1
+                            self.hospitalized = True
+                        shape = get_parameters().get('hospitalization_period_duration_shape')
+                        scale = get_parameters().get('hospitalization_period_duration_scale')
+                        self.hospitalization_duration = np.random.gamma(shape, scale) + self.infection_days_count
+                    else:
+                        self.recover()
+            elif self.disease_severity == DiseaseSeverity.MODERATE:
+                if self.infection_days_count > self.hospitalization_duration:
+                    self.recover()
+                else:
+                    if flip_coin(self.high_severity_prob):
+                        self.disease_severity = DiseaseSeverity.HIGH
+                        self.covid_model.global_count.moderate_severity_count -= 1
+                        self.covid_model.global_count.high_severity_count += 1
+                        # If the disease evolves to HIGH and the person could not
+                        # be accomodated in a hospital, he/she will die.
+                        if not self.hospitalized or self.death_mark:
+                            self.die()
+            elif self.disease_severity == DiseaseSeverity.HIGH:
+                if self.death_mark:
+                    self.die()
 
     def recover(self):
         self.covid_model.global_count.recovered_count += 1
@@ -174,38 +218,6 @@ class Human(AgentBase):
             self.covid_model.global_count.total_hospitalized -= 1
             self.hospitalized = False
         self.is_dead = True
-
-    def disease_evolution(self):
-        if self.is_infected():
-            self.infection_days_count += 1
-            if self.disease_severity == DiseaseSeverity.ASYMPTOMATIC:
-                if self.infection_days_count >= self.infection_incubation:
-                    self.disease_severity = DiseaseSeverity.LOW
-                    self.covid_model.global_count.asymptomatic_count -= 1
-                    self.covid_model.global_count.symptomatic_count += 1
-            elif self.disease_severity == DiseaseSeverity.LOW:
-                if flip_coin(self.moderate_severity_prob):
-                    # MODERATE cases requires hospitalization
-                    self.disease_severity = DiseaseSeverity.MODERATE
-                    self.covid_model.global_count.moderate_severity_count += 1
-                    if not self.covid_model.reached_hospitalization_limit():
-                        self.covid_model.global_count.total_hospitalized += 1
-                        self.hospitalized = True
-            elif self.disease_severity == DiseaseSeverity.MODERATE:
-                if flip_coin(self.high_severity_prob):
-                    self.disease_severity = DiseaseSeverity.HIGH
-                    self.covid_model.global_count.moderate_severity_count -= 1
-                    self.covid_model.global_count.high_severity_count += 1
-                    # If the disease evolves to HIGH and the person could not
-                    # be accomodated in a hospital, he/she will die.
-                    if not self.hospitalized or self.death_mark:
-                        self.die()
-            elif self.disease_severity == DiseaseSeverity.HIGH:
-                if self.death_mark:
-                    self.die()
-            if self.disease_severity != DiseaseSeverity.DEATH:
-                if self.infection_days_count > self.infection_duration:
-                    self.recover()
         
     def is_infected(self):
         return self.infection_status == InfectionStatus.INFECTED
