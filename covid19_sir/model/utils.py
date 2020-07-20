@@ -67,7 +67,7 @@ class TribeSelector(Enum):
     FAMILY = auto()
     COWORKER = auto()
     CLASSMATE = auto()
-    AGE_CLASS = auto()
+    AGE_GROUP = auto()
     FRIEND = auto()
 
 class Dilemma(Enum):
