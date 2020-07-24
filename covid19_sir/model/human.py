@@ -38,6 +38,7 @@ class IndividualProperties:
     base_health = 1.0
     risk_tolerance = 0.0
     herding_behavior = 0.0
+    extroversion = 0.5
 
 class Human(AgentBase):
 
@@ -103,6 +104,7 @@ class Human(AgentBase):
         self.parameter_changed()
 
     def initialize_individual_properties(self):
+        self.properties.extroversion = normal_cap(0.5, 0.3, 0.0, 1.0)
         pass
 
     def parameter_changed(self):
@@ -384,14 +386,17 @@ class Human(AgentBase):
 
 class Infant(Human):
     def initialize_individual_properties(self):
+      super().initialize_individual_properties()
       self.properties.base_health = normal_cap(1.0, 0.2, 0.0, 1.0)
     
 class Toddler(Human):
     def initialize_individual_properties(self):
+      super().initialize_individual_properties()
       self.properties.base_health = normal_cap(1.0, 0.2, 0.0, 1.0)
     
 class K12Student(Human):
     def initialize_individual_properties(self):
+      super().initialize_individual_properties()
       self.properties.base_health = normal_cap(1.0, 0.2, 0.0, 1.0)
 
     def step(self):
@@ -411,6 +416,7 @@ class Adult(Human):
         self.days_since_last_social_event = 0
 
     def initialize_individual_properties(self):
+      super().initialize_individual_properties()
       self.properties.base_health = normal_cap(0.9, 0.2, 0.0, 1.0)
       mean = get_parameters().get('risk_tolerance_mean')
       stdev = get_parameters().get('risk_tolerance_stdev')
@@ -494,4 +500,5 @@ class Adult(Human):
     
 class Elder(Human):
     def initialize_individual_properties(self):
+      super().initialize_individual_properties()
       self.properties.base_health = normal_cap(0.7, 0.2, 0.0, 1.0)

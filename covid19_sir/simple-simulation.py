@@ -6,7 +6,7 @@ get_parameters, change_parameters, random_selection)
 from model.utils import SocialPolicy, TribeSelector
 from model.human import Human, Elder, Adult, K12Student, Toddler, Infant
 from model.location import District, HomogeneousBuilding, BuildingUnit, FunGatheringSpot
-from model.instantiation import FamilyFactory
+from model.instantiation import FamilyFactory, HomophilyRelationshipFactory
 from utils import BasicStatistics
 
 seed = 31415
@@ -142,7 +142,7 @@ def setup_city_layout(model):
 
     #print(family_factory)
 
-    age_class_tribes = {
+    age_group_sets = {
         Infant: [],
         Toddler: [],
         K12Student: [],
@@ -153,6 +153,7 @@ def setup_city_layout(model):
     # Allocate buildings to people
 
     all_adults = []
+    all_students = []
     for family in family_factory.families:
         adults = [human for human in family if isinstance(human, Adult)]
         students = [human for human in family if isinstance(human, K12Student)]
@@ -160,7 +161,7 @@ def setup_city_layout(model):
         work_district.allocate(adults)
         school_district.allocate(students, True)
         for human in family:
-            age_class_tribes[type(human)].append(human)
+            age_group_sets[type(human)].append(human)
             human.home_district = home_district
             home_district.get_buildings(human)[0].get_unit(human).humans.append(human)
         for adult in adults:
@@ -168,27 +169,34 @@ def setup_city_layout(model):
             all_adults.append(adult)
         for student in students:
             student.school_district = school_district
+            all_students.append(student)
 
     # Set tribes
 
-    np.random.shuffle(all_adults)
+    adult_rf = HomophilyRelationshipFactory(model, all_adults)
+    student_rf = HomophilyRelationshipFactory(model, all_students)
+    #exit()
+
     for family in family_factory.families:
         for human in family:
-            human.tribe[TribeSelector.AGE_GROUP] = age_class_tribes[type(human)]
+            human.tribe[TribeSelector.AGE_GROUP] = age_group_sets[type(human)]
             human.tribe[TribeSelector.FAMILY] = family
             if isinstance(human, Adult):
                 human.tribe[TribeSelector.COWORKER] = work_district.get_buildings(human)[0].get_unit(human).allocation
-                friend_tribe_size = 20
-                for h in all_adults:
-                    if h not in human.tribe[TribeSelector.FAMILY] and \
-                       len(human.tribe[TribeSelector.FRIEND]) < friend_tribe_size and \
-                       len(h.tribe[TribeSelector.FRIEND]) < friend_tribe_size:
+                t1 = adult_rf.build_tribe(human, human.tribe[TribeSelector.COWORKER], 1, office_capacity)
+                t2 = adult_rf.build_tribe(human, human.tribe[TribeSelector.AGE_GROUP], 1, 20)
+                human.tribe[TribeSelector.FRIEND] = t1
+                for h in t2:
+                    if h not in human.tribe[TribeSelector.FRIEND]:
                         human.tribe[TribeSelector.FRIEND].append(h)
-                        h.tribe[TribeSelector.FRIEND].append(human)
             if isinstance(human, K12Student):
                 human.tribe[TribeSelector.CLASSMATE] = school_district.get_buildings(human)[0].get_unit(human).allocation
-    for human in all_adults:
-        human.tribe[TribeSelector.FRIEND].append(human)
+                t1 = student_rf.build_tribe(human, human.tribe[TribeSelector.CLASSMATE], 1, classroom_capacity)
+                t2 = student_rf.build_tribe(human, human.tribe[TribeSelector.AGE_GROUP], 1, 20)
+                human.tribe[TribeSelector.FRIEND] = t1
+                for h in t2:
+                    if h not in human.tribe[TribeSelector.FRIEND]:
+                        human.tribe[TribeSelector.FRIEND].append(h)
         
     #print(home_district)
     #print(work_district)
