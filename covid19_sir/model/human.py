@@ -417,7 +417,7 @@ class Adult(Human):
                 event.available = True
 
     def invite_friends_to_restaurant(self):
-        shape = self.properties.risk_tolerance * typical_restaurant_event_size
+        shape = self.properties.risk_tolerance * get_parameters().get('typical_restaurant_event_size')
         event_size = np.random.gamma(shape, 1)
         accepted = [self]
         for human in self.tribe[TribeSelector.FRIEND]:
