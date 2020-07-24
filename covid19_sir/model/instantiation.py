@@ -1,5 +1,7 @@
 import copy
-from model.base import roulette_selection
+import math
+import numpy as np
+from model.base import roulette_selection, linear_rescale
 from model.human import Human, Infant, Toddler, K12Student, Adult, Elder
 
 
@@ -103,3 +105,37 @@ class FamilyFactory:
             txt = txt + str([type(human).__name__ for human in family]) + "\n"
         return txt
 
+class HomophilyRelationshipFactory():
+
+    def __init__(self, model, humans, **kwargs):
+        self.model = model
+        self.humans = humans
+        self.similarity = {}
+        self.feature_vector = {}
+        for h1 in humans:
+            self.feature_vector[h1] = self._create_feature_vector(h1, kwargs.get('FeatureVectorSize', 5))
+        for h1 in humans:
+            self.similarity[h1] = {}
+            for h2 in humans:
+                self.similarity[h1][h2] = self._compute_similarity(h1, h2)
+
+    def build_tribe(self, human, humans, mininum, maximum):
+        n = linear_rescale(human.properties.extroversion, mininum, maximum)
+        w = [self.similarity[human][h] for h in humans]
+        tribe = [human]
+        count = 0
+        while n > 0 and count < (10 * len(humans)):
+            count += 1
+            selected = roulette_selection(humans, w)
+            if selected not in tribe:
+                tribe.append(selected)
+                n -= 1
+        return tribe
+          
+    def _compute_similarity(self, h1, h2):
+        assert len(self.feature_vector[h1]) == len(self.feature_vector[h2])
+        d = np.linalg.norm(self.feature_vector[h1] - self.feature_vector[h2])
+        return linear_rescale(d, 1, 0, 0, math.sqrt(len(self.feature_vector[h1])))
+        
+    def _create_feature_vector(self, human, n):
+        return np.array([np.random.random() for i in range(n)])
