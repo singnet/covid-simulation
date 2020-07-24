@@ -124,7 +124,7 @@ class HomophilyRelationshipFactory():
         w = [self.similarity[human][h] for h in humans]
         tribe = [human]
         count = 0
-        while n > 0 and count < (10 * len(humans)):
+        while n > 0 and count < len(humans):
             count += 1
             selected = roulette_selection(humans, w)
             if selected not in tribe:

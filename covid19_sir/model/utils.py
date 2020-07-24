@@ -72,10 +72,8 @@ class TribeSelector(Enum):
 
 class Dilemma(Enum):
     GO_TO_WORK_ON_LOCKDOWN = auto()
-    INVITE_FRIENDS_TO_GET_OUT = auto()
-    ACCEPT_FRIEND_INVITATION_TO_GET_OUT = auto()
-    INVITE_COWORKERS_TO_RESTAURANT = auto()
-    ACCEPT_COWORKER_INVITATION_TO_RESTAURANT = auto()
+    INVITE_FRIENDS_TO_RESTAURANT = auto()
+    ACCEPT_FRIEND_INVITATION_TO_RESTAURANT = auto()
 
 class DilemmaDecisionHistory:
     def __init__(self):

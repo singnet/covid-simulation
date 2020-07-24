@@ -116,6 +116,7 @@ class SimulationParameters:
         self.params['herding_behavior_mean'] = kwargs.get("herding_behavior_mean", 0.4)
         self.params['herding_behavior_stdev'] = kwargs.get("herding_behavior_stdev", 0.3)
         self.params['allowed_restaurant_capacity'] = kwargs.get("allowed_restaurant_capacity", 1.0)
+        self.params['typical_restaurant_event_size'] = kwargs.get("typical_restaurant_event_size", 6)
 
     def get(self, key):
         return self.params[key]
