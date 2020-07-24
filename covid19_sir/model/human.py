@@ -417,10 +417,13 @@ class Adult(Human):
                 event.available = True
 
     def invite_friends_to_restaurant(self):
+        shape = self.properties.risk_tolerance * typical_restaurant_event_size
+        event_size = np.random.gamma(shape, 1)
         accepted = [self]
         for human in self.tribe[TribeSelector.FRIEND]:
             if human != self and human.personal_decision(Dilemma.ACCEPT_FRIEND_INVITATION_TO_RESTAURANT):
                 accepted.append(human)
+                if len(accepted) >= event_size: break
         if len(accepted) == 1: return
         outdoor = flip_coin(linear_rescale(self.properties.risk_tolerance, 0, 0.5))
         if flip_coin(linear_rescale(self.work_info.base_income, 0, 1/5)):
