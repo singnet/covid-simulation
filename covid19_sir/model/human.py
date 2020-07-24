@@ -442,10 +442,11 @@ class Adult(Human):
             else:
                 self.work_info.isolated = False
                 self.home_district.move_to(self, self.work_district)
+            self.covid_model.global_count.total_income += self.work_info.current_income()
+        elif self.covid_model.current_state == SimulationState.MAIN_ACTIVITY:
             if self.personal_decision(Dilemma.INVITE_FRIENDS_TO_RESTAURANT):
                 self.invite_friends_to_restaurant()
-            self.covid_model.global_count.total_income += self.work_info.current_income()
-        if self.covid_model.current_state == SimulationState.COMMUTING_TO_POST_WORK_ACTIVITY:
+        elif self.covid_model.current_state == SimulationState.COMMUTING_TO_POST_WORK_ACTIVITY:
             if self.social_event is not None:
                 self.home_district.move_to(self, self.social_event)
                 self.work_district.move_to(self, self.social_event)
