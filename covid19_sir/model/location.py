@@ -3,7 +3,7 @@ import numpy as np
 from enum import Enum, auto
 
 from model.base import (AgentBase, SimulationState, flip_coin, SimulationParameters,
-get_parameters, unique_id, random_selection)
+get_parameters, unique_id, random_selection, normal_ci, normal_cap_ci)
 from model.utils import RestaurantType
 from model.human import Human
 
@@ -14,6 +14,7 @@ class Location(AgentBase):
         self.humans = []
         self.locations = []
         self.container = None
+        self.spreading_rate = get_parameters().get('spreading_rate')
 
     def get_parameter(self, key):
         if key in self.custom_parameters: return self.custom_parameters[key]
@@ -50,20 +51,20 @@ class Location(AgentBase):
         for h1 in self.humans:
             for h2 in self.humans:
                 if h1 != h2:
-                    if flip_coin(self.get_parameter('spreading_rate')):
+                    if flip_coin(self.spreading_rate / len(self.humans)):
                         self.check_spreading(h1, h2)
 
 class BuildingUnit(Location):
     def __init__(self, capacity, covid_model, **kwargs):
         super().__init__(covid_model)
         self.set_custom_parameters([\
-            ('contagion_probability', 0.9),\
-            ('spreading_rate', 0.5)\
+            ('contagion_probability', 0.0)
         ], kwargs)
         self.capacity = capacity
         self.allocation = []
 
     def step(self):
+        super().step()
         if self.covid_model.current_state == SimulationState.MORNING_AT_HOME or\
            self.covid_model.current_state == SimulationState.MAIN_ACTIVITY:
             self.spread_infection()
@@ -77,31 +78,16 @@ class HomogeneousBuilding(Location):
     def get_unit(self, human):
         return self.allocation[human]
 
-class House(Location):
-    def __init__(self, covid_model, **kwargs):
-        super().__init__(covid_model)
-        self.set_custom_parameters([('contagion_probability', 0.9)], kwargs)
-
-class Shop(Location):
-    def __init__(self, covid_model, **kwargs):
-        super().__init__(covid_model)
-        self.set_custom_parameters([('contagion_probability', 0.6)], kwargs)
-
-class Factory(Location):
-    def __init__(self, covid_model, **kwargs):
-        super().__init__(covid_model)
-        self.set_custom_parameters([('contagion_probability', 0.6)], kwargs)
-
 class FunGatheringSpot(Location):
     def __init__(self, capacity, covid_model, **kwargs):
         super().__init__(covid_model)
         self.set_custom_parameters([\
-            ('contagion_probability', 0.9),\
-            ('spreading_rate', 0.5)\
+            ('contagion_probability', normal_cap_ci(0.0035, 0.005))
         ], kwargs)
         self.capacity = capacity
         self.available = True
     def step(self):
+        super().step()
         if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
             self.spread_infection()
 
@@ -110,36 +96,22 @@ class Restaurant(Location):
         super().__init__(covid_model)
         OUTDOOR = True
         INDOOR = False
-        # https://www.wbap.com/2020/07/06/texas-medical-association-provides-guidance-on-coronavirus-risk-levels/
+        # https://docs.google.com/document/d/1imCNXOyoyecfD_sVNmKpmbWVB6xqP-FWlHELAyOg1Vs/edit
+        base_fast_food = normal_cap_ci(0.0014, 0.01)
+        base_fancy = normal_cap_ci(0.007, 0.02)
+        base_bar = normal_cap_ci(0.0174, 0.0796)
         cp = {
             RestaurantType.FAST_FOOD: {
-                INDOOR: 0.5,
-                OUTDOOR: 0.2
+                INDOOR: base_fast_food,
+                OUTDOOR: base_fast_food / 2
             },
             RestaurantType.FANCY: {
-                INDOOR: 0.7,
-                OUTDOOR: 0.4
+                INDOOR: base_fancy,
+                OUTDOOR: base_fancy / 2
             },
             RestaurantType.BAR: {
-                INDOOR: 0.9,
-                OUTDOOR: 0.6
-            }
-        }
-        # https://wwwnc.cdc.gov/eid/article/26/7/20-0764_article
-        spreading_count = 10 # number of people
-        assert capacity >= spreading_count
-        sr = {
-            RestaurantType.FAST_FOOD: {
-                INDOOR: spreading_count / capacity,
-                OUTDOOR: (spreading_count / 2.0) / capacity
-            },
-            RestaurantType.FANCY: {
-                INDOOR: spreading_count / capacity,
-                OUTDOOR: (spreading_count / 2.0) / capacity
-            },
-            RestaurantType.BAR: {
-                INDOOR: (spreading_count * 2.0) / capacity if (spreading_count * 2.0) < capacity else 1.0,
-                OUTDOOR: spreading_count / capacity
+                INDOOR: base_bar,
+                OUTDOOR: base_bar / 2
             }
         }
         self.capacity = capacity
@@ -147,17 +119,21 @@ class Restaurant(Location):
         self.restaurant_type = restaurant_type
         self.is_outdoor = is_outdoor
         self.set_custom_parameters([\
-            ('contagion_probability', cp[restaurant_type][is_outdoor]),\
-            ('spreading_rate', sr[restaurant_type][is_outdoor])\
+            ('contagion_probability', cp[restaurant_type][is_outdoor])
         ], kwargs)
+
     def step(self):
+        super().step()
+        capacity = self.get_parameter('allowed_restaurant_capacity')
+        ci = {}
+        # https://docs.google.com/document/d/1imCNXOyoyecfD_sVNmKpmbWVB6xqP-FWlHELAyOg1Vs/edit
+        ci[1.0] = (0.19, 1.23)
+        ci[0.5] = (0.11, 0.74)
+        ci[0.25] = (0.08, 0.50)
+        lb, ub = ci[capacity]
+        self.spreading_rate = normal_ci(lb, ub)
         if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
             self.spread_infection()
-
-class Hospital(Location):
-    def __init__(self, covid_model, **kwargs):
-        super().__init__(covid_model)
-        self.set_custom_parameters([('contagion_probability', 0.7)], kwargs)
 
 class District(Location):
     def __init__(self, name, covid_model, **kwargs):

@@ -3,7 +3,7 @@ import numpy as np
 from enum import Enum, auto
 
 from model.base import (AgentBase, flip_coin, normal_cap, roulette_selection,
-get_parameters, unique_id, linear_rescale)
+get_parameters, unique_id, linear_rescale, normal_cap_ci)
 from model.utils import (WorkClasses, WeekDay, InfectionStatus, DiseaseSeverity,
 SocialPolicy, SocialPolicyUtil, InfectionStatus, SimulationState, Dilemma, 
 TribeSelector, RestaurantType)
@@ -35,7 +35,6 @@ class WorkInfo:
 
 class IndividualProperties:
     # All in [0..1]
-    base_health = 1.0
     risk_tolerance = 0.0
     herding_behavior = 0.0
     extroversion = 0.5
@@ -44,7 +43,19 @@ class Human(AgentBase):
 
     @staticmethod
     def factory(covid_model, forced_age):
-        moderate_severity_probs = [0.001, 0.003, 0.012, 0.032, 0.049, 0.102, 0.166, 0.243, 0.273, 0.273]
+        # https://docs.google.com/document/d/14C4utmOi4WiBe7hOVtRt-NgMLh37pr_ntou-xUFAOjk/edit
+        moderate_severity_probs = [
+            0,
+            normal_cap_ci(0.000243, 0.000832),
+            normal_cap_ci(0.00622, 0.0213),
+            normal_cap_ci(0.0204, 0.07),
+            normal_cap_ci(0.0253, 0.0868),
+            normal_cap_ci(0.0486, 0.167),
+            normal_cap_ci(0.0701, 0.24),
+            normal_cap_ci(0.0987, 0.338),
+            normal_cap_ci(0.11, 0.376),
+            normal_cap_ci(0.11, 0.376)
+        ]
         high_severity_probs = [0.05, 0.05, 0.05, 0.05, 0.063, 0.122, 0.274, 0.432, 0.709, 0.709]
         death_probs = [0.002, 0.00006, 0.0003, 0.0008, 0.0015, 0.006, 0.022, 0.051, 0.093, 0.093]
         if forced_age is None:
@@ -83,8 +94,8 @@ class Human(AgentBase):
         self.work_district = None
         self.school_district = None
         self.age = age
-        self.moderate_severity_prob = msp * (1.0 / self.properties.base_health)
-        self.high_severity_prob = hsp * (1.0 / self.properties.base_health)
+        self.moderate_severity_prob = msp
+        self.high_severity_prob = hsp
         self.death_mark = mfd
         self.infection_days_count = 0
         self.infection_latency = 0
@@ -96,7 +107,6 @@ class Human(AgentBase):
         if self.is_worker(): 
             self.setup_work_info()
             self.covid_model.global_count.work_population += 1
-        self.current_health = self.properties.base_health
         self.is_dead = False
         self.tribe = {}
         for sel in TribeSelector:
@@ -361,17 +371,14 @@ class Human(AgentBase):
 class Infant(Human):
     def initialize_individual_properties(self):
       super().initialize_individual_properties()
-      self.properties.base_health = normal_cap(1.0, 0.2, 0.0, 1.0)
     
 class Toddler(Human):
     def initialize_individual_properties(self):
       super().initialize_individual_properties()
-      self.properties.base_health = normal_cap(1.0, 0.2, 0.0, 1.0)
     
 class K12Student(Human):
     def initialize_individual_properties(self):
       super().initialize_individual_properties()
-      self.properties.base_health = normal_cap(1.0, 0.2, 0.0, 1.0)
 
     def step(self):
         if self.is_dead: return
@@ -391,7 +398,6 @@ class Adult(Human):
 
     def initialize_individual_properties(self):
       super().initialize_individual_properties()
-      self.properties.base_health = normal_cap(0.9, 0.2, 0.0, 1.0)
       mean = get_parameters().get('risk_tolerance_mean')
       stdev = get_parameters().get('risk_tolerance_stdev')
       self.properties.risk_tolerance = normal_cap(mean, stdev, 0.0, 1.0)
@@ -479,4 +485,3 @@ class Adult(Human):
 class Elder(Human):
     def initialize_individual_properties(self):
       super().initialize_individual_properties()
-      self.properties.base_health = normal_cap(0.7, 0.2, 0.0, 1.0)
