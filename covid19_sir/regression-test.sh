@@ -2,7 +2,7 @@
 
 \rm -rf /tmp/regression-test/
 mkdir /tmp/regression-test/
-python3 simple-simulation.py 12334 &&\
-mv scenario[12345678].csv /tmp/regression-test/ &&\
-mv scenario[12345678].png /tmp/ &&\
+python3 simple-simulation.py 31415 &&\
+mv scenario[1234567].csv /tmp/regression-test/ &&\
+mv scenario[1234567].png /tmp/ &&\
 diff /tmp/regression-test/ regression-test-baseline/

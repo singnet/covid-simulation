@@ -43,11 +43,21 @@ def roulette_selection(v, w):
         if r <= w[i]: return v[i]
     return v[len(v) - 1]
 
-def normal_cap(mean, stdev, lower_bound, upper_bound):
+def normal_cap(mean, stdev, lower_bound=0, upper_bound=1):
     r = np.random.normal(mean, stdev)
     if r < lower_bound: r = lower_bound
     if r > upper_bound: r = upper_bound
     return r
+
+def normal_cap_ci(ci_lower, ci_upper, lower_bound=0, upper_bound=1):
+    mean = (ci_lower + ci_upper) / 2
+    stdev = ci_upper - mean
+    return normal_cap(mean, stdev, lower_bound, upper_bound)
+
+def normal_ci(ci_lower, ci_upper, lower_bound=0, upper_bound=1):
+    mean = (ci_lower + ci_upper) / 2
+    stdev = ci_upper - mean
+    return np.random.normal(mean, stdev)
 
 def linear_rescale(x, l2, u2, l1 = 0, u1 = 1):
     return ((x / (u1 - l1)) * (u2  - l2)) + l2
