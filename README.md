@@ -26,3 +26,11 @@ $ python3 simple-simulation.py
 The output is a bunch of `scenario*.png` and `scenario*.csv` files. A pair for each simulation scenario.
 
 Scenarios can be edited/added/deleted in `simple-simulation.py`.
+
+Optionally you can run the simulation from a Jupyter Notebook:
+
+```
+./start-notebook.sh
+```
+
+Then open the indicated URL in a browser on the host machine.

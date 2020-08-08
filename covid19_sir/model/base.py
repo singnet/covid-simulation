@@ -1,4 +1,5 @@
 import uuid
+import math
 import numpy as np
 from enum import Enum, auto
 from mesa import Agent, Model
@@ -49,14 +50,16 @@ def normal_cap(mean, stdev, lower_bound=0, upper_bound=1):
     if r > upper_bound: r = upper_bound
     return r
 
-def normal_cap_ci(ci_lower, ci_upper, lower_bound=0, upper_bound=1):
+def normal_cap_ci(ci_lower, ci_upper, n, lower_bound=0, upper_bound=1):
+    # Assumption of 95% CI
     mean = (ci_lower + ci_upper) / 2
-    stdev = ci_upper - mean
+    stdev = math.sqrt(n) * (ci_upper - ci_lower) / 3.92
     return normal_cap(mean, stdev, lower_bound, upper_bound)
 
-def normal_ci(ci_lower, ci_upper, lower_bound=0, upper_bound=1):
+def normal_ci(ci_lower, ci_upper, n, lower_bound=0, upper_bound=1):
+    # Assumption of 95% CI
     mean = (ci_lower + ci_upper) / 2
-    stdev = ci_upper - mean
+    stdev = math.sqrt(n) * (ci_upper - ci_lower) / 3.92
     return np.random.normal(mean, stdev)
 
 def linear_rescale(x, l2, u2, l1 = 0, u1 = 1):

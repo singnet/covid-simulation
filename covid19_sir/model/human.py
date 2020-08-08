@@ -46,15 +46,15 @@ class Human(AgentBase):
         # https://docs.google.com/document/d/14C4utmOi4WiBe7hOVtRt-NgMLh37pr_ntou-xUFAOjk/edit
         moderate_severity_probs = [
             0,
-            normal_cap_ci(0.000243, 0.000832),
-            normal_cap_ci(0.00622, 0.0213),
-            normal_cap_ci(0.0204, 0.07),
-            normal_cap_ci(0.0253, 0.0868),
-            normal_cap_ci(0.0486, 0.167),
-            normal_cap_ci(0.0701, 0.24),
-            normal_cap_ci(0.0987, 0.338),
-            normal_cap_ci(0.11, 0.376),
-            normal_cap_ci(0.11, 0.376)
+            normal_cap_ci(0.000243, 0.000832, 13),
+            normal_cap_ci(0.00622, 0.0213, 50),
+            normal_cap_ci(0.0204, 0.07, 437),
+            normal_cap_ci(0.0253, 0.0868, 733),
+            normal_cap_ci(0.0486, 0.167, 743),
+            normal_cap_ci(0.0701, 0.24, 790),
+            normal_cap_ci(0.0987, 0.338, 560),
+            normal_cap_ci(0.11, 0.376, 263),
+            normal_cap_ci(0.11, 0.376, 76)
         ]
         high_severity_probs = [0.05, 0.05, 0.05, 0.05, 0.063, 0.122, 0.274, 0.432, 0.709, 0.709]
         death_probs = [0.002, 0.00006, 0.0003, 0.0008, 0.0015, 0.006, 0.022, 0.051, 0.093, 0.093]

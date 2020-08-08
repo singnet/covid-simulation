@@ -152,17 +152,17 @@ def setup_city_layout(model, population_size):
                                    appartment_building_capacity, 
                                    appartment_capacity,
                                    appartment_building_occupacy_rate, 
-                                   normal_cap_ci(0.021, 0.12))
+                                   normal_cap_ci(0.021, 0.12, 10))
     work_district = build_district("Work", model, population_size,
                                    work_building_capacity, 
                                    office_capacity, 
                                    work_building_occupacy_rate, 
-                                   normal_cap_ci(0.007, 0.06))
+                                   normal_cap_ci(0.007, 0.06, 10))
     school_district = build_district("School", model, population_size,
                                      school_capacity, 
                                      classroom_capacity, 
                                      school_occupacy_rate, 
-                                     normal_cap_ci(0.014, 0.08))
+                                     normal_cap_ci(0.014, 0.08, 10))
 
     # Add Restaurants to work_district
 

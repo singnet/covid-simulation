@@ -36,7 +36,7 @@ common_parameters = SimulationParameters(
     herding_behavior_mean = 0.7,
     herding_behavior_stdev = 0.2,
     allowed_restaurant_capacity = 1.0, # valid values: {1.0, 0.50, 0.25}
-    spreading_rate = normal_ci(2.41, 3.90)
+    spreading_rate = normal_ci(2.41, 3.90, 20)
 )
 
 # Simulation

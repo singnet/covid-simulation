@@ -97,9 +97,9 @@ class Restaurant(Location):
         OUTDOOR = True
         INDOOR = False
         # https://docs.google.com/document/d/1imCNXOyoyecfD_sVNmKpmbWVB6xqP-FWlHELAyOg1Vs/edit
-        base_fast_food = normal_cap_ci(0.0014, 0.01)
-        base_fancy = normal_cap_ci(0.007, 0.02)
-        base_bar = normal_cap_ci(0.0174, 0.0796)
+        base_fast_food = normal_cap_ci(0.0014, 0.01, 10)
+        base_fancy = normal_cap_ci(0.007, 0.02, 10)
+        base_bar = normal_cap_ci(0.0174, 0.0796, 10)
         cp = {
             RestaurantType.FAST_FOOD: {
                 INDOOR: base_fast_food,
@@ -131,7 +131,7 @@ class Restaurant(Location):
         ci[0.5] = (0.11, 0.74)
         ci[0.25] = (0.08, 0.50)
         lb, ub = ci[capacity]
-        self.spreading_rate = normal_ci(lb, ub)
+        self.spreading_rate = normal_ci(lb, ub, 20)
         if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
             self.spread_infection()
 
