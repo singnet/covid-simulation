@@ -3,6 +3,7 @@ import math
 import numpy as np
 from model.base import roulette_selection, linear_rescale
 from model.human import Human, Infant, Toddler, K12Student, Adult, Elder
+from sklearn.datasets import make_blobs
 
 
 class FamilyFactory:
@@ -112,8 +113,20 @@ class HomophilyRelationshipFactory():
         self.humans = humans
         self.similarity = {}
         self.feature_vector = {}
+        blobs = make_blobs(
+            n_samples=len(humans), 
+            n_features=10, 
+            centers=None, 
+            cluster_std=1.0, 
+            center_box=(-10.0, 10.0), 
+            shuffle=True, 
+            random_state=None, 
+            return_centers=False
+        )
+        p = 0
         for h1 in humans:
-            self.feature_vector[h1] = self._create_feature_vector(h1, kwargs.get('FeatureVectorSize', 5))
+            self.feature_vector[h1] = blobs[0][p]
+            p += 1
         for h1 in humans:
             self.similarity[h1] = {}
             for h2 in humans:
@@ -136,6 +149,3 @@ class HomophilyRelationshipFactory():
         assert len(self.feature_vector[h1]) == len(self.feature_vector[h2])
         d = np.linalg.norm(self.feature_vector[h1] - self.feature_vector[h2])
         return linear_rescale(d, 1, 0, 0, math.sqrt(len(self.feature_vector[h1])))
-        
-    def _create_feature_vector(self, human, n):
-        return np.array([np.random.random() for i in range(n)])
