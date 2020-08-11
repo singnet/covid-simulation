@@ -130,6 +130,9 @@ class SimulationParameters:
         self.params['herding_behavior_stdev'] = kwargs.get("herding_behavior_stdev", 0.3)
         self.params['allowed_restaurant_capacity'] = kwargs.get("allowed_restaurant_capacity", 1.0)
         self.params['typical_restaurant_event_size'] = kwargs.get("typical_restaurant_event_size", 6)
+        self.params['extroversion_mean']=kwargs.get("extroversion_mean",0.5)
+        self.params['extroversion_stdev']=kwargs.get("extroversion_stdev",0.3)
+        self.params['min_behaviors_to_copy']=kwargs.get("min_behaviors_to_copy",3)
 
     def get(self, key):
         return self.params[key]
@@ -171,8 +174,6 @@ class CovidModel(Model):
             SimulationState.COMMUTING_TO_HOME: SimulationState.EVENING_AT_HOME,
             SimulationState.EVENING_AT_HOME: SimulationState.MORNING_AT_HOME
         }
-        # Keep track of personal decisions on dilemmas in order to compute herding behavior
-        self.dilemma_history = DilemmaDecisionHistory()
 
     def reached_hospitalization_limit(self):
         return (self.global_count.total_hospitalized / self.global_count.total_population) >= parameters.get('hospitalization_capacity')
