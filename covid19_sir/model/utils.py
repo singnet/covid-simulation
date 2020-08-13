@@ -83,11 +83,16 @@ class DilemmaDecisionHistory:
             for tribe in TribeSelector:
                 self.history[dilemma][tribe] = []
 
-    def herding_decision(self, dilemma, tribe, n):
-        if len(self.history[dilemma][tribe]) < n:
-            return None
+    def herding_decision(self, decider,dilemma, tribe, n):
+        #find the last thing that every person in the relevant tribe did
+        answer = None
         count = 0
-        for i in range(n):
-            if self.history[dilemma][tribe][-(i + 1)]: count += 1
-        return count > (n / 2)
-            
+        num_peers_can_copy =0
+        for peer in decider.tribe[tribe]:
+            if len (peer.dilemma_history.history[dilemma][tribe]) > 0:
+                num_peers_can_copy += 1
+                if peer.dilemma_history.history[dilemma][tribe][-1]: count += 1
+        if num_peers_can_copy >= n:
+            answer = count > (num_peers_can_copy/2)
+        return (answer)
+             
