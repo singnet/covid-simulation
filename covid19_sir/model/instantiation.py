@@ -120,8 +120,7 @@ class HomophilyRelationshipFactory():
             cluster_std=1.0, 
             center_box=(-10.0, 10.0), 
             shuffle=True, 
-            random_state=None, 
-            return_centers=False
+            random_state=None 
         )
         p = 0
         for h1 in humans:
