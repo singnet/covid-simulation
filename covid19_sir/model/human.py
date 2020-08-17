@@ -5,7 +5,7 @@ from enum import Enum, auto
 from model.base import (AgentBase, flip_coin, normal_cap, roulette_selection,
 get_parameters, unique_id, linear_rescale, normal_cap_ci)
 from model.utils import (WorkClasses, WeekDay, InfectionStatus, DiseaseSeverity,
-SocialPolicy, SocialPolicyUtil, InfectionStatus, SimulationState, Dilemma, 
+SocialPolicy, SocialPolicyUtil, InfectionStatus, SimulationState, Dilemma,DilemmaDecisionHistory,
 TribeSelector, RestaurantType)
 
 class WorkInfo:
@@ -114,8 +114,10 @@ class Human(AgentBase):
         self.parameter_changed()
 
     def initialize_individual_properties(self):
-        self.properties.extroversion = normal_cap(0.5, 0.3, 0.0, 1.0)
-        pass
+        super().initialize_individual_properties()
+        self.properties.extroversion = normal_cap(get_parameters().get('extroversion_mean'),
+                get_parameters().get('extroversion_stdev'), 0.0, 1.0)
+        self.dilemma_history = DilemmaDecisionHistory()
 
     def parameter_changed(self):
         # When a parameter is changed in the middle of simulation
@@ -160,6 +162,15 @@ class Human(AgentBase):
             shape = get_parameters().get('mild_period_duration_shape')
             scale = get_parameters().get('mild_period_duration_scale')
             self.mild_duration = np.random.gamma(shape, scale) + self.infection_incubation
+            #print('self.unique_id')
+            #print(self.unique_id)
+            #print ('self.infection_latency')
+            #print (self.infection_latency)
+            #print ('self.infection_incubation')
+            #print (self.infection_incubation)
+            #print ('self.mild_duration')
+            #print (self.mild_duration)
+
 
     def disease_evolution(self):
         # https://media.tghn.org/medialibrary/2020/06/ISARIC_Data_Platform_COVID-19_Report_8JUN20.pdf
@@ -257,7 +268,8 @@ class Human(AgentBase):
         if dilemma == Dilemma.GO_TO_WORK_ON_LOCKDOWN:
             if self.work_info.work_class == WorkClasses.RETAIL:
                 pd = flip_coin(self.properties.risk_tolerance)
-                hd = self.covid_model.dilemma_history.herding_decision(dilemma, TribeSelector.FRIEND, 10)
+                hd = self.dilemma_history.herding_decision(self,dilemma, TribeSelector.FRIEND,
+                        get_parameters().get('min_behaviors_to_copy'))
                 answer = self._standard_decision(pd, hd)
             else:
                 answer = False
@@ -272,7 +284,8 @@ class Human(AgentBase):
             d = self.covid_model.global_count.infected_count / self.covid_model.global_count.total_population
             rt = rt * math.exp(-k * d)
             pd = flip_coin(rt)
-            hd = self.covid_model.dilemma_history.herding_decision(dilemma, TribeSelector.FRIEND, 10)
+            hd = self.dilemma_history.herding_decision(self,dilemma, TribeSelector.FRIEND,
+                    get_parameters().get('min_behaviors_to_copy'))
             answer = self._standard_decision(pd, hd)
         elif dilemma == Dilemma.ACCEPT_FRIEND_INVITATION_TO_RESTAURANT:
             if self.social_event is not None or self.is_symptomatic():
@@ -285,11 +298,12 @@ class Human(AgentBase):
             d = self.covid_model.global_count.infected_count / self.covid_model.global_count.total_population
             rt = rt * math.exp(-k * d)
             pd = flip_coin(rt)
-            hd = self.covid_model.dilemma_history.herding_decision(dilemma, TribeSelector.FRIEND, 10)
+            hd = self.dilemma_history.herding_decision(self,dilemma, TribeSelector.FRIEND,
+                    get_parameters().get('min_behaviors_to_copy'))
             answer = self._standard_decision(pd, hd)
         else: assert False
         for tribe in TribeSelector:
-            self.covid_model.dilemma_history.history[dilemma][tribe].append(answer)
+            self.dilemma_history.history[dilemma][tribe].append(answer)
         return answer
 
     def main_activity_isolated(self):
