@@ -162,6 +162,15 @@ class Human(AgentBase):
             shape = get_parameters().get('mild_period_duration_shape')
             scale = get_parameters().get('mild_period_duration_scale')
             self.mild_duration = np.random.gamma(shape, scale) + self.infection_incubation
+            #print('self.unique_id')
+            #print(self.unique_id)
+            #print ('self.infection_latency')
+            #print (self.infection_latency)
+            #print ('self.infection_incubation')
+            #print (self.infection_incubation)
+            #print ('self.mild_duration')
+            #print (self.mild_duration)
+
 
     def disease_evolution(self):
         # https://media.tghn.org/medialibrary/2020/06/ISARIC_Data_Platform_COVID-19_Report_8JUN20.pdf

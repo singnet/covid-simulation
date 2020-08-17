@@ -93,6 +93,13 @@ class DilemmaDecisionHistory:
                 num_peers_can_copy += 1
                 if peer.dilemma_history.history[dilemma][tribe][-1]: count += 1
         if num_peers_can_copy >= n:
+            #if int((decider.model.schedule.time-2)/7) % 10 ==0:
+                #print ('decider.model.schedule.time')
+                #print (decider.model.schedule.time)
+                #print ('count')
+                #print (count)
+                #print ('num_peers_can_copy')
+                #print (num_peers_can_copy)
             answer = count > (num_peers_can_copy/2)
         return (answer)
              

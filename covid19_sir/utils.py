@@ -7,6 +7,77 @@ from model.location import Location, District, HomogeneousBuilding, BuildingUnit
 from model.instantiation import FamilyFactory, HomophilyRelationshipFactory
 from model.utils import SocialPolicy, TribeSelector, RestaurantType
 
+from scipy.stats import sem, t
+from scipy import mean
+import random
+import math
+import numpy as np
+
+from model.base import SimulationParameters, set_parameters, normal_ci
+
+def confidence_interval(data, confidence=0.95):
+    n = len(data)
+    m = mean(data)
+    std_err = sem(data)
+    h = std_err * t.ppf((1 + confidence) / 2, n - 1)
+
+    start = m - h
+    end = m + h
+    return (start,end)
+	
+
+def multiple_runs(params,population_size,simulation_cycles,num_runs = 5, 
+                  desired_stats = ["susceptible","infected","recovered","hospitalization", "icu", "death", "income"],
+                 do_print = False):
+
+    randomlist = random.sample(range(10000), num_runs)
+    if (do_print):
+        print("Save these seeds if you want to rerun a scenario")
+        print(randomlist)
+
+    all_runs = {}
+    avg = {}
+    for stat in desired_stats:
+        all_runs[stat]= {}
+        avg[stat]=[]
+
+    for s in randomlist:
+        set_parameters(params)
+        model = CovidModel()
+        np.random.seed(s+1)
+        random.seed(s+2)
+        setup_city_layout(model, population_size)
+        if (do_print):
+            print("run with seed {0}:".format(str(s)))
+        model.reset_randomizer(s)
+        statistics = BasicStatistics(model)
+        model.add_listener(statistics)
+        for i in range(simulation_cycles):
+            model.step()
+        for stat in desired_stats:
+            all_runs[stat][s]= getattr(statistics,stat)
+            avg[stat].append(np.mean(all_runs[stat][s]))
+    if (do_print):
+        for stat,x in avg.items():
+
+            print("stats on {}:".format(stat))
+            print("data: {}".format(x))
+            print ("min:")
+            print(np.min(x))
+            print("max:")
+            print(np.max(x))
+            print("std:")
+            print(np.std(x))
+            print("mean:")
+            print(np.mean(x))
+            print("median:")
+            print(np.median(x))
+            print ("95% confidence interval for the mean:")
+            low,high = confidence_interval(x, confidence=0.95)
+            print ("({0},{1})".format(low,high))
+    return (avg.items)
+
+
 
 class BasicStatistics():
     def __init__(self, model):
