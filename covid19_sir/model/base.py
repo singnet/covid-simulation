@@ -158,7 +158,8 @@ class AgentBase(Agent):
         pass
 
 class CovidModel(Model):
-    def __init__(self):
+    def __init__(self, debug = False):
+        self.debug = debug
         self.agents = []
         self.global_count = SimulationStatus()
         self.schedule = RandomActivation(self)
@@ -174,6 +175,7 @@ class CovidModel(Model):
             SimulationState.COMMUTING_TO_HOME: SimulationState.EVENING_AT_HOME,
             SimulationState.EVENING_AT_HOME: SimulationState.MORNING_AT_HOME
         }
+        self.districts = []
 
     def reached_hospitalization_limit(self):
         return (self.global_count.total_hospitalized / self.global_count.total_population) >= parameters.get('hospitalization_capacity')
@@ -201,6 +203,24 @@ class CovidModel(Model):
         # and just after its end.
         self.listeners.append(listener)
 
+    def print_district_rooms(self,district,building_type = None):
+        for i,building in enumerate(district.locations):
+            if building_type is None or (type(building).__name__) == building_type:
+                num_humans_in_rooms = [ len(room.humans) for room in building.locations]
+                print("{0}{1}".format(type(building).__name__, i))
+                print(num_humans_in_rooms)
+        for i,building in enumerate(district.locations):
+            if building_type is None or (type(building).__name__) == building_type:
+                for j,room in enumerate(building.locations):
+                    humans_in_rooms = [ human.unique_id for human in room.humans]
+                    print("{0}{1}-room{2}".format(type(building).__name__, i,j))
+                    print(humans_in_rooms)
+
+    def print_world(self):
+        for district in self.districts:
+            print("{} District:".format(district.name))
+            self.print_district_rooms(district)
+
     def step(self):
         assert self.current_state == SimulationState.MORNING_AT_HOME
         for listener in self.listeners:
@@ -213,6 +233,10 @@ class CovidModel(Model):
         while not flag:
             self.schedule.step()
             self.current_state = self.next_state[self.current_state]
+            if self.debug and self.global_count.day_count % 20 == 0:
+                print('self.current_state')
+                print(self.current_state)
+                self.print_world()
             if self.current_state == SimulationState.MORNING_AT_HOME:
                 flag = True
         

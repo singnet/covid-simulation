@@ -223,7 +223,10 @@ class District(Location):
         txt = f"\n{self.name} district with {len(self.locations)} Buildings\n"
         district_total_humans = 0
         for building in self.locations:
-            txt = txt + f"{type(building).__name__}: {building.capacity} units (each with capacity for {building.locations[0].capacity} people.) "
+            if len(building.locations) > 0:
+                txt = txt + f"{type(building).__name__}: {building.capacity} units (each with capacity for {building.locations[0].capacity} people.) "
+            else:
+                txt = txt + f"{type(building).__name__}: {building.capacity} units with no locations"    
             sum_allocated = 0
             total_allocated = 0
             for unit in building.locations:

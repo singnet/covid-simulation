@@ -273,6 +273,11 @@ class Human(AgentBase):
                 answer = self._standard_decision(pd, hd)
             else:
                 answer = False
+            #print("work on lockdown")
+            #print('self.unique_id')
+            #print(self.unique_id)
+            #print('answer')
+            #print(answer)
         elif dilemma == Dilemma.INVITE_FRIENDS_TO_RESTAURANT:
             if self.social_event is not None or self.is_symptomatic():
                 # don't update dilemma_history since it's a compulsory decision
@@ -287,6 +292,11 @@ class Human(AgentBase):
             hd = self.dilemma_history.herding_decision(self,dilemma, TribeSelector.FRIEND,
                     get_parameters().get('min_behaviors_to_copy'))
             answer = self._standard_decision(pd, hd)
+            #print ("invite friends")
+            #print ("self.unique_id")
+            #print (self.unique_id)
+            #print('answer')
+            #print(answer)
         elif dilemma == Dilemma.ACCEPT_FRIEND_INVITATION_TO_RESTAURANT:
             if self.social_event is not None or self.is_symptomatic():
                 # don't update dilemma_history since it's a compulsory decision
@@ -301,6 +311,11 @@ class Human(AgentBase):
             hd = self.dilemma_history.herding_decision(self,dilemma, TribeSelector.FRIEND,
                     get_parameters().get('min_behaviors_to_copy'))
             answer = self._standard_decision(pd, hd)
+            #print("accept invitation")
+            #print("self.unique_id")
+            #print(self.unique_id)
+            #print('answer')
+            #print(answer)
         else: assert False
         for tribe in TribeSelector:
             self.dilemma_history.history[dilemma][tribe].append(answer)
