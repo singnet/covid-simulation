@@ -115,7 +115,7 @@ def multiple_runs(params,population_size,simulation_cycles,num_runs = 5,seeds=No
             print ("95% confidence interval for the mean:")
             low,high = confidence_interval(x, confidence=0.95)
             print ("({0},{1})".format(low,high))
-    return (avg.items,last.items)
+    return (avg.items,last.items,peak.items)
 
 
 
