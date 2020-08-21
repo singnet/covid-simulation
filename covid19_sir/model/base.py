@@ -163,7 +163,7 @@ class AgentBase(Agent):
         pass
 
     def step(self):
-        if self.covid_model.global_count.day_count % self.debug_each_n_cycles:
+        if self.debug and self.covid_model.global_count.day_count % self.debug_each_n_cycles:
             self._debug()
 
 class CovidModel(Model):
@@ -218,7 +218,7 @@ class CovidModel(Model):
 
     def step(self):
         assert self.current_state == SimulationState.MORNING_AT_HOME
-        if self.global_count.day_count % self.debug_each_n_cycles:
+        if self.debug and self.global_count.day_count % self.debug_each_n_cycles:
             self._debug()
 
         for listener in self.listeners:

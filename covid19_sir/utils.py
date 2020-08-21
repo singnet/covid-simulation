@@ -47,9 +47,8 @@ def multiple_runs(params,population_size,simulation_cycles,num_runs = 5,seeds=No
         peak[stat]=[]
     for s in randomlist:
         set_parameters(params)
-        model = CovidModel()
+        model = CovidModel(debug=debug)
         if debug:
-            model.debug = True
             model.debug_each_n_cycles = 20
         np.random.seed(s+1)
         random.seed(s+2)
