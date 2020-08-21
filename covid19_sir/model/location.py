@@ -140,7 +140,7 @@ class District(Location):
         super().__init__(covid_model)
         self.allocation = {}
         self.name = name
-        self.debug = True
+        self.debug = False
 
     def get_buildings(self, human):
         if human in self.allocation:
