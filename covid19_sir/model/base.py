@@ -150,6 +150,8 @@ class AgentBase(Agent):
         self.covid_model = covid_model
         covid_model.schedule.add(self)
         covid_model.agents.append(self)
+        self.debug = False
+        self.debug_each_n_cycles = covid_model.debug_each_n_cycles
 
     def __repr__(self):
         return f'<{type(self).__name__} {self.id}>'
@@ -157,8 +159,17 @@ class AgentBase(Agent):
     def initialize_individual_properties(self):
         pass
 
+    def _debug(self):
+        pass
+
+    def step(self):
+        if self.covid_model.global_count.day_count % self.debug_each_n_cycles:
+            self._debug()
+
 class CovidModel(Model):
-    def __init__(self):
+    def __init__(self, debug=False):
+        self.debug = debug
+        self.debug_each_n_cycles = 20
         self.agents = []
         self.global_count = SimulationStatus()
         self.schedule = RandomActivation(self)
@@ -201,8 +212,15 @@ class CovidModel(Model):
         # and just after its end.
         self.listeners.append(listener)
 
+    def _debug(self):
+        print('self.current_state')
+        print(self.current_state)
+
     def step(self):
         assert self.current_state == SimulationState.MORNING_AT_HOME
+        if self.global_count.day_count % self.debug_each_n_cycles:
+            self._debug()
+
         for listener in self.listeners:
             listener.start_cycle(self)
 

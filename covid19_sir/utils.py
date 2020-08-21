@@ -15,6 +15,7 @@ import numpy as np
 
 from model.base import SimulationParameters, set_parameters, normal_ci
 
+
 def confidence_interval(data, confidence=0.95):
     n = len(data)
     m = mean(data)
@@ -26,24 +27,30 @@ def confidence_interval(data, confidence=0.95):
     return (start,end)
 	
 
-def multiple_runs(params,population_size,simulation_cycles,num_runs = 5, 
+def multiple_runs(params,population_size,simulation_cycles,num_runs = 5,seeds=None,debug=False,
                   desired_stats = ["susceptible","infected","recovered","hospitalization", "icu", "death", "income"],
                  do_print = False):
 
-    randomlist = random.sample(range(10000), num_runs)
+    randomlist = random.sample(range(10000), num_runs) if seeds is None else seeds
     if (do_print):
         print("Save these seeds if you want to rerun a scenario")
         print(randomlist)
 
     all_runs = {}
     avg = {}
+    last = {}
+    peak ={}
     for stat in desired_stats:
         all_runs[stat]= {}
         avg[stat]=[]
-
+        last[stat]=[]
+        peak[stat]=[]
     for s in randomlist:
         set_parameters(params)
         model = CovidModel()
+        if debug:
+            model.debug = True
+            model.debug_each_n_cycles = 20
         np.random.seed(s+1)
         random.seed(s+2)
         setup_city_layout(model, population_size)
@@ -57,9 +64,11 @@ def multiple_runs(params,population_size,simulation_cycles,num_runs = 5,
         for stat in desired_stats:
             all_runs[stat][s]= getattr(statistics,stat)
             avg[stat].append(np.mean(all_runs[stat][s]))
+            last[stat].append(all_runs[stat][s][-1])
+            peak[stat].append(max(all_runs[stat][s]))
     if (do_print):
         for stat,x in avg.items():
-
+            print("using average of time series:")
             print("stats on {}:".format(stat))
             print("data: {}".format(x))
             print ("min:")
@@ -75,7 +84,41 @@ def multiple_runs(params,population_size,simulation_cycles,num_runs = 5,
             print ("95% confidence interval for the mean:")
             low,high = confidence_interval(x, confidence=0.95)
             print ("({0},{1})".format(low,high))
-    return (avg.items)
+        for stat,x in last.items():
+            print("using last of time series:")
+            print("stats on {}:".format(stat))
+            print("data: {}".format(x))
+            print ("min:")
+            print(np.min(x))
+            print("max:")
+            print(np.max(x))
+            print("std:")
+            print(np.std(x))
+            print("mean:")
+            print(np.mean(x))
+            print("median:")
+            print(np.median(x))
+            print ("95% confidence interval for the mean:")
+            low,high = confidence_interval(x, confidence=0.95)
+            print ("({0},{1})".format(low,high))
+        for stat,x in peak.items():
+            print("using peak of time series:")
+            print("stats on {}:".format(stat))
+            print("data: {}".format(x))
+            print ("min:")
+            print(np.min(x))
+            print("max:")
+            print(np.max(x))
+            print("std:")
+            print(np.std(x))
+            print("mean:")
+            print(np.mean(x))
+            print("median:")
+            print(np.median(x))
+            print ("95% confidence interval for the mean:")
+            low,high = confidence_interval(x, confidence=0.95)
+            print ("({0},{1})".format(low,high))
+    return (avg.items,last.items,peak.items)
 
 
 
@@ -235,6 +278,10 @@ def setup_city_layout(model, population_size):
                                      school_occupacy_rate, 
                                      normal_cap_ci(0.014, 0.08, 10))
 
+    home_district.debug = model.debug
+    work_district.debug = model.debug
+    school_district.debug = model.debug
+
     # Add Restaurants to work_district
 
     for i in range(10):
@@ -295,11 +342,15 @@ def setup_city_layout(model, population_size):
     student_rf = HomophilyRelationshipFactory(model, all_students)
     #exit()
 
+
+    count = 0
     for family in family_factory.families:
         for human in family:
+            count += 1
             human.tribe[TribeSelector.AGE_GROUP] = age_group_sets[type(human)]
             human.tribe[TribeSelector.FAMILY] = family
             if isinstance(human, Adult):
+                human.unique_id = "Adult"+str(count)
                 human.tribe[TribeSelector.COWORKER] = work_district.get_buildings(human)[0].get_unit(human).allocation
                 t1 = adult_rf.build_tribe(human, human.tribe[TribeSelector.COWORKER], 1, office_capacity)
                 t2 = adult_rf.build_tribe(human, human.tribe[TribeSelector.AGE_GROUP], 1, 20)
@@ -307,7 +358,8 @@ def setup_city_layout(model, population_size):
                 for h in t2:
                     if h not in human.tribe[TribeSelector.FRIEND]:
                         human.tribe[TribeSelector.FRIEND].append(h)
-            if isinstance(human, K12Student):
+            elif isinstance(human, K12Student):
+                human.unique_id = "K12Student"+str(count)
                 human.tribe[TribeSelector.CLASSMATE] = school_district.get_buildings(human)[0].get_unit(human).allocation
                 t1 = student_rf.build_tribe(human, human.tribe[TribeSelector.CLASSMATE], 1, classroom_capacity)
                 t2 = student_rf.build_tribe(human, human.tribe[TribeSelector.AGE_GROUP], 1, 20)
@@ -315,10 +367,16 @@ def setup_city_layout(model, population_size):
                 for h in t2:
                     if h not in human.tribe[TribeSelector.FRIEND]:
                         human.tribe[TribeSelector.FRIEND].append(h)
+            elif isinstance(human, Elder):
+                human.unique_id = "Elder"+str(count)
+            elif isinstance(human, Infant):
+                human.unique_id = "Infant"+str(count)
+            elif isinstance(human, Toddler):
+                human.unique_id = "Toddler"+str(count)
+
         
     #print(home_district)
     #print(work_district)
     #print(school_district)
 
     #exit()
-

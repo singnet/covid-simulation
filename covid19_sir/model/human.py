@@ -132,7 +132,8 @@ class Human(AgentBase):
         self.initialize_individual_properties()
         
     def step(self):
-        # The default nehavior for Humans are just stay at home all day. Disease is
+        super().step()
+        # The default behavior for Humans are just stay at home all day. Disease is
         # evolved in EVENING_AT_HOME
         if self.is_dead: return
         if self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
@@ -395,6 +396,7 @@ class K12Student(Human):
       super().initialize_individual_properties()
 
     def step(self):
+        super().step()
         if self.is_dead: return
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
             if not self.main_activity_isolated():
@@ -490,6 +492,7 @@ class Adult(Human):
             self.disease_evolution()
 
     def step(self):
+        super().step()
         if self.is_dead: return
         if self.is_working_day():
             self.working_day()
