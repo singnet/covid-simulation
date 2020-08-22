@@ -478,7 +478,7 @@ class Adult(Human):
         elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
             if self.social_event is not None:
                 self.home_district.move_from(self, self.social_event)
-                self.social_event.available = True
+                self.social_event.available -= 1
                 self.days_since_last_social_event = 0
                 self.social_event = None
             else:
