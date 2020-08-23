@@ -226,12 +226,11 @@ sc7_model.add_listener(RemovePolicy(sc7_model, SocialPolicy.LOCKDOWN_HIGH_SCHOOL
 scenario[sc]['parameters'] = sc7_parameters
 scenario[sc]['model'] = sc7_model
 
-
 ################################################################################
 # Simulation of all scenarios
 
 for sc in scenario:
-#for sc in [1, 2, 3, 4, 5, 6, 7, 8]:
+#for sc in [1]:
     #print("--------------------------------------------------------------------------------")
     print(f"Running scenario {sc}")
     set_parameters(scenario[sc]['parameters'])

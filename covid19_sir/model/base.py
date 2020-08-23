@@ -130,6 +130,9 @@ class SimulationParameters:
         self.params['herding_behavior_stdev'] = kwargs.get("herding_behavior_stdev", 0.3)
         self.params['allowed_restaurant_capacity'] = kwargs.get("allowed_restaurant_capacity", 1.0)
         self.params['typical_restaurant_event_size'] = kwargs.get("typical_restaurant_event_size", 6)
+        self.params['extroversion_mean']=kwargs.get("extroversion_mean",0.5)
+        self.params['extroversion_stdev']=kwargs.get("extroversion_stdev",0.3)
+        self.params['min_behaviors_to_copy']=kwargs.get("min_behaviors_to_copy",3)
 
     def get(self, key):
         return self.params[key]
@@ -147,6 +150,8 @@ class AgentBase(Agent):
         self.covid_model = covid_model
         covid_model.schedule.add(self)
         covid_model.agents.append(self)
+        self.debug = False
+        self.debug_each_n_cycles = covid_model.debug_each_n_cycles
 
     def __repr__(self):
         return f'<{type(self).__name__} {self.id}>'
@@ -154,8 +159,17 @@ class AgentBase(Agent):
     def initialize_individual_properties(self):
         pass
 
+    def _debug(self):
+        pass
+
+    def step(self):
+        if self.debug and self.covid_model.global_count.day_count % self.debug_each_n_cycles:
+            self._debug()
+
 class CovidModel(Model):
-    def __init__(self):
+    def __init__(self, debug=False):
+        self.debug = debug
+        self.debug_each_n_cycles = 20
         self.agents = []
         self.global_count = SimulationStatus()
         self.schedule = RandomActivation(self)
@@ -171,8 +185,6 @@ class CovidModel(Model):
             SimulationState.COMMUTING_TO_HOME: SimulationState.EVENING_AT_HOME,
             SimulationState.EVENING_AT_HOME: SimulationState.MORNING_AT_HOME
         }
-        # Keep track of personal decisions on dilemmas in order to compute herding behavior
-        self.dilemma_history = DilemmaDecisionHistory()
 
     def reached_hospitalization_limit(self):
         return (self.global_count.total_hospitalized / self.global_count.total_population) >= parameters.get('hospitalization_capacity')
@@ -200,8 +212,15 @@ class CovidModel(Model):
         # and just after its end.
         self.listeners.append(listener)
 
+    def _debug(self):
+        print('self.current_state')
+        print(self.current_state)
+
     def step(self):
         assert self.current_state == SimulationState.MORNING_AT_HOME
+        if self.debug and self.global_count.day_count % self.debug_each_n_cycles:
+            self._debug()
+
         for listener in self.listeners:
             listener.start_cycle(self)
 

@@ -38,7 +38,7 @@ class Location(AgentBase):
             target.humans.append(human)
 
     def step(self):
-        pass
+        super().step()
 
     def check_spreading(self, h1, h2):
         if h1.is_contagious() and not h2.is_infected():
@@ -140,6 +140,7 @@ class District(Location):
         super().__init__(covid_model)
         self.allocation = {}
         self.name = name
+        self.debug = False
 
     def get_buildings(self, human):
         if human in self.allocation:
@@ -200,6 +201,22 @@ class District(Location):
                 return unit
         assert False
 
+    def _print_district_rooms(self):
+        print("{} District:".format(self.name))
+        for i,building in enumerate(self.locations):
+            num_humans_in_rooms = [len(room.humans) for room in building.locations]
+            print("{0}{1}".format(type(building).__name__, i))
+            print(num_humans_in_rooms)
+        for i,building in enumerate(self.locations):
+            for j,room in enumerate(building.locations):
+                humans_in_rooms = [human.unique_id for human in room.humans]
+                print("{0}{1}-room{2}".format(type(building).__name__, i,j))
+                print(humans_in_rooms)
+
+    def _debug(self):
+        super()._debug()
+        self._print_district_rooms()
+
     def allocate(self, humans, same_building=False, same_unit=False, exclusive=False, building_type=HomogeneousBuilding):
         assert (exclusive and same_unit and same_building) or\
                (not exclusive and same_unit and same_building) or\
@@ -223,7 +240,10 @@ class District(Location):
         txt = f"\n{self.name} district with {len(self.locations)} Buildings\n"
         district_total_humans = 0
         for building in self.locations:
-            txt = txt + f"{type(building).__name__}: {building.capacity} units (each with capacity for {building.locations[0].capacity} people.) "
+            if len(building.locations) > 0:
+                txt = txt + f"{type(building).__name__}: {building.capacity} units (each with capacity for {building.locations[0].capacity} people.) "
+            else:
+                txt = txt + f"{type(building).__name__}: {building.capacity} units with no locations"    
             sum_allocated = 0
             total_allocated = 0
             for unit in building.locations:
