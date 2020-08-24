@@ -169,7 +169,7 @@ class AgentBase(Agent):
 class CovidModel(Model):
     def __init__(self, debug=False):
         self.debug = debug
-        self.debug_each_n_cycles = 20
+        self.debug_each_n_cycles =1 
         self.agents = []
         self.global_count = SimulationStatus()
         self.schedule = RandomActivation(self)
