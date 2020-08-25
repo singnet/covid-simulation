@@ -7,24 +7,9 @@ from mesa.time import RandomActivation
 from model.utils import TribeSelector, SimulationState, DilemmaDecisionHistory, WeekDay
 
 def print_world(model):
-    home_districts=set()
-    work_districts=set()
-    school_districts=set()
     for agent in model.agents:
-        if agent.home_district is not None:
-            home_districts.add(agent.home_district)
-        if agent.work_district is not None:
-            work_districts.add(agent.work_district)
-        if agent.school_district is not None:
-            school_districts.add(agent.school_district)
-
-    for d in home_districts:
-        d._print_district_rooms
-    for d in work_districts:
-        d._print_district_rooms
-    for d in school_districts:
-        d._print_district_rooms
-
+        if isinstance(agent, District): 
+            agent._print_district_rooms
 
 def flip_coin(prob):
     if np.random.random() < prob:
@@ -190,6 +175,8 @@ class CovidModel(Model):
     def __init__(self, debug=False):
         self.debug = debug
         self.debug_each_n_cycles =1 
+        self.debugfile = open("debug.out","w")
+        self.dump_only = True
         self.agents = []
         self.global_count = SimulationStatus()
         self.schedule = RandomActivation(self)
