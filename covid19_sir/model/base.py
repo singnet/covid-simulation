@@ -6,6 +6,26 @@ from mesa import Agent, Model
 from mesa.time import RandomActivation
 from model.utils import TribeSelector, SimulationState, DilemmaDecisionHistory, WeekDay
 
+def print_world(model):
+    home_districts=set()
+    work_districts=set()
+    school_districts=set()
+    for agent in model.agents:
+        if agent.home_district is not None:
+            home_districts.add(agent.home_district)
+        if agent.work_district is not None:
+            work_districts.add(agent.work_district)
+        if agent.school_district is not None:
+            school_districts.add(agent.school_district)
+
+    for d in home_districts:
+        d._print_district_rooms
+    for d in work_districts:
+        d._print_district_rooms
+    for d in school_districts:
+        d._print_district_rooms
+
+
 def flip_coin(prob):
     if np.random.random() < prob:
         return True
@@ -163,7 +183,7 @@ class AgentBase(Agent):
         pass
 
     def step(self):
-        if self.debug and self.covid_model.global_count.day_count % self.debug_each_n_cycles:
+        if self.debug and self.covid_model.global_count.day_count % self.debug_each_n_cycles==0:
             self._debug()
 
 class CovidModel(Model):
@@ -218,8 +238,7 @@ class CovidModel(Model):
 
     def step(self):
         assert self.current_state == SimulationState.MORNING_AT_HOME
-        if self.debug and self.global_count.day_count % self.debug_each_n_cycles:
-            self._debug()
+        
 
         for listener in self.listeners:
             listener.start_cycle(self)
@@ -231,6 +250,8 @@ class CovidModel(Model):
         while not flag:
             self.schedule.step()
             self.current_state = self.next_state[self.current_state]
+            if self.debug and self.global_count.day_count % self.debug_each_n_cycles==0:
+                self._debug()
             if self.current_state == SimulationState.MORNING_AT_HOME:
                 flag = True
         
