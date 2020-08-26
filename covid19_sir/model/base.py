@@ -138,6 +138,8 @@ class SimulationParameters:
         self.params['extroversion_mean']=kwargs.get("extroversion_mean",0.5)
         self.params['extroversion_stdev']=kwargs.get("extroversion_stdev",0.3)
         self.params['min_behaviors_to_copy']=kwargs.get("min_behaviors_to_copy",3)
+        self.params['debug_each_n_cycles']=kwargs.get("debug_each_n_cycles",20)
+
 
     def get(self, key):
         return self.params[key]
@@ -156,7 +158,6 @@ class AgentBase(Agent):
         covid_model.schedule.add(self)
         covid_model.agents.append(self)
         self.debug = False
-        self.debug_each_n_cycles = covid_model.debug_each_n_cycles
 
     def __repr__(self):
         return f'<{type(self).__name__} {self.id}>'
@@ -168,13 +169,13 @@ class AgentBase(Agent):
         pass
 
     def step(self):
-        if self.debug and self.covid_model.global_count.day_count % self.debug_each_n_cycles==0:
+        if self.debug and self.covid_model.global_count.day_count % parameters.get('debug_each_n_cycles')==0:
             self._debug()
 
 class CovidModel(Model):
     def __init__(self, debug=False):
         self.debug = debug
-        self.debug_each_n_cycles =1 
+        self.debug_each_n_cycles = parameters.get('debug_each_n_cycles') 
         self.debugfile = open("debug.out","w")
         self.dump_only = True
         self.agents = []
@@ -237,7 +238,7 @@ class CovidModel(Model):
         while not flag:
             self.schedule.step()
             self.current_state = self.next_state[self.current_state]
-            if self.debug and self.global_count.day_count % self.debug_each_n_cycles==0:
+            if self.debug and self.global_count.day_count % parameters.get('debug_each_n_cycles')==0:
                 self._debug()
             if self.current_state == SimulationState.MORNING_AT_HOME:
                 flag = True
