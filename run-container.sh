@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker run -ti covid-simulation bash
+docker run -p 8887:8887 --name covid_simulation -ti covid-simulation bash
