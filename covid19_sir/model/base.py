@@ -75,6 +75,7 @@ def unique_id():
 def set_parameters(new_parameters):
     global parameters
     parameters = new_parameters
+    logger().info(f"Setting new simulation parameters\n{parameters}")
 
 def get_parameters():
     global parameters
@@ -171,6 +172,12 @@ class SimulationParameters:
     def set(self, key, value):
         self.params[key] = value
 
+    def __repr__(self):
+        answer = "{\n"
+        for key in self.params: answer += f"'{key}': {self.params[key]}\n"
+        answer += "}"
+        return answer
+
 parameters = None
 
 class AgentBase(Agent):
@@ -183,6 +190,7 @@ class AgentBase(Agent):
         covid_model.agents.append(self)
         self.debug = False
         self.debug_each_n_cycles = covid_model.debug_each_n_cycles
+        self.strid = None
 
     def __repr__(self):
         return f'<{type(self).__name__} {self.id}>'
@@ -244,12 +252,12 @@ class CovidModel(Model):
         self.listeners.append(listener)
 
     def _debug(self):
-        print('self.current_state')
-        print(self.current_state)
+        pass
 
     def step(self):
         assert self.current_state == SimulationState.MORNING_AT_HOME
-        if self.debug and self.global_count.day_count % self.debug_each_n_cycles:
+        logger().info(f"Day count: {self.global_count.day_count}")
+        if self.debug and self.global_count.day_count % self.debug_each_n_cycles == 0:
             self._debug()
 
         for listener in self.listeners:
@@ -260,6 +268,7 @@ class CovidModel(Model):
         flag = False
         # Cycles thru all the states before ending a simulation step
         while not flag:
+            logger().info(f"STATE: {self.current_state}")
             self.schedule.step()
             self.current_state = self.next_state[self.current_state]
             if self.current_state == SimulationState.MORNING_AT_HOME:

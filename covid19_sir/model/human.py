@@ -3,7 +3,7 @@ import numpy as np
 from enum import Enum, auto
 
 from model.base import (AgentBase, flip_coin, normal_cap, roulette_selection,
-get_parameters, unique_id, linear_rescale, normal_cap_ci)
+get_parameters, unique_id, linear_rescale, normal_cap_ci, logger)
 from model.utils import (WorkClasses, WeekDay, InfectionStatus, DiseaseSeverity,
 SocialPolicy, SocialPolicyUtil, InfectionStatus, SimulationState, Dilemma,DilemmaDecisionHistory,
 TribeSelector, RestaurantType)
@@ -41,6 +41,8 @@ class IndividualProperties:
 
 class Human(AgentBase):
 
+    count = 1
+
     @staticmethod
     def factory(covid_model, forced_age):
         # https://docs.google.com/document/d/14C4utmOi4WiBe7hOVtRt-NgMLh37pr_ntou-xUFAOjk/edit
@@ -77,6 +79,8 @@ class Human(AgentBase):
         else:
             human = Elder(covid_model, age, msp, hsp, mfd)
 
+        human.strid = f"human_{Human.count}"
+        Human.count += 1
         covid_model.global_count.non_infected_count += 1
         if human.immune:
             covid_model.global_count.immune_count += 1
@@ -143,9 +147,10 @@ class Human(AgentBase):
         # https://www.acpjournals.org/doi/10.7326/M20-0504
         # https://media.tghn.org/medialibrary/2020/06/ISARIC_Data_Platform_COVID-19_Report_8JUN20.pdf
         # https://www.ecdc.europa.eu/en/covid-19/latest-evidence
-        if not self.immune:
+        if not self.immune and not self.is_infected():
             # Evolve disease severity based in this human's specific
             # attributes and update global counts
+            logger().info(f"Infected {self}")
             self.covid_model.global_count.infected_count += 1
             self.covid_model.global_count.non_infected_count -= 1
             self.covid_model.global_count.susceptible_count -= 1
@@ -163,14 +168,6 @@ class Human(AgentBase):
             shape = get_parameters().get('mild_period_duration_shape')
             scale = get_parameters().get('mild_period_duration_scale')
             self.mild_duration = np.random.gamma(shape, scale) + self.infection_incubation
-            #print('self.unique_id')
-            #print(self.unique_id)
-            #print ('self.infection_latency')
-            #print (self.infection_latency)
-            #print ('self.infection_incubation')
-            #print (self.infection_incubation)
-            #print ('self.mild_duration')
-            #print (self.mild_duration)
 
 
     def disease_evolution(self):
@@ -180,6 +177,7 @@ class Human(AgentBase):
             self.infection_days_count += 1
             if self.disease_severity == DiseaseSeverity.ASYMPTOMATIC:
                 if self.infection_days_count >= self.infection_incubation:
+                    logger().info(f"{self} evolved from ASYMPTOMATIC to LOW")
                     self.disease_severity = DiseaseSeverity.LOW
                     self.covid_model.global_count.asymptomatic_count -= 1
                     self.covid_model.global_count.symptomatic_count += 1
@@ -190,11 +188,15 @@ class Human(AgentBase):
                     # will require hospitalization
                     if flip_coin(self.moderate_severity_prob):
                         # MODERATE cases requires hospitalization
+                        logger().info(f"{self} evolved from LOW to MODERATE")
                         self.disease_severity = DiseaseSeverity.MODERATE
                         self.covid_model.global_count.moderate_severity_count += 1
                         if not self.covid_model.reached_hospitalization_limit():
                             self.covid_model.global_count.total_hospitalized += 1
+                            logger().info(f"{self} is now hospitalized")
                             self.hospitalized = True
+                        else:
+                            logger().info(f"{self} couldn't be hospitalized (hospitalization limit reached)")
                         shape = get_parameters().get('hospitalization_period_duration_shape')
                         scale = get_parameters().get('hospitalization_period_duration_scale')
                         self.hospitalization_duration = np.random.gamma(shape, scale) + self.infection_days_count
@@ -205,6 +207,7 @@ class Human(AgentBase):
                     self.recover()
                 else:
                     if flip_coin(self.high_severity_prob):
+                        logger().info(f"{self} evolved from MODERATE to HIGH")
                         self.disease_severity = DiseaseSeverity.HIGH
                         self.covid_model.global_count.moderate_severity_count -= 1
                         self.covid_model.global_count.high_severity_count += 1
@@ -217,6 +220,7 @@ class Human(AgentBase):
                     self.die()
 
     def recover(self):
+        logger().info(f"{self} is recovered")
         self.covid_model.global_count.recovered_count += 1
         if self.disease_severity == DiseaseSeverity.MODERATE:
             self.covid_model.global_count.moderate_severity_count -= 1
@@ -233,6 +237,7 @@ class Human(AgentBase):
         self.immune = True
 
     def die(self):
+        logger().info(f"{self} died")
         self.covid_model.global_count.symptomatic_count -= 1
         self.disease_severity = DiseaseSeverity.DEATH
         self.covid_model.global_count.high_severity_count -= 1
@@ -274,6 +279,7 @@ class Human(AgentBase):
                 answer = self._standard_decision(pd, hd)
             else:
                 answer = False
+            if answer: logger().info(f"{self} decided to get out to work on lockdown")
         elif dilemma == Dilemma.INVITE_FRIENDS_TO_RESTAURANT:
             if self.social_event is not None or self.is_symptomatic():
                 # don't update dilemma_history since it's a compulsory decision
@@ -288,6 +294,7 @@ class Human(AgentBase):
             hd = self.dilemma_history.herding_decision(self,dilemma, TribeSelector.FRIEND,
                     get_parameters().get('min_behaviors_to_copy'))
             answer = self._standard_decision(pd, hd)
+            if answer: logger().info(f"{self} decided to invite friends to a restaurant")
         elif dilemma == Dilemma.ACCEPT_FRIEND_INVITATION_TO_RESTAURANT:
             if self.social_event is not None or self.is_symptomatic():
                 # don't update dilemma_history since it's a compulsory decision
@@ -302,6 +309,7 @@ class Human(AgentBase):
             hd = self.dilemma_history.herding_decision(self,dilemma, TribeSelector.FRIEND,
                     get_parameters().get('min_behaviors_to_copy'))
             answer = self._standard_decision(pd, hd)
+            if answer: logger().info(f"{self} decided to accept an invitation to go to a restaurant")
         else: assert False
         for tribe in TribeSelector:
             self.dilemma_history.history[dilemma][tribe].append(answer)
@@ -381,6 +389,9 @@ class Human(AgentBase):
             selected_class == WorkClasses.ESSENTIAL
 
         self.work_info.house_bound_worker = WorkClasses.HOUSEBOUND
+
+    def __repr__(self):
+        return self.strid
 
 
 class Infant(Human):
@@ -478,7 +489,7 @@ class Adult(Human):
         elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
             if self.social_event is not None:
                 self.home_district.move_from(self, self.social_event)
-                self.social_event.available -= 1
+                self.social_event.available += 1
                 self.days_since_last_social_event = 0
                 self.social_event = None
             else:
