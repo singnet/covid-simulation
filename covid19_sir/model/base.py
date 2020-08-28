@@ -1,10 +1,14 @@
 import uuid
 import math
 import numpy as np
+import logging
 from enum import Enum, auto
 from mesa import Agent, Model
 from mesa.time import RandomActivation
 from model.utils import TribeSelector, SimulationState, DilemmaDecisionHistory, WeekDay
+
+LOG_FILE_NAME = '/tmp/simulation.log'
+LOGGING_LEVEL = logging.INFO
 
 def flip_coin(prob):
     if np.random.random() < prob:
@@ -71,6 +75,7 @@ def unique_id():
 def set_parameters(new_parameters):
     global parameters
     parameters = new_parameters
+    logger().info(f"Setting new simulation parameters\n{parameters}")
 
 def get_parameters():
     global parameters
@@ -80,6 +85,33 @@ def change_parameters(**kwargs):
     global parameters
     for key in kwargs:
         parameters.params[key] = kwargs.get(key)
+
+class Logger:
+
+    __instance = None
+
+    @staticmethod 
+    def get_instance():
+        if Logger.__instance is None: return Logger()
+        return Logger.__instance
+
+    def __init__(self):
+        if Logger.__instance is not None:
+            raise Exception("Invalid re-instantiation of Logger")
+        else:
+            logging.basicConfig(
+                filename=LOG_FILE_NAME,
+                level=LOGGING_LEVEL,
+                format='%(levelname)s: %(message)s')
+            Logger.__instance = self
+
+    def debug(self, msg): logging.debug(msg)
+    def info(self, msg): logging.info(msg)
+    def warning(self, msg): logging.warning(msg)
+    def error(self, msg): logging.error(msg)
+
+def logger():
+    return Logger.get_instance()
     
 class SimulationStatus:
     def __init__(self):
@@ -140,6 +172,12 @@ class SimulationParameters:
     def set(self, key, value):
         self.params[key] = value
 
+    def __repr__(self):
+        answer = "{\n"
+        for key in self.params: answer += f"'{key}': {self.params[key]}\n"
+        answer += "}"
+        return answer
+
 parameters = None
 
 class AgentBase(Agent):
@@ -152,6 +190,7 @@ class AgentBase(Agent):
         covid_model.agents.append(self)
         self.debug = False
         self.debug_each_n_cycles = covid_model.debug_each_n_cycles
+        self.strid = None
 
     def __repr__(self):
         return f'<{type(self).__name__} {self.id}>'
@@ -213,12 +252,12 @@ class CovidModel(Model):
         self.listeners.append(listener)
 
     def _debug(self):
-        print('self.current_state')
-        print(self.current_state)
+        pass
 
     def step(self):
         assert self.current_state == SimulationState.MORNING_AT_HOME
-        if self.debug and self.global_count.day_count % self.debug_each_n_cycles:
+        logger().info(f"Day count: {self.global_count.day_count}")
+        if self.debug and self.global_count.day_count % self.debug_each_n_cycles == 0:
             self._debug()
 
         for listener in self.listeners:
@@ -229,6 +268,7 @@ class CovidModel(Model):
         flag = False
         # Cycles thru all the states before ending a simulation step
         while not flag:
+            logger().info(f"STATE: {self.current_state}")
             self.schedule.step()
             self.current_state = self.next_state[self.current_state]
             if self.current_state == SimulationState.MORNING_AT_HOME:

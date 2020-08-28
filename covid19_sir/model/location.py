@@ -3,7 +3,7 @@ import numpy as np
 from enum import Enum, auto
 
 from model.base import (AgentBase, SimulationState, flip_coin, SimulationParameters,
-get_parameters, unique_id, random_selection, normal_ci, normal_cap_ci)
+get_parameters, unique_id, random_selection, normal_ci, normal_cap_ci, logger)
 from model.utils import RestaurantType
 from model.human import Human
 
@@ -48,6 +48,8 @@ class Location(AgentBase):
                     h2.infect()
 
     def spread_infection(self):
+        if len(self.humans) > 0:
+            logger().info(f"{self} is spreading infection amongst {len(self.humans)} humans")
         for h1 in self.humans:
             for h2 in self.humans:
                 if h1 != h2:
@@ -69,6 +71,9 @@ class BuildingUnit(Location):
            self.covid_model.current_state == SimulationState.MAIN_ACTIVITY:
             self.spread_infection()
 
+    def __repr__(self):
+        return "BuildingUnit"
+
 class HomogeneousBuilding(Location):
     def __init__(self, building_capacity, covid_model, **kwargs):
         super().__init__(covid_model)
@@ -77,6 +82,8 @@ class HomogeneousBuilding(Location):
         self.allocation = {}
     def get_unit(self, human):
         return self.allocation[human]
+    def __repr__(self):
+        return "HomogeneousBuilding"
 
 class FunGatheringSpot(Location):
     def __init__(self, capacity, covid_model, **kwargs):
@@ -90,6 +97,8 @@ class FunGatheringSpot(Location):
         super().step()
         if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
             self.spread_infection()
+    def __repr__(self):
+        return "FunGatheringSpot"
 
 class Restaurant(Location):
     def __init__(self, capacity, restaurant_type, is_outdoor, covid_model, **kwargs):
@@ -135,12 +144,15 @@ class Restaurant(Location):
         if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
             self.spread_infection()
 
+    def __repr__(self):
+        return "Restaurant"
+
 class District(Location):
     def __init__(self, name, covid_model, **kwargs):
-        super().__init__(covid_model)
         self.allocation = {}
         self.name = name
         self.debug = False
+        super().__init__(covid_model)
 
     def get_buildings(self, human):
         if human in self.allocation:
@@ -154,6 +166,7 @@ class District(Location):
                 location.is_outdoor == outdoor and \
                 (location.available * self.get_parameter('allowed_restaurant_capacity')) >= people_count:
                 return location
+        logger().info("No restaurant is available")
         return None
 
     def get_available_gathering_spot(self):
@@ -161,6 +174,7 @@ class District(Location):
             if isinstance(location, FunGatheringSpot) and location.available:
                 location.available = False
                 return location
+        logger().info("No fun gathering spot is available")
         return None
 
     def move_to(self, human, target):
@@ -215,7 +229,6 @@ class District(Location):
 
     def _debug(self):
         super()._debug()
-        self._print_district_rooms()
 
     def allocate(self, humans, same_building=False, same_unit=False, exclusive=False, building_type=HomogeneousBuilding):
         assert (exclusive and same_unit and same_building) or\
