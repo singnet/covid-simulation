@@ -215,18 +215,6 @@ class District(Location):
                 return unit
         assert False
 
-    def _print_district_rooms(self):
-        print("{} District:".format(self.name))
-        for i,building in enumerate(self.locations):
-            num_humans_in_rooms = [len(room.humans) for room in building.locations]
-            print("{0}{1}".format(type(building).__name__, i))
-            print(num_humans_in_rooms)
-        for i,building in enumerate(self.locations):
-            for j,room in enumerate(building.locations):
-                humans_in_rooms = [human.unique_id for human in room.humans]
-                print("{0}{1}-room{2}".format(type(building).__name__, i,j))
-                print(humans_in_rooms)
-
     def _debug(self):
         super()._debug()
 
