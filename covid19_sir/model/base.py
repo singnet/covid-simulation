@@ -1,10 +1,14 @@
 import uuid
 import math
 import numpy as np
+import logging
 from enum import Enum, auto
 from mesa import Agent, Model
 from mesa.time import RandomActivation
 from model.utils import TribeSelector, SimulationState, DilemmaDecisionHistory, WeekDay
+
+LOG_FILE_NAME = '/tmp/simulation.log'
+LOGGING_LEVEL = logging.INFO
 
 def flip_coin(prob):
     if np.random.random() < prob:
@@ -80,6 +84,33 @@ def change_parameters(**kwargs):
     global parameters
     for key in kwargs:
         parameters.params[key] = kwargs.get(key)
+
+class Logger:
+
+    __instance = None
+
+    @staticmethod 
+    def get_instance():
+        if Logger.__instance is None: return Logger()
+        return Logger.__instance
+
+    def __init__(self):
+        if Logger.__instance is not None:
+            raise Exception("Invalid re-instantiation of Logger")
+        else:
+            logging.basicConfig(
+                filename=LOG_FILE_NAME,
+                level=LOGGING_LEVEL,
+                format='%(levelname)s: %(message)s')
+            Logger.__instance = self
+
+    def debug(self, msg): logging.debug(msg)
+    def info(self, msg): logging.info(msg)
+    def warning(self, msg): logging.warning(msg)
+    def error(self, msg): logging.error(msg)
+
+def logger():
+    return Logger.get_instance()
     
 class SimulationStatus:
     def __init__(self):
