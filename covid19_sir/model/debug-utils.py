@@ -1,3 +1,6 @@
+from model.human import Human, Adult, K12Student, Toddler, Infant, Elder
+from model.location import Location, District, Restaurant
+
 class DebugUtils:
     def __init__(self, model):
         self.humans = []
