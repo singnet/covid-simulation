@@ -202,13 +202,13 @@ class AgentBase(Agent):
         pass
 
     def step(self):
-        if self.debug and self.covid_model.global_count.day_count % self.debug_each_n_cycles:
+        if self.debug and self.covid_model.global_count.day_count % self.debug_each_n_cycles == 0:
             self._debug()
 
 class CovidModel(Model):
     def __init__(self, debug=False):
         self.debug = debug
-        self.debug_each_n_cycles = 20
+        self.debug_each_n_cycles = 1
         self.agents = []
         self.global_count = SimulationStatus()
         self.schedule = RandomActivation(self)
