@@ -1,9 +1,13 @@
 FROM ubuntu:18.04
 
+ARG USER_ID
+ARG GROUP_ID
+
 ARG git_owner="singnet"
 ARG git_repo="covid-simulation"
 ARG git_branch="master"
 
+ENV SINGNET_DIR=/opt/${git_owner}
 ENV PROJECT_DIR=/opt/${git_owner}/${git_repo}
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
@@ -30,5 +34,15 @@ RUN cd /tmp && \
     make && \
     make install && \
     ldconfig /usr/local/lib
+
+ADD ./requirements.txt ${SINGNET_DIR}
+
+RUN cd ${SINGNET_DIR} && \
+    pip3 install -r requirements.txt
+
+RUN addgroup --gid $GROUP_ID user && \
+    adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID user
+
+USER user
 
 WORKDIR ${PROJECT_DIR}
