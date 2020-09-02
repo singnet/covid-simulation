@@ -1,9 +1,13 @@
 FROM ubuntu:18.04
 
+ARG USER_ID
+ARG GROUP_ID
+
 ARG git_owner="singnet"
 ARG git_repo="covid-simulation"
 ARG git_branch="master"
 
+ENV SINGNET_DIR=/opt/${git_owner}
 ENV PROJECT_DIR=/opt/${git_owner}/${git_repo}
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
@@ -31,13 +35,14 @@ RUN cd /tmp && \
     make install && \
     ldconfig /usr/local/lib
 
-RUN python3 -m pip install jupyterhub && \
-    python3 -m pip install notebook 
+ADD ./requirements.txt ${SINGNET_DIR}
 
-ADD . ${PROJECT_DIR}
+RUN cd ${SINGNET_DIR} && \
+    pip3 install -r requirements.txt
 
-RUN cd ${PROJECT_DIR} && \
-    pip3 install -r requirements.txt && \
-    pip3 install pytest
+RUN addgroup --gid $GROUP_ID user && \
+    adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID user
+
+USER user
 
 WORKDIR ${PROJECT_DIR}
