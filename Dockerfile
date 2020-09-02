@@ -31,13 +31,4 @@ RUN cd /tmp && \
     make install && \
     ldconfig /usr/local/lib
 
-RUN python3 -m pip install jupyterhub && \
-    python3 -m pip install notebook 
-
-ADD . ${PROJECT_DIR}
-
-RUN cd ${PROJECT_DIR} && \
-    pip3 install -r requirements.txt && \
-    pip3 install pytest
-
 WORKDIR ${PROJECT_DIR}
