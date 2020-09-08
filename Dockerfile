@@ -11,6 +11,7 @@ ENV SINGNET_DIR=/opt/${git_owner}
 ENV PROJECT_DIR=/opt/${git_owner}/${git_repo}
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
+ENV PYTHONPATH "${PYTONPATH}:${PROJECT_DIR}/covid19_sir"
 
 RUN mkdir -p ${PROJECT_DIR}
 
