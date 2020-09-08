@@ -34,3 +34,7 @@ Optionally you can run the simulation from a Jupyter Notebook:
 ```
 
 Then open the indicated URL in a browser on the host machine.
+
+## Testing
+
+To run unit tests on this repository, simply cd to `covid19_sir` (or the desired subdirectory) and run `python3 -m pytest`.
