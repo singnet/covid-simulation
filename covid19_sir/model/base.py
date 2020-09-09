@@ -8,7 +8,7 @@ from mesa.time import RandomActivation
 from model.utils import TribeSelector, SimulationState, DilemmaDecisionHistory, WeekDay
 
 LOG_FILE_NAME = '/tmp/simulation.log'
-LOGGING_LEVEL = logging.INFO
+LOGGING_LEVEL = logging.DEBUG
 
 def flip_coin(prob):
     if np.random.random() < prob:
@@ -130,6 +130,7 @@ class SimulationStatus:
         self.total_population = 0
         self.work_population = 0
         self.total_income = 0.0
+        self.infection_info = {}
     
 class SimulationParameters:
     def __init__(self, **kwargs):
@@ -152,10 +153,10 @@ class SimulationParameters:
         self.params['hospitalization_period_duration_scale'] = kwargs.get("hospitalization_period_duration_scale", 1.0)
         self.params['me_attenuation'] = kwargs.get("me_attenuation", 1.0)
         self.params['weareable_adoption_rate'] = kwargs.get("weareable_adoption_rate", 0.0)
-        self.params['contagion_probability'] = kwargs.get("contagion_probability", 0.9)
+        self.params['contagion_probability'] = kwargs.get("contagion_probability", 0.0)
         self.params['spreading_rate'] = kwargs.get("spreading_rate", 0.0)
         self.params['symptomatic_isolation_rate'] = kwargs.get("symptomatic_isolation_rate", 0.0)
-        self.params['asymptomatic_contagion_probability'] = kwargs.get("asymptomatic_contagion_probability", 0.1)
+        self.params['asymptomatic_contagion_probability'] = kwargs.get("asymptomatic_contagion_probability", 0.0)
         self.params['risk_tolerance_mean'] = kwargs.get("risk_tolerance_mean", 0.4)
         self.params['risk_tolerance_stdev'] = kwargs.get("risk_tolerance_stdev", 0.3)
         self.params['herding_behavior_mean'] = kwargs.get("herding_behavior_mean", 0.4)
@@ -193,7 +194,7 @@ class AgentBase(Agent):
         self.strid = None
 
     def __repr__(self):
-        return f'<{type(self).__name__} {self.id}>'
+        return self.strid
 
     def initialize_individual_properties(self):
         pass
