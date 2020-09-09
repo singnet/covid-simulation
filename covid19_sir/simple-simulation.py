@@ -42,7 +42,7 @@ common_parameters = SimulationParameters(
 # Simulation
 
 population_size = 1000
-simulation_cycles = 180 # days
+simulation_cycles = 90 # days
 
 ################################################################################
 # Scenarios
