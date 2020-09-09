@@ -218,6 +218,8 @@ class Human(AgentBase):
             elif self.disease_severity == DiseaseSeverity.HIGH:
                 if self.death_mark:
                     self.die()
+                else:
+                    self.recover()
 
     def recover(self):
         logger().info(f"{self} is recovered")
@@ -390,10 +392,6 @@ class Human(AgentBase):
 
         self.work_info.house_bound_worker = WorkClasses.HOUSEBOUND
 
-    def __repr__(self):
-        return self.strid
-
-
 class Infant(Human):
     def initialize_individual_properties(self):
       super().initialize_individual_properties()
@@ -435,20 +433,6 @@ class Adult(Human):
     def is_working_day(self):
         return self.covid_model.get_week_day() in self.work_info.work_days
 
-    def invite_friends_to_get_out(self):
-        event = self.home_district.get_available_gathering_spot()
-        if event is not None:
-            assert not event.humans
-            flag = False
-            for human in self.tribe[TribeSelector.FRIEND]:
-                if human != self and human.personal_decision(Dilemma.ACCEPT_FRIEND_INVITATION_TO_GET_OUT):
-                    flag = True
-                    human.social_event = event
-            if flag:
-                self.social_event = event
-            else:
-                event.available = True
-
     def invite_friends_to_restaurant(self):
         shape = self.properties.risk_tolerance * get_parameters().get('typical_restaurant_event_size')
         event_size = np.random.gamma(shape, 1)
@@ -469,7 +453,7 @@ class Adult(Human):
         if event is None: return
         event.available -= len(accepted)
         for human in accepted:
-            human.social_event = event
+            human.social_event = (self, event)
 
     def working_day(self):
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
@@ -484,12 +468,14 @@ class Adult(Human):
                 self.invite_friends_to_restaurant()
         elif self.covid_model.current_state == SimulationState.COMMUTING_TO_POST_WORK_ACTIVITY:
             if self.social_event is not None:
-                self.home_district.move_to(self, self.social_event)
-                self.work_district.move_to(self, self.social_event)
+                table, restaurant = self.social_event
+                self.home_district.move_to(self, restaurant)
+                self.work_district.move_to(self, restaurant)
         elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
             if self.social_event is not None:
-                self.home_district.move_from(self, self.social_event)
-                self.social_event.available += 1
+                table, restaurant = self.social_event
+                self.home_district.move_from(self, restaurant)
+                restaurant.available += 1
                 self.days_since_last_social_event = 0
                 self.social_event = None
             else:

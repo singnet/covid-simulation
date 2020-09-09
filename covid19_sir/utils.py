@@ -234,14 +234,14 @@ class Propaganda():
 def build_district(name, model, population_size, building_capacity, unit_capacity,
                    occupacy_rate, contagion_probability):
 
-    district = District(name, model)
+    district = District(name, model, '', name)
     building_count = math.ceil(
         math.ceil(population_size / unit_capacity) * (1 / occupacy_rate) 
         / building_capacity)
     for i in range(building_count):
-        building = HomogeneousBuilding(building_capacity, model)
+        building = HomogeneousBuilding(building_capacity, model, name, str(i))
         for j in range(building_capacity):
-            unit = BuildingUnit(unit_capacity, model, 
+            unit = BuildingUnit(unit_capacity, model, name, str(i) + '-' + str(j),
                                 contagion_probability=contagion_probability)
             building.locations.append(unit)
         district.locations.append(building)
@@ -256,7 +256,7 @@ def setup_city_layout(model, population_size):
     appartment_capacity = 5
     appartment_building_occupacy_rate = 0.5
     school_capacity = 50
-    classroom_capacity = 30
+    classroom_capacity = 20
     school_occupacy_rate = 0.5
 
     # Build empty districts
@@ -286,12 +286,26 @@ def setup_city_layout(model, population_size):
     for i in range(10):
         if flip_coin(0.5):
             restaurant_type = RestaurantType.FAST_FOOD
+            rtype = "FASTFOOD"
         else:
             restaurant_type = RestaurantType.FANCY
-        restaurant = Restaurant(normal_cap(50, 20, 16, 100), restaurant_type, flip_coin(0.5), model)
+            rtype = "FANCY"
+        restaurant = Restaurant(
+            normal_cap(50, 20, 16, 100), 
+            restaurant_type, 
+            flip_coin(0.5), 
+            model, 
+            '',
+            rtype + '-' + str(i))
         work_district.locations.append(restaurant)
     for i in range(2):
-        bar = Restaurant(normal_cap(100, 20, 50, 200), RestaurantType.BAR, flip_coin(0.5), model)
+        bar = Restaurant(
+            normal_cap(100, 20, 50, 200), 
+            RestaurantType.BAR, 
+            flip_coin(0.5), 
+            model, 
+            '', 
+            'BAR-' + str(i))
         work_district.locations.append(bar)
 
     #print(home_district)

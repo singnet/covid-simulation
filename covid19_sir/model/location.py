@@ -8,13 +8,19 @@ from model.utils import RestaurantType
 from model.human import Human
 
 class Location(AgentBase):
-    def __init__(self, covid_model):
+    def __init__(self, covid_model, strid_prefix, strid_suffix):
         super().__init__(unique_id(), covid_model)
         self.custom_parameters = {}
         self.humans = []
         self.locations = []
         self.container = None
         self.spreading_rate = get_parameters().get('spreading_rate')
+        self.strid = strid_prefix
+        if strid_prefix != '':
+            self.strid += '-'
+        self.strid += type(self).__name__
+        if strid_suffix != '':
+            self.strid += '-' + strid_suffix
 
     def get_parameter(self, key):
         if key in self.custom_parameters: return self.custom_parameters[key]
@@ -45,7 +51,16 @@ class Location(AgentBase):
             if flip_coin(self.get_parameter('contagion_probability')):
                 me = self.get_parameter('mask_efficacy')
                 if not h1.is_wearing_mask() or (h1.is_wearing_mask() and not flip_coin(me)):
+                    if h2.strid not in self.covid_model.global_count.infection_info:
+                        self.covid_model.global_count.infection_info[h2.strid] = self
                     h2.infect()
+                else:
+                    logger().debug("Infection failed - mask")
+            else:
+                logger().debug("Infection failed - didn't pass contagion_probability check")
+        else:
+            logger().debug("Infection failed - h1 is not contagious or h2 is infected")
+            
 
     def spread_infection(self):
         if len(self.humans) > 0:
@@ -53,12 +68,11 @@ class Location(AgentBase):
         for h1 in self.humans:
             for h2 in self.humans:
                 if h1 != h2:
-                    if flip_coin(self.spreading_rate / len(self.humans)):
-                        self.check_spreading(h1, h2)
+                    self.check_spreading(h1, h2)
 
 class BuildingUnit(Location):
-    def __init__(self, capacity, covid_model, **kwargs):
-        super().__init__(covid_model)
+    def __init__(self, capacity, covid_model, strid_prefix, strid_suffix, **kwargs):
+        super().__init__(covid_model, strid_prefix, strid_suffix)
         self.set_custom_parameters([\
             ('contagion_probability', 0.0)
         ], kwargs)
@@ -71,44 +85,24 @@ class BuildingUnit(Location):
            self.covid_model.current_state == SimulationState.MAIN_ACTIVITY:
             self.spread_infection()
 
-    def __repr__(self):
-        return "BuildingUnit"
-
 class HomogeneousBuilding(Location):
-    def __init__(self, building_capacity, covid_model, **kwargs):
-        super().__init__(covid_model)
+    def __init__(self, building_capacity, covid_model, strid_prefix, strid_suffix, **kwargs):
+        super().__init__(covid_model, strid_prefix, strid_suffix)
         self.unit_args = kwargs
         self.capacity = building_capacity
         self.allocation = {}
     def get_unit(self, human):
         return self.allocation[human]
-    def __repr__(self):
-        return "HomogeneousBuilding"
-
-class FunGatheringSpot(Location):
-    def __init__(self, capacity, covid_model, **kwargs):
-        super().__init__(covid_model)
-        self.set_custom_parameters([\
-            ('contagion_probability', normal_cap_ci(0.0035, 0.005))
-        ], kwargs)
-        self.capacity = capacity
-        self.available = True
-    def step(self):
-        super().step()
-        if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
-            self.spread_infection()
-    def __repr__(self):
-        return "FunGatheringSpot"
 
 class Restaurant(Location):
-    def __init__(self, capacity, restaurant_type, is_outdoor, covid_model, **kwargs):
-        super().__init__(covid_model)
+    def __init__(self, capacity, restaurant_type, is_outdoor, covid_model, strid_prefix, strid_suffix, **kwargs):
+        super().__init__(covid_model, strid_prefix, strid_suffix)
         OUTDOOR = True
         INDOOR = False
         # https://docs.google.com/document/d/1imCNXOyoyecfD_sVNmKpmbWVB6xqP-FWlHELAyOg1Vs/edit
-        base_fast_food = normal_cap_ci(0.0014, 0.01, 10)
-        base_fancy = normal_cap_ci(0.007, 0.02, 10)
-        base_bar = normal_cap_ci(0.0174, 0.0796, 10)
+        base_fast_food = normal_cap_ci(0.014, 0.1, 10)
+        base_fancy = normal_cap_ci(0.07, 0.2, 10)
+        base_bar = normal_cap_ci(0.174, 0.796, 10)
         cp = {
             RestaurantType.FAST_FOOD: {
                 INDOOR: base_fast_food,
@@ -131,6 +125,16 @@ class Restaurant(Location):
             ('contagion_probability', cp[restaurant_type][is_outdoor])
         ], kwargs)
 
+    def spread_infection(self):
+        if len(self.humans) > 0:
+            logger().info(f"{self} is spreading infection amongst {len(self.humans)} humans")
+        for h1 in self.humans:
+            for h2 in self.humans:
+                if h1 != h2:
+                    if h1.social_event == h2.social_event or \
+                       flip_coin(0.25 * self.get_parameter('allowed_restaurant_capacity')):
+                        self.check_spreading(h1, h2)
+
     def step(self):
         super().step()
         capacity = self.get_parameter('allowed_restaurant_capacity')
@@ -144,15 +148,12 @@ class Restaurant(Location):
         if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
             self.spread_infection()
 
-    def __repr__(self):
-        return "Restaurant"
-
 class District(Location):
-    def __init__(self, name, covid_model, **kwargs):
+    def __init__(self, name, covid_model, strid_prefix, strid_suffix, **kwargs):
+        super().__init__(covid_model, strid_prefix, strid_suffix)
         self.allocation = {}
         self.name = name
         self.debug = False
-        super().__init__(covid_model)
 
     def get_buildings(self, human):
         if human in self.allocation:

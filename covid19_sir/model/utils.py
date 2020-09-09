@@ -30,6 +30,7 @@ class WeekDay(Enum):
 
 class SocialPolicy(Enum):
     SOCIAL_DISTANCING = auto()
+    LOCKDOWN_ALL = auto()
     LOCKDOWN_OFFICE = auto()
     LOCKDOWN_FACTORY = auto()
     LOCKDOWN_RETAIL = auto()
@@ -39,11 +40,13 @@ class SocialPolicy(Enum):
 
 class SocialPolicyUtil(): 
     locked_work_classes = { 
+        SocialPolicy.LOCKDOWN_ALL: [WorkClasses.OFFICE, WorkClasses.FACTORY, WorkClasses.RETAIL, WorkClasses.ESSENTIAL, WorkClasses.HOUSEBOUND], 
         SocialPolicy.LOCKDOWN_OFFICE: [WorkClasses.OFFICE], 
         SocialPolicy.LOCKDOWN_FACTORY: [WorkClasses.FACTORY], 
         SocialPolicy.LOCKDOWN_RETAIL: [WorkClasses.RETAIL] 
     } 
     locked_student_ages = { 
+        SocialPolicy.LOCKDOWN_ALL: (5, 18),
         SocialPolicy.LOCKDOWN_ELEMENTARY_SCHOOL: (5, 11), 
         SocialPolicy.LOCKDOWN_MIDDLE_SCHOOL: (12, 14), 
         SocialPolicy.LOCKDOWN_HIGH_SCHOOL: (15, 18) 
