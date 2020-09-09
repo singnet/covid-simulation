@@ -1,5 +1,7 @@
+from model.base import logger
 from model.human import Human, Adult, K12Student, Toddler, Infant, Elder
 from model.location import Location, District, Restaurant
+
 
 class DebugUtils:
     def __init__(self, model):
@@ -12,7 +14,8 @@ class DebugUtils:
         self.locations = []
         self.districts = []
         self.restaurants = []
-        self._populate(model)
+        self.model = model
+        self._populate()
 
     def print_world(self):
         for district in self.districts:
@@ -27,8 +30,30 @@ class DebugUtils:
                     print("{0}{1}-room{2}".format(type(building).__name__, i,j))
                     print(humans_in_rooms)
 
-    def _populate(self, model):
-        for agent in model.agents:
+    def print_infection_status(self):
+        count_school = 0;
+        count_home = 0;
+        count_restaurant = 0;
+        count_work = 0;
+        for human in self.model.global_count.infection_info:
+            location = self.model.global_count.infection_info[human]
+            if 'School' in location.strid:
+                count_school += 1
+            elif 'Home'in location.strid:
+                count_home += 1
+            elif 'Restaurant' in location.strid:
+                count_restaurant += 1
+            elif 'Work' in location.strid:
+                count_work += 1
+            else: logger.warning(f"Unexpected infection location: {location}")
+        print(f"School: {count_school}")
+        print(f"Home: {count_home}")
+        print(f"Restaurant: {count_restaurant}")
+        print(f"Work: {count_work}")
+        print(f"Total: {count_school + count_home + count_restaurant + count_work}")
+
+    def _populate(self):
+        for agent in self.model.agents:
             if isinstance(agent, Human): self.humans.append(agent)
             if isinstance(agent, Adult): self.adults.append(agent)
             if isinstance(agent, K12Student): self.k12students.append(agent)
