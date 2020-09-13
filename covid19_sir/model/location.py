@@ -48,14 +48,14 @@ class Location(AgentBase):
 
     def check_spreading(self, h1, h2):
         if h1.is_infected():
-            logger().debug(f"Check to see if {h1} can infect {h2}:")
+            logger().debug(f"Check to see if {h1} can infect {h2} in {self}")
             if h1.is_contagious() and not h2.is_infected():
                 if flip_coin(self.get_parameter('contagion_probability')):
                     me = self.get_parameter('mask_efficacy')
                     if not h1.is_wearing_mask() or (h1.is_wearing_mask() and not flip_coin(me)):
                         if h2.strid not in self.covid_model.global_count.infection_info:
                             self.covid_model.global_count.infection_info[h2.strid] = self
-                        logger().debug(f"Infection succeeded - {h1} has infected {h2}")
+                        logger().debug(f"Infection succeeded - {h1} has infected {h2} in {self} with contagion probabiity {self.get_parameter('contagion_probability')}")
     
                         h2.infect()
                     else:
