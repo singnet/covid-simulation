@@ -59,7 +59,7 @@ class Location(AgentBase):
             else:
                 logger().debug("Infection failed - didn't pass contagion_probability check")
         else:
-            logger().debug("Infection failed - h1 is not contagious or h2 is infected")
+            logger().debug("Infection failed - {0} is not contagious or {1} is infected".format(h1,h2))
             
 
     def spread_infection(self):
