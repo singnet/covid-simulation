@@ -15,6 +15,11 @@ class DebugUtils:
         self.districts = []
         self.restaurants = []
         self.model = model
+        human_status = {}
+        self.count_school = 0;
+        self.count_home = 0;
+        self.count_restaurant = 0;
+        self.count_work = 0;
         self._populate()
 
     def print_world(self):
@@ -32,27 +37,37 @@ class DebugUtils:
                 humans_in_building = [human.unique_id for human in building.humans]
                 print("{0}{1}".format(type(building).__name__, i))
                 print(humans_in_building)
-    def print_infection_status(self):
-        count_school = 0;
-        count_home = 0;
-        count_restaurant = 0;
-        count_work = 0;
+
+    def update_human_status(self):
+        for human in humans:
+            if human not in human_status:
+                human_status[human] = {}
+            human_status[human][self.model.global_count.day_count] = human.info()
+
+    def update_infection_status(self):
+        self.count_school = 0;
+        self.count_home = 0;
+        self.count_restaurant = 0;
+        self.count_work = 0;
         for human in self.model.global_count.infection_info:
             location = self.model.global_count.infection_info[human]
             if 'School' in location.strid:
-                count_school += 1
+                self.count_school += 1
             elif 'Home'in location.strid:
-                count_home += 1
+                self.count_home += 1
             elif 'Restaurant' in location.strid:
-                count_restaurant += 1
+                self.count_restaurant += 1
             elif 'Work' in location.strid:
-                count_work += 1
+                self.count_work += 1
             else: logger.warning(f"Unexpected infection location: {location}")
-        print(f"School: {count_school}")
-        print(f"Home: {count_home}")
-        print(f"Restaurant: {count_restaurant}")
-        print(f"Work: {count_work}")
-        print(f"Total: {count_school + count_home + count_restaurant + count_work}")
+
+    def print_infection_status(self):
+        self.update_infection_status()
+        print(f"School: {self.count_school}")
+        print(f"Home: {self.count_home}")
+        print(f"Restaurant: {self.count_restaurant}")
+        print(f"Work: {self.count_work}")
+        print(f"Total: {self.count_school + self.count_home + self.count_restaurant + self.count_work}")
 
     def _populate(self):
         for agent in self.model.agents:

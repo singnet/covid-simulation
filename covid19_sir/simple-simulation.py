@@ -1,9 +1,10 @@
 import sys
 import copy 
 import numpy as np
-from model.base import CovidModel, SimulationParameters, set_parameters, normal_ci
+from model.base import CovidModel, SimulationParameters, set_parameters, normal_ci, logger
 from utils import BasicStatistics, RemovePolicy, Propaganda, setup_city_layout
 from model.utils import SocialPolicy
+from model.debugutils import DebugUtils
 
 seed = 31415
 if len(sys.argv) > 1:
@@ -235,6 +236,8 @@ for sc in scenario:
     print(f"Running scenario {sc}")
     set_parameters(scenario[sc]['parameters'])
     model = scenario[sc]['model']
+    debug = DebugUtils(model)
+    logger().model = model
     model.reset_randomizer(seed)
     statistics = BasicStatistics(model)
     model.add_listener(statistics)
@@ -242,3 +245,4 @@ for sc in scenario:
         model.step()
     statistics.export_chart("scenario" + str(sc) + ".png")
     statistics.export_csv("scenario" + str(sc) + ".csv")
+    #debug.print_infection_status()
