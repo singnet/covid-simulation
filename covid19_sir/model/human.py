@@ -160,14 +160,17 @@ class Human(AgentBase):
             shape = get_parameters().get('latency_period_shape')
             scale = get_parameters().get('latency_period_scale')
             self.infection_latency = np.random.gamma(shape, scale) - self.early_symptom_detection
+            logger().debug(f"Infection latency of {self} is {self.infection_latency}")
             if self.infection_latency < 1.0:
                 self.infection_latency = 1.0
             shape = get_parameters().get('incubation_period_shape')
             scale = get_parameters().get('incubation_period_scale')
             self.infection_incubation = self.infection_latency + np.random.gamma(shape, scale)
+            logger().debug(f"Infection incubation of {self} is {self.infection_incubation}")
             shape = get_parameters().get('mild_period_duration_shape')
             scale = get_parameters().get('mild_period_duration_scale')
             self.mild_duration = np.random.gamma(shape, scale) + self.infection_incubation
+            logger().debug(f"Mild duration of {self} is {self.mild_duration}")
 
 
     def disease_evolution(self):
@@ -199,7 +202,9 @@ class Human(AgentBase):
                             logger().info(f"{self} couldn't be hospitalized (hospitalization limit reached)")
                         shape = get_parameters().get('hospitalization_period_duration_shape')
                         scale = get_parameters().get('hospitalization_period_duration_scale')
-                        self.hospitalization_duration = np.random.gamma(shape, scale) + self.infection_days_count
+                        self.hospitalization_duration = np.random.gamma(shape, scale) + self.infection_days_count 
+                        logger().debug(f"Hospital duration of {self} is {self.hospitalization_duration}")
+
                     else:
                         self.recover()
             elif self.disease_severity == DiseaseSeverity.MODERATE:
@@ -436,6 +441,7 @@ class Adult(Human):
     def invite_friends_to_restaurant(self):
         shape = self.properties.risk_tolerance * get_parameters().get('typical_restaurant_event_size')
         event_size = np.random.gamma(shape, 1)
+        logger().debug(f"Restaurant event size of {self} is {event_size}")
         accepted = [self]
         for human in self.tribe[TribeSelector.FRIEND]:
             if human != self and human.personal_decision(Dilemma.ACCEPT_FRIEND_INVITATION_TO_RESTAURANT):

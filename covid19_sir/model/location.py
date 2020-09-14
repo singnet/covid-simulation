@@ -47,19 +47,29 @@ class Location(AgentBase):
         super().step()
 
     def check_spreading(self, h1, h2):
-        if h1.is_contagious() and not h2.is_infected():
-            if flip_coin(self.get_parameter('contagion_probability')):
-                me = self.get_parameter('mask_efficacy')
-                if not h1.is_wearing_mask() or (h1.is_wearing_mask() and not flip_coin(me)):
-                    if h2.strid not in self.covid_model.global_count.infection_info:
-                        self.covid_model.global_count.infection_info[h2.strid] = self
-                    h2.infect()
+        if h1.is_infected():
+            logger().debug(f"Check to see if {h1} can infect {h2} in {self}")
+            if h1.is_contagious() and not h2.is_infected():
+                if flip_coin(self.get_parameter('contagion_probability')):
+                    me = self.get_parameter('mask_efficacy')
+                    if not h1.is_wearing_mask() or (h1.is_wearing_mask() and not flip_coin(me)):
+                        if h2.strid not in self.covid_model.global_count.infection_info:
+                            self.covid_model.global_count.infection_info[h2.strid] = self
+                        logger().debug(f"Infection succeeded - {h1} has infected {h2} in {self} with contagion probabiity {self.get_parameter('contagion_probability')}")
+    
+                        h2.infect()
+                    else:
+                        if h1.is_wearing_mask():
+                            logger().debug(f"Infection failed - infector {h1} wearing mask")
+                        if h2.is_wearing_mask():
+                            logger().debug(f"Infection failed - infectee {h2} wearing mask")
                 else:
-                    logger().debug("Infection failed - mask")
+                    logger().debug(f"Infection failed - {self} didn't pass contagion_probability check with contagion probability {self.get_parameter('contagion_probability')}")
             else:
-                logger().debug("Infection failed - didn't pass contagion_probability check")
-        else:
-            logger().debug("Infection failed - h1 is not contagious or h2 is infected")
+                if not h1.is_contagious():
+                    logger().debug(f"Infection failed - infector {h1} is not contagious")
+                if h2.is_infected():
+                    logger().debug(f"Infection failed - infectee {h2} is already infected")
             
 
     def spread_infection(self):

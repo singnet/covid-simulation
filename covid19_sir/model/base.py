@@ -7,7 +7,7 @@ from mesa import Agent, Model
 from mesa.time import RandomActivation
 from model.utils import TribeSelector, SimulationState, DilemmaDecisionHistory, WeekDay
 
-LOG_FILE_NAME = '/tmp/simulation.log'
+LOG_FILE_NAME = './simulation.log'
 LOGGING_LEVEL = logging.DEBUG
 
 def flip_coin(prob):
@@ -99,6 +99,7 @@ class Logger:
         if Logger.__instance is not None:
             raise Exception("Invalid re-instantiation of Logger")
         else:
+            #print("log initialized")
             logging.basicConfig(
                 filename=LOG_FILE_NAME,
                 level=LOGGING_LEVEL,
