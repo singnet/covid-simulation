@@ -1,7 +1,7 @@
 import math
 import matplotlib.pyplot as plt
 import pandas as pd
-from model.base import CovidModel, get_parameters, change_parameters, normal_cap_ci, flip_coin, normal_cap
+from model.base import CovidModel, get_parameters, change_parameters, flip_coin, normal_cap, logger
 from model.human import Human, Elder, Adult, K12Student, Toddler, Infant
 from model.location import Location, District, HomogeneousBuilding, BuildingUnit, Restaurant
 from model.instantiation import FamilyFactory, HomophilyRelationshipFactory
@@ -234,6 +234,7 @@ class Propaganda():
 def build_district(name, model, population_size, building_capacity, unit_capacity,
                    occupacy_rate, contagion_probability):
 
+    logger().info(f"Building district {name} contagion_probability = {contagion_probability}")
     district = District(name, model, '', name)
     building_count = math.ceil(
         math.ceil(population_size / unit_capacity) * (1 / occupacy_rate) 
@@ -265,17 +266,17 @@ def setup_city_layout(model, population_size):
                                    appartment_building_capacity, 
                                    appartment_capacity,
                                    appartment_building_occupacy_rate, 
-                                   normal_cap_ci(0.021, 0.12, 10))
+                                   normal_ci(0.021, 0.12, 10))
     work_district = build_district("Work", model, population_size,
                                    work_building_capacity, 
                                    office_capacity, 
                                    work_building_occupacy_rate, 
-                                   normal_cap_ci(0.007, 0.06, 10))
+                                   normal_ci(0.007, 0.06, 10))
     school_district = build_district("School", model, population_size,
                                      school_capacity, 
                                      classroom_capacity, 
                                      school_occupacy_rate, 
-                                     normal_cap_ci(0.014, 0.08, 10))
+                                     normal_ci(0.014, 0.08, 10))
 
     home_district.debug = model.debug
     work_district.debug = model.debug
