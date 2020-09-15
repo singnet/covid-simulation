@@ -10,17 +10,20 @@ from model.utils import TribeSelector, SimulationState, DilemmaDecisionHistory, 
 LOG_FILE_NAME = './simulation.log'
 LOGGING_LEVEL = logging.DEBUG
 
+
 def flip_coin(prob):
     if np.random.random() < prob:
         return True
     else:
         return False
 
+
 def _random_selection(v):
-    return(v[np.random.random_integers(0, len(v) - 1)])
+    return (v[np.random.random_integers(0, len(v) - 1)])
+
 
 def random_selection(v, n=1):
-    if n == 1: 
+    if n == 1:
         return _random_selection(v)
     assert n <= (len(v) / 2)
     a = v.copy()
@@ -31,15 +34,17 @@ def random_selection(v, n=1):
         selected.append(s)
     return selected
 
+
 def build_roulette(w):
     r = []
     s = 0
-    for v in w: 
+    for v in w:
         s += v
     acc = 0
     for v in w:
         r.append(acc + (v / s))
         acc += v / s
+
 
 def roulette_selection(v, w):
     assert len(v) == len(w)
@@ -48,11 +53,13 @@ def roulette_selection(v, w):
         if r <= w[i]: return v[i]
     return v[len(v) - 1]
 
+
 def normal_cap(mean, stdev, lower_bound=0, upper_bound=1):
     r = np.random.normal(mean, stdev)
     if r < lower_bound: r = lower_bound
     if r > upper_bound: r = upper_bound
     return r
+
 
 def normal_ci(ci_lower, ci_upper, n):
     # Assumption of 95% CI
@@ -60,31 +67,36 @@ def normal_ci(ci_lower, ci_upper, n):
     stdev = math.sqrt(n) * (ci_upper - ci_lower) / 3.92
     return normal_cap(mean, stdev, ci_lower, ci_upper)
 
-def linear_rescale(x, l2, u2, l1 = 0, u1 = 1):
-    return ((x / (u1 - l1)) * (u2  - l2)) + l2
+
+def linear_rescale(x, l2, u2, l1=0, u1=1):
+    return ((x / (u1 - l1)) * (u2 - l2)) + l2
+
 
 def unique_id():
     return uuid.uuid1()
+
 
 def set_parameters(new_parameters):
     global parameters
     parameters = new_parameters
     logger().info(f"Setting new simulation parameters\n{parameters}")
 
+
 def get_parameters():
     global parameters
     return parameters
+
 
 def change_parameters(**kwargs):
     global parameters
     for key in kwargs:
         parameters.params[key] = kwargs.get(key)
 
-class Logger:
 
+class Logger:
     __instance = None
 
-    @staticmethod 
+    @staticmethod
     def get_instance():
         if Logger.__instance is None: return Logger()
         return Logger.__instance
@@ -93,7 +105,7 @@ class Logger:
         if Logger.__instance is not None:
             raise Exception("Invalid re-instantiation of Logger")
         else:
-            #print("log initialized")
+            # print("log initialized")
             logging.basicConfig(
                 filename=LOG_FILE_NAME,
                 level=LOGGING_LEVEL,
@@ -104,14 +116,23 @@ class Logger:
     def prefix(self):
         return f"Day {self.model.global_count.day_count} " if self.model else ''
 
-    def debug(self, msg): logging.debug(self.prefix() + msg)
-    def info(self, msg): logging.info(self.prefix() + msg)
-    def warning(self, msg): logging.warning(self.prefix() + msg)
-    def error(self, msg): logging.error(self.prefix() + msg)
+    def debug(self, msg):
+        logging.debug(self.prefix() + msg)
+
+    def info(self, msg):
+        logging.info(self.prefix() + msg)
+
+    def warning(self, msg):
+        logging.warning(self.prefix() + msg)
+
+    def error(self, msg):
+        logging.error(self.prefix() + msg)
+
 
 def logger():
     return Logger.get_instance()
-    
+
+
 class SimulationStatus:
     def __init__(self):
         self.day_count = 0
@@ -130,7 +151,8 @@ class SimulationStatus:
         self.work_population = 0
         self.total_income = 0.0
         self.infection_info = {}
-    
+
+
 class SimulationParameters:
     def __init__(self, **kwargs):
         self.params = {}
@@ -162,9 +184,9 @@ class SimulationParameters:
         self.params['herding_behavior_stdev'] = kwargs.get("herding_behavior_stdev", 0.3)
         self.params['allowed_restaurant_capacity'] = kwargs.get("allowed_restaurant_capacity", 1.0)
         self.params['typical_restaurant_event_size'] = kwargs.get("typical_restaurant_event_size", 6)
-        self.params['extroversion_mean']=kwargs.get("extroversion_mean",0.5)
-        self.params['extroversion_stdev']=kwargs.get("extroversion_stdev",0.3)
-        self.params['min_behaviors_to_copy']=kwargs.get("min_behaviors_to_copy",3)
+        self.params['extroversion_mean'] = kwargs.get("extroversion_mean", 0.5)
+        self.params['extroversion_stdev'] = kwargs.get("extroversion_stdev", 0.3)
+        self.params['min_behaviors_to_copy'] = kwargs.get("min_behaviors_to_copy", 3)
 
     def get(self, key):
         return self.params[key]
@@ -178,7 +200,9 @@ class SimulationParameters:
         answer += "}"
         return answer
 
+
 parameters = None
+
 
 class AgentBase(Agent):
     # MESA agent
@@ -205,6 +229,7 @@ class AgentBase(Agent):
         if self.debug and self.covid_model.global_count.day_count % self.debug_each_n_cycles == 0:
             self._debug()
 
+
 class CovidModel(Model):
     def __init__(self, debug=False):
         self.debug = debug
@@ -226,7 +251,8 @@ class CovidModel(Model):
         }
 
     def reached_hospitalization_limit(self):
-        return (self.global_count.total_hospitalized / self.global_count.total_population) >= parameters.get('hospitalization_capacity')
+        return (self.global_count.total_hospitalized / self.global_count.total_population) >= parameters.get(
+            'hospitalization_capacity')
 
     def get_week_day(self):
         wd = [WeekDay.MONDAY,
@@ -237,7 +263,6 @@ class CovidModel(Model):
               WeekDay.SATURDAY,
               WeekDay.SUNDAY]
         return wd[self.global_count.day_count % 7]
-        
 
     def is_week_day(self, wd):
         return self.get_week_day() == wd
@@ -273,7 +298,7 @@ class CovidModel(Model):
             self.current_state = self.next_state[self.current_state]
             if self.current_state == SimulationState.MORNING_AT_HOME:
                 flag = True
-        
+
         for listener in self.listeners:
             listener.end_cycle(self)
         self.global_count.day_count += 1

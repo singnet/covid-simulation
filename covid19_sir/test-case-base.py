@@ -1,5 +1,5 @@
 import sys
-import copy 
+import copy
 import numpy as np
 from model.base import CovidModel, SimulationParameters, set_parameters, normal_ci, logger
 from utils import BasicStatistics, RemovePolicy, Propaganda, setup_city_layout
@@ -7,28 +7,28 @@ from model.utils import SocialPolicy
 from model.debugutils import DebugUtils
 
 basic_parameters = SimulationParameters(
-    mask_user_rate = 0.0,
-    mask_efficacy = 0.0,
-    imune_rate = 0.01,
-    initial_infection_rate = 0.01,
-    hospitalization_capacity = 0.001,
-    latency_period_shape = 3,
-    latency_period_scale = 1,
-    incubation_period_shape = 6,
-    incubation_period_scale = 1,
-    mild_period_duration_shape = 14,
-    mild_period_duration_scale = 1,
-    hospitalization_period_duration_shape = 12,
-    hospitalization_period_duration_scale = 1,
-    symptomatic_isolation_rate = 0.0,
-    asymptomatic_contagion_probability = 0.1,
-    risk_tolerance_mean = 0.7,
-    risk_tolerance_stdev = 0.2,
-    herding_behavior_mean = 0.7,
-    herding_behavior_stdev = 0.2,
-    allowed_restaurant_capacity = 1.0, # valid values: {1.0, 0.50, 0.25}
-    spreading_rate = normal_ci(2.41, 3.90, 20),
-    social_policies = [
+    mask_user_rate=0.0,
+    mask_efficacy=0.0,
+    imune_rate=0.01,
+    initial_infection_rate=0.01,
+    hospitalization_capacity=0.001,
+    latency_period_shape=3,
+    latency_period_scale=1,
+    incubation_period_shape=6,
+    incubation_period_scale=1,
+    mild_period_duration_shape=14,
+    mild_period_duration_scale=1,
+    hospitalization_period_duration_shape=12,
+    hospitalization_period_duration_scale=1,
+    symptomatic_isolation_rate=0.0,
+    asymptomatic_contagion_probability=0.1,
+    risk_tolerance_mean=0.7,
+    risk_tolerance_stdev=0.2,
+    herding_behavior_mean=0.7,
+    herding_behavior_stdev=0.2,
+    allowed_restaurant_capacity=1.0,  # valid values: {1.0, 0.50, 0.25}
+    spreading_rate=normal_ci(2.41, 3.90, 20),
+    social_policies=[
         SocialPolicy.LOCKDOWN_OFFICE,
         SocialPolicy.LOCKDOWN_FACTORY,
         SocialPolicy.LOCKDOWN_RETAIL,
@@ -38,12 +38,11 @@ basic_parameters = SimulationParameters(
         SocialPolicy.SOCIAL_DISTANCING
     ]
 )
-single_var = None
 
 # Simulation
 
 population_size = 1000
-simulation_cycles = 90 # days
+simulation_cycles = 90  # days
 multiple_runs = 5
 
 single_var = ('risk_tolerance_mean', [0.1, 0.5, 0.9])

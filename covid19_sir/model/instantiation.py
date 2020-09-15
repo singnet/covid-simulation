@@ -35,7 +35,7 @@ class FamilyFactory:
             [Adult, Adult, K12Student, K12Student, Toddler],
             [Adult, Adult, K12Student, Toddler, Toddler],
             [Adult, Adult, K12Student, Infant, Toddler]]
-        #TODO use a reallistic distribution
+        # TODO use a realistic distribution
         self._weights = []
         for i in range(len(self._schema_collection)):
             self._weights.append((i + 1) * (1.0 / len(self._schema_collection)))
@@ -47,7 +47,6 @@ class FamilyFactory:
             schema = roulette_selection(self._schema_collection, self._weights)
             if self._is_compatible(human, schema): break
         return copy.deepcopy(schema)
-
 
     def _is_compatible(self, human, schema):
         for human_type in schema:
@@ -67,7 +66,6 @@ class FamilyFactory:
         for i in range(population_size):
             self._push(Human.factory(self.covid_model, None))
         self._flush_pending_families()
-
 
     def _flush_pending_families(self):
         self.done = True
@@ -106,7 +104,8 @@ class FamilyFactory:
             txt = txt + str([type(human).__name__ for human in family]) + "\n"
         return txt
 
-class HomophilyRelationshipFactory():
+
+class HomophilyRelationshipFactory:
 
     def __init__(self, model, humans, **kwargs):
         self.model = model
@@ -114,13 +113,13 @@ class HomophilyRelationshipFactory():
         self.similarity = {}
         self.feature_vector = {}
         blobs = make_blobs(
-            n_samples=len(humans), 
-            n_features=10, 
-            centers=None, 
-            cluster_std=1.0, 
-            center_box=(-10.0, 10.0), 
-            shuffle=True, 
-            random_state=None 
+            n_samples=len(humans),
+            n_features=10,
+            centers=None,
+            cluster_std=1.0,
+            center_box=(-10.0, 10.0),
+            shuffle=True,
+            random_state=None
         )
         p = 0
         for h1 in humans:
@@ -143,7 +142,7 @@ class HomophilyRelationshipFactory():
                 tribe.append(selected)
                 n -= 1
         return tribe
-          
+
     def _compute_similarity(self, h1, h2):
         assert len(self.feature_vector[h1]) == len(self.feature_vector[h2])
         d = np.linalg.norm(self.feature_vector[h1] - self.feature_vector[h2])
