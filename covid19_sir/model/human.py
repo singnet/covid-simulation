@@ -2,8 +2,8 @@ import math
 import numpy as np
 from enum import Enum, auto
 
-from model.base import (AgentBase, flip_coin, normal_cap, roulette_selection,
-get_parameters, unique_id, linear_rescale, normal_cap_ci, logger)
+from model.base import (AgentBase, flip_coin, normal_ci, roulette_selection,
+get_parameters, unique_id, linear_rescale, normal_cap, normal_ci, logger)
 from model.utils import (WorkClasses, WeekDay, InfectionStatus, DiseaseSeverity,
 SocialPolicy, SocialPolicyUtil, InfectionStatus, SimulationState, Dilemma,DilemmaDecisionHistory,
 TribeSelector, RestaurantType)
@@ -48,15 +48,15 @@ class Human(AgentBase):
         # https://docs.google.com/document/d/14C4utmOi4WiBe7hOVtRt-NgMLh37pr_ntou-xUFAOjk/edit
         moderate_severity_probs = [
             0,
-            normal_cap_ci(0.000243, 0.000832, 13),
-            normal_cap_ci(0.00622, 0.0213, 50),
-            normal_cap_ci(0.0204, 0.07, 437),
-            normal_cap_ci(0.0253, 0.0868, 733),
-            normal_cap_ci(0.0486, 0.167, 743),
-            normal_cap_ci(0.0701, 0.24, 790),
-            normal_cap_ci(0.0987, 0.338, 560),
-            normal_cap_ci(0.11, 0.376, 263),
-            normal_cap_ci(0.11, 0.376, 76)
+            normal_ci(0.000243, 0.000832, 13),
+            normal_ci(0.00622, 0.0213, 50),
+            normal_ci(0.0204, 0.07, 437),
+            normal_ci(0.0253, 0.0868, 733),
+            normal_ci(0.0486, 0.167, 743),
+            normal_ci(0.0701, 0.24, 790),
+            normal_ci(0.0987, 0.338, 560),
+            normal_ci(0.11, 0.376, 263),
+            normal_ci(0.11, 0.376, 76)
         ]
         high_severity_probs = [0.05, 0.05, 0.05, 0.05, 0.063, 0.122, 0.274, 0.432, 0.709, 0.709]
         death_probs = [0.002, 0.00006, 0.0003, 0.0008, 0.0015, 0.006, 0.022, 0.051, 0.093, 0.093]
@@ -122,6 +122,25 @@ class Human(AgentBase):
         self.properties.extroversion = normal_cap(get_parameters().get('extroversion_mean'),
                 get_parameters().get('extroversion_stdev'), 0.0, 1.0)
         self.dilemma_history = DilemmaDecisionHistory()
+
+    def info(self):
+        s = ''
+        s += f'Human: {self.strid}' + '\n'
+        s += f'Risk tolerance: {self.properties.risk_tolerance}' + '\n'
+        s += f'Herding behavior: {self.properties.herding_behavior}' + '\n'
+        s += f'Extroversion: {self.properties.extroversion}' + '\n'
+        s += f'Age: {self.age}' + '\n'
+        s += f'Infection status: {self.infection_status}' + '\n'
+        s += f'Infection days count: {self.infection_days_count}' + '\n'
+        s += f'Infection latency: {self.infection_latency}' + '\n'
+        s += f'Infection incubation: {self.infection_incubation}' + '\n'
+        s += f'Infection mild: {self.mild_duration}' + '\n'
+        s += f'Hospitalization: {self.hospitalization_duration}' + '\n'
+        s += f'Is dead: {self.is_dead}' + '\n'
+        s += f'Is hopitalized: {self.hospitalized}' + '\n'
+        s += f'Is infected: {self.is_infected()}' + '\n'
+        s += f'Is symptomatic: {self.is_symptomatic()}' + '\n'
+        s += f'Is contagious: {self.is_contagious()}' + '\n'
 
     def parameter_changed(self):
         # When a parameter is changed in the middle of simulation
@@ -259,9 +278,8 @@ class Human(AgentBase):
         return self.infection_status == InfectionStatus.INFECTED
 
     def is_contagious(self):
-        if self.is_infected() and self.infection_days_count >= self.infection_latency:
-            if self.is_symptomatic() or flip_coin(get_parameters().get('asymptomatic_contagion_probability')):
-                return True
+        if self.is_infected():
+            return self.infection_days_count >= self.infection_latency or flip_coin(get_parameters().get('asymptomatic_contagion_probability'))
         return False
     
     def is_symptomatic(self):
@@ -417,8 +435,6 @@ class K12Student(Human):
                 self.home_district.move_to(self, self.school_district)
         elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
             self.school_district.move_to(self, self.home_district)
-        elif self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
-            self.disease_evolution()
     
 class Adult(Human):
     def __init__(self, covid_model, age, msp, hsp, mfd):
@@ -487,12 +503,10 @@ class Adult(Human):
             else:
                 self.work_district.move_to(self, self.home_district)
         elif self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
-            self.disease_evolution()
             self.days_since_last_social_event += 1
 
     def non_working_day(self):
-        if self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
-            self.disease_evolution()
+        pass
 
     def step(self):
         super().step()

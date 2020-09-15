@@ -3,7 +3,7 @@ import numpy as np
 from enum import Enum, auto
 
 from model.base import (AgentBase, SimulationState, flip_coin, SimulationParameters,
-get_parameters, unique_id, random_selection, normal_ci, normal_cap_ci, logger)
+get_parameters, unique_id, random_selection, normal_ci, normal_ci, logger)
 from model.utils import RestaurantType
 from model.human import Human
 
@@ -110,9 +110,9 @@ class Restaurant(Location):
         OUTDOOR = True
         INDOOR = False
         # https://docs.google.com/document/d/1imCNXOyoyecfD_sVNmKpmbWVB6xqP-FWlHELAyOg1Vs/edit
-        base_fast_food = normal_cap_ci(0.014, 0.1, 10)
-        base_fancy = normal_cap_ci(0.07, 0.2, 10)
-        base_bar = normal_cap_ci(0.174, 0.796, 10)
+        base_fast_food = normal_ci(0.014, 0.1, 10)
+        base_fancy = normal_ci(0.07, 0.2, 10)
+        base_bar = normal_ci(0.174, 0.796, 10)
         cp = {
             RestaurantType.FAST_FOOD: {
                 INDOOR: base_fast_food,

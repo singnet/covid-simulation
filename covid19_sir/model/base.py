@@ -54,17 +54,11 @@ def normal_cap(mean, stdev, lower_bound=0, upper_bound=1):
     if r > upper_bound: r = upper_bound
     return r
 
-def normal_cap_ci(ci_lower, ci_upper, n, lower_bound=0, upper_bound=1):
+def normal_ci(ci_lower, ci_upper, n):
     # Assumption of 95% CI
     mean = (ci_lower + ci_upper) / 2
     stdev = math.sqrt(n) * (ci_upper - ci_lower) / 3.92
-    return normal_cap(mean, stdev, lower_bound, upper_bound)
-
-def normal_ci(ci_lower, ci_upper, n, lower_bound=0, upper_bound=1):
-    # Assumption of 95% CI
-    mean = (ci_lower + ci_upper) / 2
-    stdev = math.sqrt(n) * (ci_upper - ci_lower) / 3.92
-    return np.random.normal(mean, stdev)
+    return normal_cap(mean, stdev, ci_lower, ci_upper)
 
 def linear_rescale(x, l2, u2, l1 = 0, u1 = 1):
     return ((x / (u1 - l1)) * (u2  - l2)) + l2
@@ -105,11 +99,15 @@ class Logger:
                 level=LOGGING_LEVEL,
                 format='%(levelname)s: %(message)s')
             Logger.__instance = self
+            Logger.model = None
 
-    def debug(self, msg): logging.debug(msg)
-    def info(self, msg): logging.info(msg)
-    def warning(self, msg): logging.warning(msg)
-    def error(self, msg): logging.error(msg)
+    def prefix(self):
+        return f"Day {self.model.global_count.day_count} " if self.model else ''
+
+    def debug(self, msg): logging.debug(self.prefix() + msg)
+    def info(self, msg): logging.info(self.prefix() + msg)
+    def warning(self, msg): logging.warning(self.prefix() + msg)
+    def error(self, msg): logging.error(self.prefix() + msg)
 
 def logger():
     return Logger.get_instance()
