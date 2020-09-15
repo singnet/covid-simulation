@@ -2,10 +2,9 @@ import uuid
 import math
 import numpy as np
 import logging
-from enum import Enum, auto
 from mesa import Agent, Model
 from mesa.time import RandomActivation
-from model.utils import TribeSelector, SimulationState, DilemmaDecisionHistory, WeekDay
+from model.utils import SimulationState, WeekDay
 
 LOG_FILE_NAME = './simulation.log'
 LOGGING_LEVEL = logging.DEBUG

@@ -1,24 +1,22 @@
-import math
 import matplotlib.pyplot as plt
 import pandas as pd
 from model.base import CovidModel, get_parameters, change_parameters, flip_coin, normal_cap, logger
-from model.human import Human, Elder, Adult, K12Student, Toddler, Infant
-from model.location import Location, District, HomogeneousBuilding, BuildingUnit, Restaurant
+from model.human import Elder, Adult, K12Student, Toddler, Infant
+from model.location import District, HomogeneousBuilding, BuildingUnit, Restaurant
 from model.instantiation import FamilyFactory, HomophilyRelationshipFactory
-from model.utils import SocialPolicy, TribeSelector, RestaurantType
+from model.utils import TribeSelector, RestaurantType
 
 from scipy.stats import sem, t
-from scipy import mean
 import random
 import math
 import numpy as np
 
-from model.base import SimulationParameters, set_parameters, normal_ci
+from model.base import set_parameters, normal_ci
 
 
 def confidence_interval(data, confidence=0.95):
     n = len(data)
-    m = mean(data)
+    m = np.mean(data)
     std_err = sem(data)
     h = std_err * t.ppf((1 + confidence) / 2, n - 1)
 

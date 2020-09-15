@@ -1,6 +1,4 @@
-import sys
 import copy
-import numpy as np
 from model.base import CovidModel, SimulationParameters, set_parameters, normal_ci, logger
 from utils import BasicStatistics, RemovePolicy, Propaganda, setup_city_layout
 from model.utils import SocialPolicy

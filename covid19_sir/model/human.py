@@ -1,13 +1,10 @@
 import math
 import numpy as np
-from enum import Enum, auto
 
-from model.base import (AgentBase, flip_coin, normal_ci, roulette_selection,
-                        get_parameters, unique_id, linear_rescale, normal_cap, normal_ci, logger)
-from model.utils import (WorkClasses, WeekDay, InfectionStatus, DiseaseSeverity,
-                         SocialPolicy, SocialPolicyUtil, InfectionStatus, SimulationState, Dilemma,
-                         DilemmaDecisionHistory,
-                         TribeSelector, RestaurantType)
+from model.base import (AgentBase, flip_coin, roulette_selection, get_parameters, unique_id, linear_rescale, normal_cap,
+                        normal_ci, logger)
+from model.utils import (WorkClasses, WeekDay, DiseaseSeverity, SocialPolicy, SocialPolicyUtil, InfectionStatus,
+                         SimulationState, Dilemma, DilemmaDecisionHistory, TribeSelector, RestaurantType)
 
 
 class WorkInfo:

@@ -1,11 +1,6 @@
-import math
-import numpy as np
-from enum import Enum, auto
-
-from model.base import (AgentBase, SimulationState, flip_coin, SimulationParameters,
-                        get_parameters, unique_id, random_selection, normal_ci, normal_ci, logger)
+from model.base import (AgentBase, SimulationState, flip_coin, get_parameters, unique_id, random_selection, normal_ci,
+                        logger)
 from model.utils import RestaurantType
-from model.human import Human
 
 
 class Location(AgentBase):
