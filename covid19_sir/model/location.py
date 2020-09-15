@@ -1,11 +1,7 @@
-import math
-import numpy as np
-from enum import Enum, auto
-
-from model.base import (AgentBase, SimulationState, flip_coin, SimulationParameters,
-get_parameters, unique_id, random_selection, normal_ci, normal_ci, logger)
+from model.base import (AgentBase, SimulationState, flip_coin, get_parameters, unique_id, random_selection, normal_ci,
+                        logger)
 from model.utils import RestaurantType
-from model.human import Human
+
 
 class Location(AgentBase):
     def __init__(self, covid_model, strid_prefix, strid_suffix):
@@ -23,7 +19,8 @@ class Location(AgentBase):
             self.strid += '-' + strid_suffix
 
     def get_parameter(self, key):
-        if key in self.custom_parameters: return self.custom_parameters[key]
+        if key in self.custom_parameters:
+            return self.custom_parameters[key]
         return get_parameters().get(key)
 
     def set_custom_parameters(self, s, args):
@@ -31,9 +28,10 @@ class Location(AgentBase):
             # Only parameters in s (defined in constructor of super) can
             # be overwritten
             check = False
-            for k, v in s: 
-                if (k == key): check = True
-            assert(check)
+            for k, v in s:
+                if k == key:
+                    check = True
+            assert check
         self.custom_parameters = {}
         for key, value in s:
             self.custom_parameters[key] = args.get(key, value)
@@ -55,8 +53,9 @@ class Location(AgentBase):
                     if not h1.is_wearing_mask() or (h1.is_wearing_mask() and not flip_coin(me)):
                         if h2.strid not in self.covid_model.global_count.infection_info:
                             self.covid_model.global_count.infection_info[h2.strid] = self
-                        logger().debug(f"Infection succeeded - {h1} has infected {h2} in {self} with contagion probabiity {self.get_parameter('contagion_probability')}")
-    
+                        logger().debug(f"Infection succeeded - {h1} has infected {h2} in {self} with contagion "
+                                       f"probability {self.get_parameter('contagion_probability')}")
+
                         h2.infect()
                     else:
                         if h1.is_wearing_mask():
@@ -64,13 +63,13 @@ class Location(AgentBase):
                         if h2.is_wearing_mask():
                             logger().debug(f"Infection failed - infectee {h2} wearing mask")
                 else:
-                    logger().debug(f"Infection failed - {self} didn't pass contagion_probability check with contagion probability {self.get_parameter('contagion_probability')}")
+                    logger().debug(f"Infection failed - {self} didn't pass contagion_probability check with contagion "
+                                   f"probability {self.get_parameter('contagion_probability')}")
             else:
                 if not h1.is_contagious():
                     logger().debug(f"Infection failed - infector {h1} is not contagious")
                 if h2.is_infected():
                     logger().debug(f"Infection failed - infectee {h2} is already infected")
-            
 
     def spread_infection(self):
         if len(self.humans) > 0:
@@ -80,10 +79,11 @@ class Location(AgentBase):
                 if h1 != h2:
                     self.check_spreading(h1, h2)
 
+
 class BuildingUnit(Location):
     def __init__(self, capacity, covid_model, strid_prefix, strid_suffix, **kwargs):
         super().__init__(covid_model, strid_prefix, strid_suffix)
-        self.set_custom_parameters([\
+        self.set_custom_parameters([
             ('contagion_probability', 0.0)
         ], kwargs)
         self.capacity = capacity
@@ -91,9 +91,10 @@ class BuildingUnit(Location):
 
     def step(self):
         super().step()
-        if self.covid_model.current_state == SimulationState.MORNING_AT_HOME or\
-           self.covid_model.current_state == SimulationState.MAIN_ACTIVITY:
+        if self.covid_model.current_state == SimulationState.MORNING_AT_HOME or \
+                self.covid_model.current_state == SimulationState.MAIN_ACTIVITY:
             self.spread_infection()
+
 
 class HomogeneousBuilding(Location):
     def __init__(self, building_capacity, covid_model, strid_prefix, strid_suffix, **kwargs):
@@ -101,8 +102,10 @@ class HomogeneousBuilding(Location):
         self.unit_args = kwargs
         self.capacity = building_capacity
         self.allocation = {}
+
     def get_unit(self, human):
         return self.allocation[human]
+
 
 class Restaurant(Location):
     def __init__(self, capacity, restaurant_type, is_outdoor, covid_model, strid_prefix, strid_suffix, **kwargs):
@@ -131,7 +134,7 @@ class Restaurant(Location):
         self.available = capacity
         self.restaurant_type = restaurant_type
         self.is_outdoor = is_outdoor
-        self.set_custom_parameters([\
+        self.set_custom_parameters([
             ('contagion_probability', cp[restaurant_type][is_outdoor])
         ], kwargs)
 
@@ -142,21 +145,19 @@ class Restaurant(Location):
             for h2 in self.humans:
                 if h1 != h2:
                     if h1.social_event == h2.social_event or \
-                       flip_coin(0.25 * self.get_parameter('allowed_restaurant_capacity')):
+                            flip_coin(0.25 * self.get_parameter('allowed_restaurant_capacity')):
                         self.check_spreading(h1, h2)
 
     def step(self):
         super().step()
         capacity = self.get_parameter('allowed_restaurant_capacity')
-        ci = {}
+        ci = {1.0: (0.19, 1.23), 0.5: (0.11, 0.74), 0.25: (0.08, 0.50)}
         # https://docs.google.com/document/d/1imCNXOyoyecfD_sVNmKpmbWVB6xqP-FWlHELAyOg1Vs/edit
-        ci[1.0] = (0.19, 1.23)
-        ci[0.5] = (0.11, 0.74)
-        ci[0.25] = (0.08, 0.50)
         lb, ub = ci[capacity]
         self.spreading_rate = normal_ci(lb, ub, 20)
         if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
             self.spread_infection()
+
 
 class District(Location):
     def __init__(self, name, covid_model, strid_prefix, strid_suffix, **kwargs):
@@ -173,9 +174,9 @@ class District(Location):
     def get_available_restaurant(self, people_count, outdoor, restaurant_type):
         for location in self.locations:
             if isinstance(location, Restaurant) and \
-                location.restaurant_type == restaurant_type and \
-                location.is_outdoor == outdoor and \
-                (location.available * self.get_parameter('allowed_restaurant_capacity')) >= people_count:
+                    location.restaurant_type == restaurant_type and \
+                    location.is_outdoor == outdoor and \
+                    (location.available * self.get_parameter('allowed_restaurant_capacity')) >= people_count:
                 return location
         logger().info("No restaurant is available")
         return None
@@ -208,17 +209,18 @@ class District(Location):
         count = 0
         while True:
             count += 1
-            assert count < (len(self.locations) * 1000) # infinit loop
+            assert count < (len(self.locations) * 1000)  # infinite loop
             building = random_selection(self.locations)
-            if not isinstance(building, building_type): continue
+            if not isinstance(building, building_type):
+                continue
             for unit in building.locations:
                 if exclusive:
                     if not unit.allocation:
-                        return (building, unit)
+                        return building, unit
                 else:
                     vacancy = unit.capacity - len(unit.allocation)
                     if vacancy >= n or vacancy == 1 and not same_unit:
-                        return (building, unit)
+                        return building, unit
 
     def _select_different_unit(self, building, invalid_unit):
         for unit in building.locations:
@@ -229,10 +231,11 @@ class District(Location):
     def _debug(self):
         super()._debug()
 
-    def allocate(self, humans, same_building=False, same_unit=False, exclusive=False, building_type=HomogeneousBuilding):
-        assert (exclusive and same_unit and same_building) or\
-               (not exclusive and same_unit and same_building) or\
-               (not exclusive and not same_unit and same_building) or\
+    def allocate(self, humans, same_building=False, same_unit=False, exclusive=False,
+                 building_type=HomogeneousBuilding):
+        assert (exclusive and same_unit and same_building) or \
+               (not exclusive and same_unit and same_building) or \
+               (not exclusive and not same_unit and same_building) or \
                (not exclusive and not same_unit and not same_building)
         building = None
         unit = None
@@ -253,9 +256,10 @@ class District(Location):
         district_total_humans = 0
         for building in self.locations:
             if len(building.locations) > 0:
-                txt = txt + f"{type(building).__name__}: {building.capacity} units (each with capacity for {building.locations[0].capacity} people.) "
+                txt = txt + f"{type(building).__name__}: {building.capacity} units (each with capacity for " \
+                            f"{building.locations[0].capacity} people.) "
             else:
-                txt = txt + f"{type(building).__name__}: {building.capacity} units with no locations"    
+                txt = txt + f"{type(building).__name__}: {building.capacity} units with no locations"
             sum_allocated = 0
             total_allocated = 0
             for unit in building.locations:
@@ -266,4 +270,3 @@ class District(Location):
             district_total_humans += sum_allocated
         txt = txt + f"Total of {district_total_humans} people allocated in this district.\n"
         return txt
-
