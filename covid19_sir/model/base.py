@@ -18,7 +18,7 @@ def flip_coin(prob):
 
 
 def _random_selection(v):
-    return (v[np.random.random_integers(0, len(v) - 1)])
+    return v[np.random.random_integers(0, len(v) - 1)]
 
 
 def random_selection(v, n=1):
@@ -49,14 +49,17 @@ def roulette_selection(v, w):
     assert len(v) == len(w)
     r = np.random.random()
     for i in range(len(w)):
-        if r <= w[i]: return v[i]
+        if r <= w[i]:
+            return v[i]
     return v[len(v) - 1]
 
 
 def normal_cap(mean, stdev, lower_bound=0, upper_bound=1):
     r = np.random.normal(mean, stdev)
-    if r < lower_bound: r = lower_bound
-    if r > upper_bound: r = upper_bound
+    if r < lower_bound:
+        r = lower_bound
+    if r > upper_bound:
+        r = upper_bound
     return r
 
 
@@ -154,38 +157,39 @@ class SimulationStatus:
 
 class SimulationParameters:
     def __init__(self, **kwargs):
-        self.params = {}
-        self.params['social_policies'] = kwargs.get("social_policies", [])
-        self.params['mask_user_rate'] = kwargs.get("mask_user_rate", 0.0)
-        self.params['mask_efficacy'] = kwargs.get("mask_efficacy", 0.0)
-        self.params['isolation_cheater_rate'] = kwargs.get("isolation_cheater_rate", 0.0)
-        self.params['isolation_cheating_severity'] = kwargs.get("isolation_cheating_severity", 0.0)
-        self.params['imune_rate'] = kwargs.get("imune_rate", 0.05)
-        self.params['initial_infection_rate'] = kwargs.get("initial_infection_rate", 0.05)
-        self.params['hospitalization_capacity'] = kwargs.get("hospitalization_capacity", 0.05)
-        self.params['latency_period_shape'] = kwargs.get("latency_period_shape", 4.0)
-        self.params['latency_period_scale'] = kwargs.get("latency_period_scale", 1.0)
-        self.params['incubation_period_shape'] = kwargs.get("incubation_period_shape", 7.0)
-        self.params['incubation_period_scale'] = kwargs.get("incubation_period_scale", 2.0)
-        self.params['mild_period_duration_shape'] = kwargs.get("mild_period_duration_shape", 14.0)
-        self.params['mild_period_duration_scale'] = kwargs.get("mild_period_duration_scale", 1.0)
-        self.params['hospitalization_period_duration_shape'] = kwargs.get("hospitalization_period_duration_shape", 14.0)
-        self.params['hospitalization_period_duration_scale'] = kwargs.get("hospitalization_period_duration_scale", 1.0)
-        self.params['me_attenuation'] = kwargs.get("me_attenuation", 1.0)
-        self.params['weareable_adoption_rate'] = kwargs.get("weareable_adoption_rate", 0.0)
-        self.params['contagion_probability'] = kwargs.get("contagion_probability", 0.0)
-        self.params['spreading_rate'] = kwargs.get("spreading_rate", 0.0)
-        self.params['symptomatic_isolation_rate'] = kwargs.get("symptomatic_isolation_rate", 0.0)
-        self.params['asymptomatic_contagion_probability'] = kwargs.get("asymptomatic_contagion_probability", 0.0)
-        self.params['risk_tolerance_mean'] = kwargs.get("risk_tolerance_mean", 0.4)
-        self.params['risk_tolerance_stdev'] = kwargs.get("risk_tolerance_stdev", 0.3)
-        self.params['herding_behavior_mean'] = kwargs.get("herding_behavior_mean", 0.4)
-        self.params['herding_behavior_stdev'] = kwargs.get("herding_behavior_stdev", 0.3)
-        self.params['allowed_restaurant_capacity'] = kwargs.get("allowed_restaurant_capacity", 1.0)
-        self.params['typical_restaurant_event_size'] = kwargs.get("typical_restaurant_event_size", 6)
-        self.params['extroversion_mean'] = kwargs.get("extroversion_mean", 0.5)
-        self.params['extroversion_stdev'] = kwargs.get("extroversion_stdev", 0.3)
-        self.params['min_behaviors_to_copy'] = kwargs.get("min_behaviors_to_copy", 3)
+        self.params = {'social_policies': kwargs.get("social_policies", []),
+                       'mask_user_rate': kwargs.get("mask_user_rate", 0.0),
+                       'mask_efficacy': kwargs.get("mask_efficacy", 0.0),
+                       'isolation_cheater_rate': kwargs.get("isolation_cheater_rate", 0.0),
+                       'isolation_cheating_severity': kwargs.get("isolation_cheating_severity", 0.0),
+                       'imune_rate': kwargs.get("imune_rate", 0.05),
+                       'initial_infection_rate': kwargs.get("initial_infection_rate", 0.05),
+                       'hospitalization_capacity': kwargs.get("hospitalization_capacity", 0.05),
+                       'latency_period_shape': kwargs.get("latency_period_shape", 4.0),
+                       'latency_period_scale': kwargs.get("latency_period_scale", 1.0),
+                       'incubation_period_shape': kwargs.get("incubation_period_shape", 7.0),
+                       'incubation_period_scale': kwargs.get("incubation_period_scale", 2.0),
+                       'mild_period_duration_shape': kwargs.get("mild_period_duration_shape", 14.0),
+                       'mild_period_duration_scale': kwargs.get("mild_period_duration_scale", 1.0),
+                       'hospitalization_period_duration_shape': kwargs.get("hospitalization_period_duration_shape",
+                                                                           14.0),
+                       'hospitalization_period_duration_scale': kwargs.get("hospitalization_period_duration_scale",
+                                                                           1.0),
+                       'me_attenuation': kwargs.get("me_attenuation", 1.0),
+                       'weareable_adoption_rate': kwargs.get("weareable_adoption_rate", 0.0),
+                       'contagion_probability': kwargs.get("contagion_probability", 0.0),
+                       'spreading_rate': kwargs.get("spreading_rate", 0.0),
+                       'symptomatic_isolation_rate': kwargs.get("symptomatic_isolation_rate", 0.0),
+                       'asymptomatic_contagion_probability': kwargs.get("asymptomatic_contagion_probability", 0.0),
+                       'risk_tolerance_mean': kwargs.get("risk_tolerance_mean", 0.4),
+                       'risk_tolerance_stdev': kwargs.get("risk_tolerance_stdev", 0.3),
+                       'herding_behavior_mean': kwargs.get("herding_behavior_mean", 0.4),
+                       'herding_behavior_stdev': kwargs.get("herding_behavior_stdev", 0.3),
+                       'allowed_restaurant_capacity': kwargs.get("allowed_restaurant_capacity", 1.0),
+                       'typical_restaurant_event_size': kwargs.get("typical_restaurant_event_size", 6),
+                       'extroversion_mean': kwargs.get("extroversion_mean", 0.5),
+                       'extroversion_stdev': kwargs.get("extroversion_stdev", 0.3),
+                       'min_behaviors_to_copy': kwargs.get("min_behaviors_to_copy", 3)}
 
     def get(self, key):
         return self.params[key]
@@ -195,7 +199,8 @@ class SimulationParameters:
 
     def __repr__(self):
         answer = "{\n"
-        for key in self.params: answer += f"'{key}': {self.params[key]}\n"
+        for key in self.params:
+            answer += f"'{key}': {self.params[key]}\n"
         answer += "}"
         return answer
 

@@ -45,7 +45,8 @@ class FamilyFactory:
     def _select_family_schema(self, human):
         while True:
             schema = roulette_selection(self._schema_collection, self._weights)
-            if self._is_compatible(human, schema): break
+            if self._is_compatible(human, schema):
+                break
         return copy.deepcopy(schema)
 
     def _is_compatible(self, human, schema):

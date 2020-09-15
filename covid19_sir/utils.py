@@ -26,8 +26,10 @@ def confidence_interval(data, confidence=0.95):
 
 
 def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=None, debug=False,
-                  desired_stats=["susceptible", "infected", "recovered", "hospitalization", "icu", "death", "income"],
+                  desired_stats=None,
                   do_print=False):
+    if desired_stats is None:
+        desired_stats = ["susceptible", "infected", "recovered", "hospitalization", "icu", "death", "income"]
     randomlist = random.sample(range(10000), num_runs) if seeds is None else seeds
     if do_print:
         print("Save these seeds if you want to rerun a scenario")

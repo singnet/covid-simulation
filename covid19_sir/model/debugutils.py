@@ -72,12 +72,21 @@ class DebugUtils:
 
     def _populate(self):
         for agent in self.model.agents:
-            if isinstance(agent, Human): self.humans.append(agent)
-            if isinstance(agent, Adult): self.adults.append(agent)
-            if isinstance(agent, K12Student): self.k12students.append(agent)
-            if isinstance(agent, Toddler): self.toddlers.append(agent)
-            if isinstance(agent, Infant): self.infants.append(agent)
-            if isinstance(agent, Elder): self.elders.append(agent)
-            if isinstance(agent, Location): self.locations.append(agent)
-            if isinstance(agent, District): self.districts.append(agent)
-            if isinstance(agent, Restaurant): self.restaurants.append(agent)
+            if isinstance(agent, Human):
+                self.humans.append(agent)
+            if isinstance(agent, Adult):
+                self.adults.append(agent)
+            if isinstance(agent, K12Student):
+                self.k12students.append(agent)
+            if isinstance(agent, Toddler):
+                self.toddlers.append(agent)
+            if isinstance(agent, Infant):
+                self.infants.append(agent)
+            if isinstance(agent, Elder):
+                self.elders.append(agent)
+            if isinstance(agent, Location):
+                self.locations.append(agent)
+            if isinstance(agent, District):
+                self.districts.append(agent)
+            if isinstance(agent, Restaurant):
+                self.restaurants.append(agent)
