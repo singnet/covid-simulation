@@ -229,7 +229,7 @@ class Propaganda():
         elif self.state == 1:
             if not (self.count % 3):
                 self.count += 1
-                self.tick
+                self.tick()
 
 def build_district(name, model, population_size, building_capacity, unit_capacity,
                    occupacy_rate, contagion_probability):
