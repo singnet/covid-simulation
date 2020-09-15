@@ -93,6 +93,7 @@ class Human(AgentBase):
     def __init__(self, covid_model, age, msp, hsp, mfd):
         super().__init__(unique_id(), covid_model)
         self.properties = IndividualProperties()
+        self.dilemma_history = None
         self.initialize_individual_properties()
         self.home_district = None
         self.work_district = None
@@ -115,7 +116,13 @@ class Human(AgentBase):
         self.tribe = {}
         for sel in TribeSelector:
             self.tribe[sel] = []
+        self.mask_user = None
+        self.isolation_cheater = None
+        self.immune = None
+        self.early_symptom_detection = None
         self.parameter_changed()
+        self.disease_severity = None
+        self.work_info = None
 
     def initialize_individual_properties(self):
         super().initialize_individual_properties()
@@ -296,7 +303,6 @@ class Human(AgentBase):
                 return pd
 
     def personal_decision(self, dilemma):
-        answer = False
         if dilemma == Dilemma.GO_TO_WORK_ON_LOCKDOWN:
             if self.work_info.work_class == WorkClasses.RETAIL:
                 pd = flip_coin(self.properties.risk_tolerance)
@@ -321,7 +327,8 @@ class Human(AgentBase):
             hd = self.dilemma_history.herding_decision(self, dilemma, TribeSelector.FRIEND,
                                                        get_parameters().get('min_behaviors_to_copy'))
             answer = self._standard_decision(pd, hd)
-            if answer: logger().info(f"{self} decided to invite friends to a restaurant")
+            if answer:
+                logger().info(f"{self} decided to invite friends to a restaurant")
         elif dilemma == Dilemma.ACCEPT_FRIEND_INVITATION_TO_RESTAURANT:
             if self.social_event is not None or self.is_symptomatic():
                 # don't update dilemma_history since it's a compulsory decision
