@@ -181,14 +181,6 @@ class District(Location):
         logger().info("No restaurant is available")
         return None
 
-    def get_available_gathering_spot(self):
-        for location in self.locations:
-            if isinstance(location, FunGatheringSpot) and location.available:
-                location.available = False
-                return location
-        logger().info("No fun gathering spot is available")
-        return None
-
     def move_to(self, human, target):
         s = self.get_buildings(human)[0].get_unit(human)
         if isinstance(target, District):
