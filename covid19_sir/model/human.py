@@ -227,7 +227,7 @@ class Human(AgentBase):
                     self.recover()
 
     def recover(self):
-        logger().info(f"{self} is recovered")
+        logger().info(f"{self} is recovered after a disease of severity {self.disease_severity}")
         self.covid_model.global_count.recovered_count += 1
         if self.disease_severity == DiseaseSeverity.MODERATE:
             self.covid_model.global_count.moderate_severity_count -= 1
