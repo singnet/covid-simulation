@@ -235,7 +235,8 @@ class AgentBase(Agent):
 
 
 class CovidModel(Model):
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.debug = debug
         self.debug_each_n_cycles = 1
         self.agents = []
