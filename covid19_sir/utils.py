@@ -48,6 +48,7 @@ def multiple_runs(params,population_size,simulation_cycles,num_runs = 5,seeds=No
     for s in randomlist:
         set_parameters(params)
         model = CovidModel(debug=debug)
+        logger().model = model   
         if debug:
             model.debug_each_n_cycles = 20
         np.random.seed(s+1)
