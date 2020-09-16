@@ -93,6 +93,7 @@ class Human(AgentBase):
     def __init__(self, covid_model, age, msp, hsp, mfd):
         super().__init__(unique_id(), covid_model)
         self.properties = IndividualProperties()
+        self.disease_severity = None
         self.dilemma_history = None
         self.initialize_individual_properties()
         self.home_district = None
@@ -109,6 +110,7 @@ class Human(AgentBase):
         self.hospitalization_duration = 0
         self.infection_status = InfectionStatus.SUSCEPTIBLE
         self.hospitalized = False
+        self.work_info = None
         if self.is_worker():
             self.setup_work_info()
             self.covid_model.global_count.work_population += 1
@@ -121,8 +123,6 @@ class Human(AgentBase):
         self.immune = None
         self.early_symptom_detection = None
         self.parameter_changed()
-        self.disease_severity = None
-        self.work_info = None
 
     def initialize_individual_properties(self):
         super().initialize_individual_properties()
