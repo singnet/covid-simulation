@@ -219,6 +219,7 @@ class Propaganda():
         v = get_parameters().get('risk_tolerance_mean') - 0.1
         if v < 0.1:
             v = 0.1
+        logger().debug(f'Global risk_tolerance change to {v}')
         change_parameters(risk_tolerance_mean = v)
         self.model.reroll_human_properties()
     def end_cycle(self, model):

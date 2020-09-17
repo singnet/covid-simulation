@@ -318,6 +318,7 @@ class Human(AgentBase):
             pd = flip_coin(rt)
             hd = self.dilemma_history.herding_decision(self,dilemma, TribeSelector.FRIEND,
                     get_parameters().get('min_behaviors_to_copy'))
+            logger().debug(f'{self}({self.unique_id}) had risk tolerance of {rt} in decision to invite, making a personal decision of {pd} but a herding decision of {hd}')
             answer = self._standard_decision(pd, hd)
             if answer: logger().info(f"{self} decided to invite friends to a restaurant")
         elif dilemma == Dilemma.ACCEPT_FRIEND_INVITATION_TO_RESTAURANT:
@@ -333,6 +334,7 @@ class Human(AgentBase):
             pd = flip_coin(rt)
             hd = self.dilemma_history.herding_decision(self,dilemma, TribeSelector.FRIEND,
                     get_parameters().get('min_behaviors_to_copy'))
+            logger().debug(f'{self}({self.unique_id}) had risk tolerance of {rt} in decision to accept invite, making a personal decision of {pd} but a herding decision of {hd}')
             answer = self._standard_decision(pd, hd)
             if answer: logger().info(f"{self} decided to accept an invitation to go to a restaurant")
         else: assert False
