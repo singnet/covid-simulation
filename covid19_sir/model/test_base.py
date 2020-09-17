@@ -1,5 +1,5 @@
 import pytest
-from covid19_sir.model.base import flip_coin
+from model.base import flip_coin
 
 
 def test_flip_coin():
