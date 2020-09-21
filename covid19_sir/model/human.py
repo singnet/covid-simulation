@@ -303,6 +303,7 @@ class Human(AgentBase):
                 hd = self.dilemma_history.herding_decision(self, dilemma, TribeSelector.FRIEND,
                                                            get_parameters().get('min_behaviors_to_copy'))
                 answer = self._standard_decision(pd, hd)
+                logger().debug(f'{self}({self.unique_id}) had risk tolerance of {self.properties.risk_tolerance} in decision to work retail, making a personal decision of {pd} but a herding decision of {hd}')
             else:
                 answer = False
             if answer:
@@ -320,8 +321,10 @@ class Human(AgentBase):
             pd = flip_coin(rt)
             hd = self.dilemma_history.herding_decision(self,dilemma, TribeSelector.FRIEND,
                     get_parameters().get('min_behaviors_to_copy'))
-            logger().debug(f'{self}({self.unique_id}) had risk tolerance of {rt} in decision to invite, making a personal decision of {pd} but a herding decision of {hd}')
             answer = self._standard_decision(pd, hd)
+            logger().debug(f'{self}({self.unique_id}) had risk tolerance of {rt} in decision to invite, making a personal decision of {pd} but a herding decision of {hd} and answer of {answer}')
+            
+
             if answer: logger().info(f"{self} decided to invite friends to a restaurant")
         elif dilemma == Dilemma.ACCEPT_FRIEND_INVITATION_TO_RESTAURANT:
             if self.social_event is not None or self.is_symptomatic():
@@ -336,8 +339,9 @@ class Human(AgentBase):
             pd = flip_coin(rt)
             hd = self.dilemma_history.herding_decision(self,dilemma, TribeSelector.FRIEND,
                     get_parameters().get('min_behaviors_to_copy'))
-            logger().debug(f'{self}({self.unique_id}) had risk tolerance of {rt} in decision to accept invite, making a personal decision of {pd} but a herding decision of {hd}')
             answer = self._standard_decision(pd, hd)
+            logger().debug(f'{self}({self.unique_id}) had risk tolerance of {rt} in decision to accept invite, making a personal decision of {pd} but a herding decision of {hd} and answer of {answer}')
+            
             if answer:
                 logger().info(f"{self} decided to accept an invitation to go to a restaurant")
         else:

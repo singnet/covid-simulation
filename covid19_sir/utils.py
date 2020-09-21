@@ -22,12 +22,21 @@ def confidence_interval(data, confidence=0.95):
 
     start = m - h
     end = m + h
-    return start, end
+    return start, m, end
 
 
 def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=None, debug=False,
-                  desired_stats=None,
+                  desired_stats=None,fname="scenario",
                   do_print=False):
+    color = {
+            'susceptible': 'lightblue',
+            'infected': 'gray',
+            'recovered': 'lightgreen',
+            'death': 'black',
+            'hospitalization': 'orange',
+            'icu': 'red',
+            'income': 'magenta'
+        }
     if desired_stats is None:
         desired_stats = ["susceptible", "infected", "recovered", "hospitalization", "icu", "death", "income"]
     randomlist = random.sample(range(10000), num_runs) if seeds is None else seeds
@@ -39,15 +48,20 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
     avg = {}
     last = {}
     peak = {}
+    average = {}
+    lower = {}
+    upper = {}
     for stat in desired_stats:
         all_runs[stat] = {}
         avg[stat] = []
         last[stat] = []
         peak[stat] = []
+        average[stat]= []
+        upper[stat] = []
+        lower[stat]= []
     for s in randomlist:
         set_parameters(params)
         model = CovidModel(debug=debug)
-        logger().model = model   
         if debug:
             model.debug_each_n_cycles = 20
         np.random.seed(s + 1)
@@ -62,9 +76,51 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             model.step()
         for stat in desired_stats:
             all_runs[stat][s] = getattr(statistics, stat)
+            if stat is "income":
+                all_runs[stat][s].pop(1)
             avg[stat].append(np.mean(all_runs[stat][s]))
             last[stat].append(all_runs[stat][s][-1])
             peak[stat].append(max(all_runs[stat][s]))
+			
+	
+    fig, ax = plt.subplots()
+    ax.set_title('Contagion Evolution')
+    ax.set_xlim((0, simulation_cycles))
+    ax.set_ylim((-0.1,1.1))
+    ax.axhline(y=get_parameters().get('hospitalization_capacity'), c="black", ls='--', label='Critical limit')
+	
+    for s in randomlist:
+        adict = {stat:all_runs[stat][s] for stat in desired_stats} 
+        df = pd.DataFrame (data=adict)
+        df.to_csv(fname+"-"+str(s)+".csv")
+  
+    each_step = {}
+    for stat in desired_stats:
+        each_step[stat] = []
+        for i in range(simulation_cycles):
+            each_step[stat].append([all_runs [stat][s][i] for s in randomlist])
+        for i in range(simulation_cycles):
+            loweri, averagei, upperi = confidence_interval(each_step[stat][i], confidence=0.95)
+            lower[stat].append(loweri)
+            average[stat].append(averagei)
+            upper[stat].append(upperi)
+        #print (stat)
+        #print (lower[stat])
+        #print (upper[stat])
+#Plotting:
+        ax.plot(lower[stat],color=color[stat], linewidth=2) #mean curve.
+        ax.plot(average[stat], color=color[stat],linewidth=2)
+        ax.plot(upper[stat], color=color[stat],linewidth=2)
+        ax.fill_between(simulation_cycles, lower[stat], upper[stat], color=color[stat], alpha=.1, label = stat) #std curves.
+			
+			
+    ax.set_xlabel("Days")
+    ax.set_ylabel("% of Population")
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles, labels, loc='upper right')
+    fig.show()
+    fig.savefig(fname+".png")
+	
     if do_print:
         for stat, x in avg.items():
             print("using average of time series:")
@@ -76,12 +132,12 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             print(np.max(x))
             print("std:")
             print(np.std(x))
+            low, mean, high = confidence_interval(x, confidence=0.95)
             print("mean:")
-            print(np.mean(x))
+            print(mean)
             print("median:")
             print(np.median(x))
             print("95% confidence interval for the mean:")
-            low, high = confidence_interval(x, confidence=0.95)
             print("({0},{1})".format(low, high))
         for stat, x in last.items():
             print("using last of time series:")
@@ -93,12 +149,12 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             print(np.max(x))
             print("std:")
             print(np.std(x))
+            low, mean, high = confidence_interval(x, confidence=0.95)
             print("mean:")
-            print(np.mean(x))
+            print(mean)
             print("median:")
             print(np.median(x))
             print("95% confidence interval for the mean:")
-            low, high = confidence_interval(x, confidence=0.95)
             print("({0},{1})".format(low, high))
         for stat, x in peak.items():
             print("using peak of time series:")
@@ -110,12 +166,12 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             print(np.max(x))
             print("std:")
             print(np.std(x))
+            low, mean, high = confidence_interval(x, confidence=0.95)
             print("mean:")
-            print(np.mean(x))
+            print(mean)
             print("median:")
             print(np.median(x))
             print("95% confidence interval for the mean:")
-            low, high = confidence_interval(x, confidence=0.95)
             print("({0},{1})".format(low, high))
     return avg.items, last.items, peak.items
 
