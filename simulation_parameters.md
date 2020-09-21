@@ -3,7 +3,7 @@
 * allowed_restaurant_capacity
 * [asymptomatic_contagion_probability](#asymptomatic_contagion_probability)
 * [contagion_probability](#contagion_probability)
-* [extroversion_mean and extroversion_stdev](#extroversion_mean and extroversion_stdev)
+* [extroversion_mean and extroversion_stdev](#extroversion_mean)
 * herding_behavior_mean
 * herding_behavior_stdev
 * hospitalization_capacity
@@ -51,4 +51,4 @@ __Valid values__: [0,1]
 
 __Where it's used__: `Location.check_spreading()` in `location.py`
 
-## extroversion_mean and extroversion_stdev
+## extroversion_mean
