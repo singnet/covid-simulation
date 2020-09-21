@@ -67,7 +67,9 @@ __Where it's used__: `extroversion_mean` and `extroversion_stdev` are used in `H
 
 __herding_behavior__ is one of Human's personal properties. `herding_behavior_mean` and `herding_behavior_stdev` are used to sample individual __herding_behavior__ for each human using a normal distribution.
 
-__Default__: 0.5 (herding_behavior_mean) and 0.3 (herding_behavior_stdev)
+When a human is making a decision on a given `Dilemma`, a _flip coin_ test with probability equals to __herding_behavior__ is perfomed to determine if the human will decide according to a herding behavior or not.
 
-__Where it's used__: `herding_behavior_mean` and `herding_behavior_stdev` are used in `Human.initialize_individual_properties()` in `human.py`. __extroversion__ is not being used in the current code
+__Default__: 0.4 (herding_behavior_mean) and 0.3 (herding_behavior_stdev)
+
+__Where it's used__: `herding_behavior_mean` and `herding_behavior_stdev` are used in `Human.initialize_individual_properties()` in `human.py`. The human's property __herding_behavior__ is used in `Human._standard_decision()` in `human.py`
 
