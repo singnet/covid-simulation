@@ -4,8 +4,7 @@
 * [asymptomatic_contagion_probability](#asymptomatic_contagion_probability)
 * [contagion_probability](#contagion_probability)
 * [extroversion_mean and extroversion_stdev](#extroversion_mean)
-* herding_behavior_mean
-* herding_behavior_stdev
+* [herding_behavior_mean and herding_behavior_stdev](#herding_behavior_mean)
 * hospitalization_capacity
 * hospitalization_period_duration_scale
 * hospitalization_period_duration_shape
@@ -39,6 +38,8 @@ To check whether an infected human is contagious, either of these conditions mus
 
 __Valid values__: [0,1]
 
+__Default__: 0
+
 __Where it's used__: `Human.is_contagious()` in `human.py`
 
 ## contagion_probability
@@ -49,6 +50,24 @@ When a location is spreading infection amongst humans inside it, a _flip coin_ t
 
 __Valid values__: [0,1]
 
+__Default__: 0
+
 __Where it's used__: `Location.check_spreading()` in `location.py`
 
 ## extroversion_mean
+
+__extroversion__ is one of Human's personal properties. `extroversion_mean` and `extroversion_stdev` are used to sample individual __extroversion__ for each human using a normal distribution.
+
+__Default__: 0.5 (extroversion_mean) and 0.3 (extroversion_stdev)
+
+__Where it's used__: `extroversion_mean` and `extroversion_stdev` are used in `Human.initialize_individual_properties()` in `human.py`. __extroversion__ is not being used in the current code
+
+
+## herding_behavior_mean
+
+__herding_behavior__ is one of Human's personal properties. `herding_behavior_mean` and `herding_behavior_stdev` are used to sample individual __herding_behavior__ for each human using a normal distribution.
+
+__Default__: 0.5 (herding_behavior_mean) and 0.3 (herding_behavior_stdev)
+
+__Where it's used__: `herding_behavior_mean` and `herding_behavior_stdev` are used in `Human.initialize_individual_properties()` in `human.py`. __extroversion__ is not being used in the current code
+
