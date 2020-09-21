@@ -3,7 +3,7 @@
 * allowed_restaurant_capacity
 * [asymptomatic_contagion_probability](#asymptomatic_contagion_probability)
 * [contagion_probability](#contagion_probability)
-* [extroversion_mean and extroversion_stdev](#extroversion_mean_and_extroversion_stdev)
+* [extroversion_mean and extroversion_stdev](#extroversion_mean and extroversion_stdev)
 * herding_behavior_mean
 * herding_behavior_stdev
 * hospitalization_capacity
