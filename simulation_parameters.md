@@ -1,7 +1,5 @@
 # Simulation parameters
 
-[click on this link](#my-multi-word-header)
-
 * allowed_restaurant_capacity
 * [asymptomatic_contagion_probability](#asymptomatic_contagion_probability)
 * contagion_probability
@@ -35,4 +33,12 @@
 
 ## asymptomatic_contagion_probability
 
-OK 
+To check whether an infected person is contagious, either of these conditions must be true:
+
+* its infection latency period is ended (i.e. the person is already symptomatic)
+* a _flip coin_ test with `asymptomatic_contagion_probability` must pass.
+
+__Valid values__: [0,1]
+
+__Where it's used__: `Human.is_contagious()` in `human.py`
+
