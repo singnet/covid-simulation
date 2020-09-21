@@ -51,4 +51,4 @@ __Valid values__: [0,1]
 
 __Where it's used__: `Location.check_spreading()` in `location.py`
 
-## extroversion_mean_and_extroversion_stdev
+## extroversion_mean and extroversion_stdev
