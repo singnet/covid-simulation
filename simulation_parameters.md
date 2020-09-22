@@ -12,12 +12,10 @@
 * [initial_infection_rate](#initial_infection_rate)
 * [latency_period_shape and latency_period_scale](#latency_period_shape)
 * [mask_efficacy](#mask_efficacy)
-* mask_user_rate
-* mild_period_duration_scale
-* mild_period_duration_shape
-* min_behaviors_to_copy
-* risk_tolerance_mean
-* risk_tolerance_stdev
+* [mask_user_rate](#mask_user_rate)
+* [mild_period_duration_shape and mild_period_duration_scale](#mild_period_duration_shape)
+* [min_behaviors_to_copy](#min_behaviors_to_copy)
+* [risk_tolerance_mean and risk_tolerance_stdev](#risk_tolerance_mean)
 * social_policies
 * spreading_rate
 * symptomatic_isolation_rate
@@ -134,7 +132,7 @@ __Where it's used__: `Human.infect()` in `human.py`. `Human.infection_latency` (
 
 ## mask_efficacy
 
-When a location is spreading infection amongst humans inside it, every time a contagious human which is weariung a mask encounters a susceptible human, a _flip coin_ test with probability equals to `mask_efficacy` is performed to check is the mask prevented the susceptible human from being infected.
+When a location is spreading infection amongst humans inside it, every time a contagious human which is wearing a mask encounters a susceptible human, a _flip coin_ test with probability equals to `mask_efficacy` is performed to check if the mask prevented the susceptible human from being infected.
 
 __Valid values__: [0,1]
 
@@ -142,4 +140,50 @@ __Default__: 0
 
 __Where it's used__: `Location.check_spreading()` in `location.py`.
 
+## mask_user_rate
+
+When a location is spreading infection amongst humans inside it, every time a contagious human encounters a susceptible one, a _flip coin_ test with probability equals to mask_user_rate is performed to determine if the contagious human is wearing a mask or not.
+
+__Valid values__: [0,1]
+
+__Default__: 0
+
+__Where it's used__: `Location.check_spreading()` in `location.py`.
+
+## mild_period_duration_shape
+
+`Human.mild_duration` is the number of days (after infection) which should be passed before performing a test to check whether the disease severity for that particular human will have severity > LOW. `mild_period_duration_shape` and `mild_period_duration_scale` are used to sample `Human.mild_duration` using a gamma distribution.
+
+__Valid values__: [0,1]
+
+__Default__: 14 (`mild_period_duration_shape`) and 1 (`mild_period_duration_scale`)
+
+__Where it's used__: `Human.infect()` in `human.py`. `Human.mild_duration` is used in `Human.disease_evolution()` in `human.py`
+
+## min_behaviors_to_copy
+
+When a human is taking a decision on a given `Dilemma`, `min_behaviors_to_copy` is used to compute what would be a decision based in herding behavior.
+
+__Valid values__: (1, 2, 3, ...)
+
+__Default__: 3
+
+__Where it's used__: `Human.personal_decision()` in `human.py`.
+
+## risk_tolerance_mean
+
+__risk_tolerance__ is one of Human's personal properties. `risk_tolerance_mean` and `risk_tolerance_stdev` are used to sample individual __risk_tolerance__ for each human using a normal distribution.
+
+__risk_tolerance__ affects Human's decisions in a couple of different places:
+
+* When deciding how to answer to a `Dilemma` 
+    * when deciding on `Dilemma.GO_TO_WORK_ON_LOCKDOWN`, it's used as probability in a `flip coin` test to check if personal decision is `YES` or `NO`.
+    * when deciding on `Dilemma.INVITE_FRIENDS_TO_RESTAURANT` and `Dilemma.ACCEPT_FRIEND_INVITATION_TO_RESTAURANT`, it's used as one of the parameters of a function to compute the personal decision.
+* it's also used after the human decided to invite friends to a restaurant to compute the size of the event (the number of other humans that will be invited) and the type of reataurant they will go to.
+
+__Valid values__: [0,1]
+
+__Default__: 0.4 (`risk_tolerance_mean`) and 0.3 (`risk_tolerance_stdev`)
+
+__Where it's used__: `herding_behavior_mean` and `herding_behavior_stdev` are used in `Human.initialize_individual_properties()` in `human.py`. The human's property __herding_behavior__ is used in `Human._standard_decision()` in `human.py`
 
