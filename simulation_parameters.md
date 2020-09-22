@@ -1,6 +1,6 @@
 # Simulation parameters
 
-* allowed_restaurant_capacity
+* [allowed_restaurant_capacity](#allowed_restaurant_capacity)
 * [asymptomatic_contagion_probability](#asymptomatic_contagion_probability)
 * [contagion_probability](#contagion_probability)
 * [extroversion_mean and extroversion_stdev](#extroversion_mean)
@@ -21,9 +21,22 @@
 * [typical_restaurant_event_size](#typical_restaurant_event_size)
 * [weareable_adoption_rate](#weareable_adoption_rate)
 
+## allowed_restaurant_capacity
+
+`allowed_restaurant_capacity` is used in two different contexts:
+
+* To determine the availability of restaurants when a human decided to invite friends.
+* In a function to determine if infection will spread amongst humans from different events in a given restaurant. When a restaurant is spreading infection amongst the humans inside it, humans participating in an event will spread infection amongst themselves and a _flip coin_ test using `allowed_restaurant_capacity` is performed to check if some spreading will happen betwwen humans in different events (i.e. different tables in the Restaurant).
+
 ## asymptomatic_contagion_probability
 
 To check whether an infected human is contagious, either of these conditions must be true:
+
+__Valid values__: {1.0, 0.50, 0.25}
+
+__Default__: 1.0
+
+__Where it's used__: `Restaurant.spread_infection()` and `District.get_available_restaurant()` in `human.py`
 
 * its infection latency period is ended (i.e. the human is already symptomatic)
 * a _flip coin_ test with `asymptomatic_contagion_probability` must pass.
