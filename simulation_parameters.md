@@ -17,10 +17,9 @@
 * [min_behaviors_to_copy](#min_behaviors_to_copy)
 * [risk_tolerance_mean and risk_tolerance_stdev](#risk_tolerance_mean)
 * [social_policies](#social_policies)
-* spreading_rate
-* symptomatic_isolation_rate
-* typical_restaurant_event_size
-* weareable_adoption_rate
+* [symptomatic_isolation_rate](#symptomatic_isolation_rate)
+* [typical_restaurant_event_size](#typical_restaurant_event_size)
+* [weareable_adoption_rate](#weareable_adoption_rate)
 
 ## asymptomatic_contagion_probability
 
@@ -199,3 +198,35 @@ __VALID VALUES__: Any subset of {`SocialPolicy.SOCIAL_DISTANCING`, `SocialPolicy
 __DEFAULT__: {}
 
 __Where it's used__: `Human.personal_decision()` and `Human.main_activity_isolated()` in `human.py`
+
+## symptomatic_isolation_rate
+
+When a symptomatic infected (infection severity <= LOW) human is deciding what to do in its main activity (go to school, go to the office, etc), a _flip coin_ test with probability equals to `symptomatic_isolation_rate` is performed to decide whether the human will go to its main activity or not.
+
+__VALID VALUES__: [0,1]
+
+__DEFAULT__: 0
+
+__Where it's used__: `Human.main_activity_isolated()` in `human.py`
+
+## typical_restaurant_event_size
+
+When a human decided to invite friends to a restaurant, `typical_restaurant_event_size` is used as one of the parameters in a function to determine the number of other humans that will be invited.
+
+__VALID VALUES__: (1, 2, 3, ...)
+
+__DEFAULT__: 6
+
+__Where it's used__: `Human.invite_friends_to_restaurant()` in `human.py`
+
+## weareable_adoption_rate
+
+Humans have an attribute `Human.early_symptom_detection` which is the number of days before the end of the latency period which the symptoms of infection will appear in that specific human. In other words, it's a bias towards down in the number of days before the symptoms appear in that human.
+
+`weareable_adoption_rate` is used when each human is created, when a _flip coin_ test with probability equals to `weareable_adoption_rate` is performed to determine whether that human is a user of a wearable which would increase `Human.early_symptom_detection` by 1.
+
+__VALID VALUES__: [0,1]
+
+__DEFAULT__: 0
+
+__Where it's used__: `Human.parameter_changed()` in `human.py`
