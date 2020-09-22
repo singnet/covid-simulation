@@ -1,24 +1,36 @@
 # Simulation parameters
 
-* [allowed_restaurant_capacity](#allowed_restaurant_capacity)
-* [asymptomatic_contagion_probability](#asymptomatic_contagion_probability)
-* [contagion_probability](#contagion_probability)
-* [extroversion_mean and extroversion_stdev](#extroversion_mean)
-* [herding_behavior_mean and herding_behavior_stdev](#herding_behavior_mean)
-* [hospitalization_capacity](#hospitalization_capacity)
-* [hospitalization_period_duration_shape and hospitalization_period_duration_scale](#hospitalization_period_duration_scale)
-* [imune_rate](#imune_rate)
-* [incubation_period_shape and incubation_period_scale](#incubation_period_scale)
-* [initial_infection_rate](#initial_infection_rate)
-* [latency_period_shape and latency_period_scale](#latency_period_shape)
-* [mask_efficacy](#mask_efficacy)
-* [mask_user_rate](#mask_user_rate)
-* [mild_period_duration_shape and mild_period_duration_scale](#mild_period_duration_shape)
-* [min_behaviors_to_copy](#min_behaviors_to_copy)
+__Human properties and attributes__
+
 * [risk_tolerance_mean and risk_tolerance_stdev](#risk_tolerance_mean)
-* [social_policies](#social_policies)
+* [herding_behavior_mean and herding_behavior_stdev](#herding_behavior_mean)
+* [extroversion_mean and extroversion_stdev](#extroversion_mean)
+* [min_behaviors_to_copy](#min_behaviors_to_copy)
 * [symptomatic_isolation_rate](#symptomatic_isolation_rate)
+* [mask_user_rate](#mask_user_rate)
+* [imune_rate](#imune_rate)
+* [initial_infection_rate](#initial_infection_rate)
+
+__Disease evolution__
+
+* [hospitalization_period_duration_shape and hospitalization_period_duration_scale](#hospitalization_period_duration_scale)
+* [incubation_period_shape and incubation_period_scale](#incubation_period_scale)
+* [latency_period_shape and latency_period_scale](#latency_period_shape)
+* [mild_period_duration_shape and mild_period_duration_scale](#mild_period_duration_shape)
+
+__Restaurants__
+
+* [allowed_restaurant_capacity](#allowed_restaurant_capacity)
+* [contagion_probability](#contagion_probability)
 * [typical_restaurant_event_size](#typical_restaurant_event_size)
+
+
+__Environment__
+
+* [hospitalization_capacity](#hospitalization_capacity)
+* [social_policies](#social_policies)
+* [asymptomatic_contagion_probability](#asymptomatic_contagion_probability)
+* [mask_efficacy](#mask_efficacy)
 * [weareable_adoption_rate](#weareable_adoption_rate)
 
 ## allowed_restaurant_capacity
