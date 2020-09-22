@@ -16,7 +16,7 @@
 * [mild_period_duration_shape and mild_period_duration_scale](#mild_period_duration_shape)
 * [min_behaviors_to_copy](#min_behaviors_to_copy)
 * [risk_tolerance_mean and risk_tolerance_stdev](#risk_tolerance_mean)
-* social_policies
+* [social_policies](#social_policies)
 * spreading_rate
 * symptomatic_isolation_rate
 * typical_restaurant_event_size
@@ -178,7 +178,7 @@ __risk_tolerance__ affects Human's decisions in a couple of different places:
 
 * When deciding how to answer to a `Dilemma` 
     * when deciding on `Dilemma.GO_TO_WORK_ON_LOCKDOWN`, it's used as probability in a `flip coin` test to check if personal decision is `YES` or `NO`.
-    * when deciding on `Dilemma.INVITE_FRIENDS_TO_RESTAURANT` and `Dilemma.ACCEPT_FRIEND_INVITATION_TO_RESTAURANT`, it's used as one of the parameters of a function to compute the personal decision.
+    * when deciding on `Dilemma.INVITE_FRIENDS_TO_RESTAURANT` and `Dilemma.ACCEPT_FRIEND_INVITATION_TO_RESTAURANT`, it's used as one of the parameters in a function to compute the personal decision.
 * it's also used after the human decided to invite friends to a restaurant to compute the size of the event (the number of other humans that will be invited) and the type of reataurant they will go to.
 
 __Valid values__: [0,1]
@@ -187,3 +187,15 @@ __Default__: 0.4 (`risk_tolerance_mean`) and 0.3 (`risk_tolerance_stdev`)
 
 __Where it's used__: `herding_behavior_mean` and `herding_behavior_stdev` are used in `Human.initialize_individual_properties()` in `human.py`. The human's property __herding_behavior__ is used in `Human._standard_decision()` in `human.py`
 
+## social_policies
+
+A list of social policies which are in place. Different `social_policies` are used in different points during the simulation:
+
+* `SocialPolicy.SOCIAL_DISTANCING` is used when a human is deciding on a `Dilemma.INVITE_FRIENDS_TO_RESTAURANT` or a `Dilemma.ACCEPT_FRIEND_INVITATION_TO_RESTAURANT`. It's one of the parameters in a function to compute the answer.
+* `DocialPolicy.LOCKDOWN_*` are used when the human is deciding what to in your main activity (go to schools, go to the office, etc).
+
+__VALID VALUES__: Any subset of {`SocialPolicy.SOCIAL_DISTANCING`, `SocialPolicy.LOCKDOWN_ALL`, `SocialPolicy.LOCKDOWN_OFFICE`, `SocialPolicy.LOCKDOWN_FACTORY`, `SocialPolicy.LOCKDOWN_RETAIL`, `SocialPolicy.LOCKDOWN_ELEMENTARY_SCHOOL`, `SocialPolicy.LOCKDOWN_MIDDLE_SCHOOL`, `SocialPolicy.LOCKDOWN_HIGH_SCHOOL`}
+
+__DEFAULT__: {}
+
+__Where it's used__: `Human.personal_decision()` and `Human.main_activity_isolated()` in `human.py`
