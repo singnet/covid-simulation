@@ -8,14 +8,10 @@
 * [hospitalization_capacity](#hospitalization_capacity)
 * [hospitalization_period_duration_shape and hospitalization_period_duration_scale](#hospitalization_period_duration_scale)
 * [imune_rate](#imune_rate)
-* incubation_period_scale
-* incubation_period_shape
-* initial_infection_rate
-* isolation_cheater_rate
-* isolation_cheating_severity
-* latency_period_scale
-* latency_period_shape
-* mask_efficacy
+* [incubation_period_shape and incubation_period_scale](#incubation_period_scale)
+* [initial_infection_rate](#initial_infection_rate)
+* [latency_period_shape and latency_period_scale](#latency_period_shape)
+* [mask_efficacy](#mask_efficacy)
 * mask_user_rate
 * mild_period_duration_scale
 * mild_period_duration_shape
@@ -88,21 +84,62 @@ __Where it's used__: `CovidModel.reached_hospitalization_limit()` in `base.py`
 
 ## hospitalization_period_duration_shape
 
-`hospitalization_duration` is the number of days which a human remains hospitalized when its infection reaches severity `MODERATE`. `hospitalization_period_duration_shape` and `hospitalization_period_duration_scale` are used to sample `hospitalization_duration` using a gamma distribution when a human is infected.
+`Human.hospitalization_duration` is the number of days which a human remains hospitalized when its infection reaches severity `MODERATE`. `hospitalization_period_duration_shape` and `hospitalization_period_duration_scale` are used to sample `Human.hospitalization_duration` using a gamma distribution when a human is infected.
 
-__Valid values__: [0,1]
+__Valid values__: (1, 2, 3, ...)
 
 __Default__: 14 (`hospitalization_period_duration_shape`) and 1 (`hospitalization_period_duration_scale`)
 
-__Where it's used__: `Human.disease_evolution()` in `human.py` (`hospitalization_duration` is used in the same function)
+__Where it's used__: `Human.disease_evolution()` in `human.py` (`Human.hospitalization_duration` is used in the same function)
 
 ## imune_rate
 
-`immune` is a boolean value set when humans are instantiated. A _flip coin_ test with probability `imune_rate` is performed to decide whether each created human is imune to COVID-19 or not.
+`Human.immune` is a boolean attribute set when humans are instantiated. A _flip coin_ test with probability `imune_rate` is performed to decide whether each created human is imune to COVID-19 or not.
 
 __Valid values__: [0,1]
 
 __Default__: 0.05
 
-__Where it's used__: `Human.parameter_changed()` in `human.py`. Human.immune (the object atribute) is used in `Human.infect()` in `human.py`.
+__Where it's used__: `Human.parameter_changed()` in `human.py`. `Human.immune` (the human attribute) is used in `Human.infect()` in `human.py`.
+
+## incubation_period_shape
+
+`Human.infection_incubation` is the number of days an infected human remains asymptomatic after being infected. `incubation_period_shape` and `incubation_period_scale` are used to sample `Human.infection_incubation` using a gamma distribution when the human gets infected.
+
+__Valid values__: (1, 2, 3, ...)
+
+__Default__: 7 (`incubation_period_shape`) and 2 (`incubation_period_scale`)
+
+__Where it's used__: `Human.infect()` in `human.py`. `Human.infection_incubation` (the human attribute) is used in `Human.is_symptomatic()` and `Human.disease_evolution()` in `human.py`.
+
+## initial_infection_rate
+
+The expected % of total pupulation which is infected before the simulation starts. When each human is created, a _flip coin_ test with probability equals to `initial_infection_rate` is used to decide whether that human will start the simulation infected or not.
+
+__Valid values__: [0,1]
+
+__Default__: 0.05
+
+__Where it's used__: `Human.factory()` in `human.py`.
+
+## latency_period_shape
+
+`Human.infection_latency` is the number of days an infected human remains non-contagious after being infected. `latency_period_shape` and `latency_period_scale` are used to sample `Human.infection_latency` using a gamma distribution when the human gets infected.
+
+__Valid values__: (1, 2, 3, ...)
+
+__Default__: 4 (`latency_period_shape`) and 1 (`latency_period_scale`)
+
+__Where it's used__: `Human.infect()` in `human.py`. `Human.infection_latency` (the human attribute) is used in `Human.is_contagious()` in `human.py`.
+
+## mask_efficacy
+
+When a location is spreading infection amongst humans inside it, every time a contagious human which is weariung a mask encounters a susceptible human, a _flip coin_ test with probability equals to `mask_efficacy` is performed to check is the mask prevented the susceptible human from being infected.
+
+__Valid values__: [0,1]
+
+__Default__: 0
+
+__Where it's used__: `Location.check_spreading()` in `location.py`.
+
 
