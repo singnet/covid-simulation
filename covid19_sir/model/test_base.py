@@ -3,7 +3,7 @@ import numpy as np
 from utils import setup_city_layout
 from model import base
 from model.human import Human
-from model.utils import WeekDay
+from model.utils import WeekDay, SimulationState
 
 
 def test_flip_coin():
@@ -89,12 +89,23 @@ def test_add_listener():
 
 
 def test_model_step():
+    class DummyAgent(base.AgentBase):
+        def __init__(self, unique_id, covid_model):
+            super().__init__(unique_id, covid_model)
+            self.steps = 0
+
+        def step(self):
+            self.steps += 1
+    dummy_agent = DummyAgent(1, model)
+    model.agents.append(dummy_agent)
     day_count = model.global_count.day_count
     weekday = model.get_week_day()
     model.step()
     # Asserts the day has changed
     assert model.global_count.day_count == day_count + 1
     assert not model.is_week_day(weekday)
+    # Asserts the step method of the agents is being called (once per simulation state)
+    assert dummy_agent.steps == len(SimulationState)
     # Asserts the weekday repeats in 7 days
     while model.global_count.day_count != day_count + 7:
         model.step()
