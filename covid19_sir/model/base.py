@@ -18,7 +18,7 @@ def flip_coin(prob):
 
 
 def _random_selection(v):
-    return v[np.random.random_integers(0, len(v) - 1)]
+    return v[np.random.randint(len(v))]
 
 
 def random_selection(v, n=1):
