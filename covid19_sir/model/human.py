@@ -93,6 +93,8 @@ class Human(AgentBase):
     def __init__(self, covid_model, age, msp, hsp, mfd):
         super().__init__(unique_id(), covid_model)
         self.properties = IndividualProperties()
+        self.disease_severity = None
+        self.dilemma_history = None
         self.initialize_individual_properties()
         self.home_district = None
         self.work_district = None
@@ -108,6 +110,7 @@ class Human(AgentBase):
         self.hospitalization_duration = 0
         self.infection_status = InfectionStatus.SUSCEPTIBLE
         self.hospitalized = False
+        self.work_info = None
         if self.is_worker():
             self.setup_work_info()
             self.covid_model.global_count.work_population += 1
@@ -115,6 +118,10 @@ class Human(AgentBase):
         self.tribe = {}
         for sel in TribeSelector:
             self.tribe[sel] = []
+        self.mask_user = None
+        self.isolation_cheater = None
+        self.immune = None
+        self.early_symptom_detection = None
         self.parameter_changed()
 
     def initialize_individual_properties(self):
@@ -296,7 +303,6 @@ class Human(AgentBase):
                 return pd
 
     def personal_decision(self, dilemma):
-        answer = False
         if dilemma == Dilemma.GO_TO_WORK_ON_LOCKDOWN:
             if self.work_info.work_class == WorkClasses.RETAIL:
                 pd = flip_coin(self.properties.risk_tolerance)
