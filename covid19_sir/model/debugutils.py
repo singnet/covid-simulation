@@ -15,7 +15,7 @@ class DebugUtils:
         self.districts = []
         self.restaurants = []
         self.model = model
-        human_status = {}
+        self.human_status = {}
         self.count_school = 0
         self.count_home = 0
         self.count_restaurant = 0
@@ -39,10 +39,10 @@ class DebugUtils:
                 print(humans_in_building)
 
     def update_human_status(self):
-        for human in humans:
-            if human not in human_status:
-                human_status[human] = {}
-            human_status[human][self.model.global_count.day_count] = human.info()
+        for human in self.humans:
+            if human not in self.human_status:
+                self.human_status[human] = {}
+            self.human_status[human][self.model.global_count.day_count] = human.info()
 
     def update_infection_status(self):
         self.count_school = 0
