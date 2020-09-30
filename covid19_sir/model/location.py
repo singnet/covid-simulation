@@ -110,24 +110,24 @@ class HomogeneousBuilding(Location):
 class Restaurant(Location):
     def __init__(self, capacity, restaurant_type, is_outdoor, covid_model, strid_prefix, strid_suffix, **kwargs):
         super().__init__(covid_model, strid_prefix, strid_suffix)
-        OUTDOOR = True
-        INDOOR = False
+        outdoor = True
+        indoor = False
         # https://docs.google.com/document/d/1imCNXOyoyecfD_sVNmKpmbWVB6xqP-FWlHELAyOg1Vs/edit
         base_fast_food = normal_ci(0.014, 0.1, 10)
         base_fancy = normal_ci(0.07, 0.2, 10)
         base_bar = normal_ci(0.174, 0.796, 10)
         cp = {
             RestaurantType.FAST_FOOD: {
-                INDOOR: base_fast_food,
-                OUTDOOR: base_fast_food / 2
+                indoor: base_fast_food,
+                outdoor: base_fast_food / 2
             },
             RestaurantType.FANCY: {
-                INDOOR: base_fancy,
-                OUTDOOR: base_fancy / 2
+                indoor: base_fancy,
+                outdoor: base_fancy / 2
             },
             RestaurantType.BAR: {
-                INDOOR: base_bar,
-                OUTDOOR: base_bar / 2
+                indoor: base_bar,
+                outdoor: base_bar / 2
             }
         }
         self.capacity = capacity

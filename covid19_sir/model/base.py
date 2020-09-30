@@ -100,7 +100,8 @@ class Logger:
 
     @staticmethod
     def get_instance():
-        if Logger.__instance is None: return Logger()
+        if Logger.__instance is None:
+            return Logger()
         return Logger.__instance
 
     def __init__(self):
