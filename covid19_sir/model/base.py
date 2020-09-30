@@ -190,6 +190,9 @@ class SimulationParameters:
                        'typical_restaurant_event_size': kwargs.get("typical_restaurant_event_size", 6),
                        'extroversion_mean': kwargs.get("extroversion_mean", 0.5),
                        'extroversion_stdev': kwargs.get("extroversion_stdev", 0.3),
+                       'restaurant_count_per_work_district': kwargs.get("restaurant_count_per_work_district", 10),
+                       'restaurant_capacity_mean': kwargs.get("restaurant_capacity_mean", 50),
+                       'restaurant_capacity_stdev': kwargs.get("restaurant_capacity_stdev", 20),
                        'min_behaviors_to_copy': kwargs.get("min_behaviors_to_copy", 3)}
 
     def get(self, key):

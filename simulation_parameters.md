@@ -13,8 +13,8 @@ __Human properties and attributes__
 
 __Disease evolution__
 
-* [hospitalization_period_duration_shape and hospitalization_period_duration_scale](#hospitalization_period_duration_scale)
-* [incubation_period_shape and incubation_period_scale](#incubation_period_scale)
+* [hospitalization_period_duration_shape and hospitalization_period_duration_scale](#hospitalization_period_duration_shape)
+* [incubation_period_shape and incubation_period_scale](#incubation_period_shape)
 * [latency_period_shape and latency_period_scale](#latency_period_shape)
 * [mild_period_duration_shape and mild_period_duration_scale](#mild_period_duration_shape)
 
@@ -23,6 +23,8 @@ __Restaurants__
 * [allowed_restaurant_capacity](#allowed_restaurant_capacity)
 * [contagion_probability](#contagion_probability)
 * [typical_restaurant_event_size](#typical_restaurant_event_size)
+* [restaurant_count_per_work_district](#restaurant_count_per_work_district)
+* [restaurant_capacity_mean and restaurant_capacity_stdev](#restaurant_capacity_mean)
 
 
 __Environment__
@@ -193,6 +195,27 @@ __Valid values__: (1, 2, 3, ...)
 __Default__: 3
 
 __Where it's used__: `Human.personal_decision()` in `human.py`.
+
+## restaurant_capacity_mean
+
+`Restaurant.capacity` is the maximum number of humans which can be in the restaurant at a given time. `restaurant_capacity_mean` and `restaurant_capacity_stdev` are used to sample `Restaurant.capacity` using a normal distribution.
+
+__Valid values__: [0,1]
+
+__Default__: 50 (`restaurant_capacity_mean`) and 20 (`restaurant_capacity_stdev`)
+
+__Where it's used__: `setup_city_layout()` in `utils.py`.
+
+
+## restaurant_count_per_work_district
+
+The total number of restaurants (including all subtypes) present in each work district.
+
+__Valid values__: (0, 1, 2, ...)
+
+__Default__: 10
+
+__Where it's used__: `setup_city_layout()` in `utils.py`.
 
 ## risk_tolerance_mean
 
