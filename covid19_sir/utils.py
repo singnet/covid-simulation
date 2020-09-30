@@ -285,14 +285,17 @@ class Propaganda:
         self.model.reroll_human_properties()
 
     def end_cycle(self, model):
+        print(f"state: {self.state}")
+        print(f"count: {self.count}")
+        print(f"switch: {self.switch}")
+        print(f"self.model.global_count.day_count: {self.model.global_count.day_count}")
+        self.count += 1
         if self.state == 0:
             if self.model.global_count.day_count == self.switch:
                 self.state = 1
-                self.count += 1
                 self.tick()
         elif self.state == 1:
             if not (self.count % 3):
-                self.count += 1
                 self.tick()
 
 
