@@ -285,10 +285,6 @@ class Propaganda:
         self.model.reroll_human_properties()
 
     def end_cycle(self, model):
-        print(f"state: {self.state}")
-        print(f"count: {self.count}")
-        print(f"switch: {self.switch}")
-        print(f"self.model.global_count.day_count: {self.model.global_count.day_count}")
         self.count += 1
         if self.state == 0:
             if self.model.global_count.day_count == self.switch:
@@ -351,7 +347,7 @@ def setup_city_layout(model, population_size):
 
     # Add Restaurants to work_district
 
-    for i in range(10):
+    for i in range(get_parameters().params['restaurant_count_per_work_district']):
         if flip_coin(0.5):
             restaurant_type = RestaurantType.FAST_FOOD
             rtype = "FASTFOOD"
@@ -359,7 +355,12 @@ def setup_city_layout(model, population_size):
             restaurant_type = RestaurantType.FANCY
             rtype = "FANCY"
         restaurant = Restaurant(
-            normal_cap(50, 20, 16, 100),
+            normal_cap(
+                get_parameters().params['restaurant_capacity_mean'], 
+                get_parameters().params['restaurant_capacity_stdev'], 
+                16, 
+                200
+            ),
             restaurant_type,
             flip_coin(0.5),
             model,
