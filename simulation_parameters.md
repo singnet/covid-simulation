@@ -14,6 +14,7 @@ __Human properties and attributes__
 __Disease evolution__
 
 * [hospitalization_period_duration_shape and hospitalization_period_duration_scale](#hospitalization_period_duration_shape)
+* [icu_period_duration_shape and icu_period_duration_scale](#icu_period_duration_shape)
 * [incubation_period_shape and incubation_period_scale](#incubation_period_shape)
 * [latency_period_shape and latency_period_scale](#latency_period_shape)
 * [mild_period_duration_shape and mild_period_duration_scale](#mild_period_duration_shape)
@@ -30,6 +31,7 @@ __Restaurants__
 __Environment__
 
 * [hospitalization_capacity](#hospitalization_capacity)
+* [icu_capacity](#icu_capacity)
 * [social_policies](#social_policies)
 * [asymptomatic_contagion_probability](#asymptomatic_contagion_probability)
 * [mask_efficacy](#mask_efficacy)
@@ -102,7 +104,7 @@ The % of the total population which could be hospitalized at any given moment.
 
 __Valid values__: [0,1]
 
-__Default__: 0.05
+__Default__: 0.5
 
 __Where it's used__: `CovidModel.reached_hospitalization_limit()` in `base.py`
 
@@ -115,6 +117,27 @@ __Valid values__: (1, 2, 3, ...)
 __Default__: 14 (`hospitalization_period_duration_shape`) and 1 (`hospitalization_period_duration_scale`)
 
 __Where it's used__: `Human.disease_evolution()` in `human.py` (`Human.hospitalization_duration` is used in the same function)
+
+## icu_capacity
+
+The % of the total population which could be in ICU at any given moment.
+
+__Valid values__: [0,1]
+
+__Default__: 0.01
+
+__Where it's used__: `CovidModel.reached_icu_limit()` in `base.py`
+
+## icu_period_duration_shape
+
+`Human.icu_duration` is the number of days which a human remains in an ICU when its infection reaches severity `HIGH`. `icu_period_duration_shape` and `icu_period_duration_scale` are used to sample `Human.icu_duration` using a gamma distribution when a human is infected.
+
+__Valid values__: (1, 2, 3, ...)
+
+__Default__: 10 (`icu_period_duration_shape`) and 1 (`icu_period_duration_scale`)
+
+__Where it's used__: `Human.disease_evolution()` in `human.py` (`Human.icu_duration` is used in the same function)
+
 
 ## imune_rate
 

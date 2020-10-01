@@ -21,10 +21,10 @@ common_parameters = SimulationParameters(
     mask_efficacy=0.0,
     imune_rate=0.01,
     initial_infection_rate=0.01,
-    hospitalization_capacity=0.05,
-    latency_period_shape=3,
+    hospitalization_capacity=0.5,
+    latency_period_shape=2,
     latency_period_scale=1,
-    incubation_period_shape=6,
+    incubation_period_shape=4,
     incubation_period_scale=1,
     mild_period_duration_shape=14,
     mild_period_duration_scale=1,
@@ -56,6 +56,7 @@ sc = 1  # Do nothing
 print(f"Setting up scenario {sc}")
 scenario[sc] = {}
 scenario[sc]['parameters'] = copy.deepcopy(common_parameters)
+scenario[sc]['parameters'].params['symptomatic_isolation_rate'] = 1.0
 set_parameters(scenario[sc]['parameters'])
 scenario[sc]['model'] = CovidModel()
 np.random.seed(seed)
@@ -63,6 +64,7 @@ setup_city_layout(scenario[sc]['model'], population_size)
 
 # ------------------------------------------------------------------------------
 
+"""
 sc = 2  # complete lockdown
 print(f"Setting up scenario {sc}")
 scenario[sc] = {}
@@ -225,11 +227,12 @@ sc7_model.add_listener(RemovePolicy(sc7_model, SocialPolicy.LOCKDOWN_HIGH_SCHOOL
 scenario[sc]['parameters'] = sc7_parameters
 scenario[sc]['model'] = sc7_model
 
+"""
 ################################################################################
 # Simulation of all scenarios
 
-for sc in scenario:
-    # for sc in [1]:
+#for sc in scenario:
+for sc in [1]:
     # print("--------------------------------------------------------------------------------")
     print(f"Running scenario {sc}")
     set_parameters(scenario[sc]['parameters'])
@@ -243,4 +246,4 @@ for sc in scenario:
         model.step()
     statistics.export_chart("scenario" + str(sc) + ".png")
     statistics.export_csv("scenario" + str(sc) + ".csv")
-# debug.print_infection_status()
+    debug.print_infection_status()
