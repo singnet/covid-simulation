@@ -43,17 +43,15 @@ def test_initial_model_state():
 
 
 def test_reached_hospitalization_limit():
-    assert model.reached_hospitalization_limit() is False
+    assert not model.reached_hospitalization_limit()
+    base.change_parameters(hospitalization_capacity=0.5)
     # Hospitalizing population
-    hospitalization_limit = np.ceil(hospitalization_capacity * population_size) + 1
-    for agent in model.agents:
-        if isinstance(agent, Human):
-            agent.hospitalized = True
-            model.global_count.total_hospitalized += 1
-            if model.global_count.total_hospitalized >= hospitalization_limit:
-                break
-    model.step()
-    assert model.reached_hospitalization_limit() is True
+    old_total_hospitalized = model.global_count.total_hospitalized
+    model.global_count.total_hospitalized = model.global_count.total_population / 2 - 1
+    assert not model.reached_hospitalization_limit()
+    model.global_count.total_hospitalized += 1
+    assert model.reached_hospitalization_limit()
+    model.global_count.total_hospitalized = old_total_hospitalized
 
 
 def test_reroll_human_properties():
