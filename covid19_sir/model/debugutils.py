@@ -1,6 +1,8 @@
+import pandas as pd
 from model.base import logger
 from model.human import Human, Adult, K12Student, Toddler, Infant, Elder
 from model.location import Location, District, Restaurant
+from model.utils import InfectionStatus
 
 
 class DebugUtils:
@@ -69,6 +71,17 @@ class DebugUtils:
         print(f"Restaurant: {self.count_restaurant}")
         print(f"Work: {self.count_work}")
         print(f"Total: {self.count_school + self.count_home + self.count_restaurant + self.count_work}")
+
+    def get_R0_stats(self):
+        raw_data = []
+        for human in self.humans:
+            if human.infection_status == InfectionStatus.INFECTED or \
+               human.infection_status == InfectionStatus.RECOVERED:
+                raw_data.append(human.count_infected_humans)
+        df = pd.DataFrame({
+            'infections': raw_data
+        })
+        return df
 
     def _populate(self):
         for agent in self.model.agents:

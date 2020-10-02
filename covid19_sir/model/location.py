@@ -57,6 +57,7 @@ class Location(AgentBase):
                         logger().debug(f"Infection succeeded - {h1} has infected {h2} in {self} with contagion "
                                        f"probability {self.get_parameter('contagion_probability')}")
 
+                        h1.count_infected_humans += 1
                         h2.infect()
                     else:
                         if h1.is_wearing_mask():

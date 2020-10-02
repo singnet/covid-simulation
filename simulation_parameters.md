@@ -50,7 +50,7 @@ To check whether an infected human is contagious, either of these conditions mus
 
 __Valid values__: {1.0, 0.50, 0.25}
 
-__Default__: 1.0
+__Default__: 0.1
 
 __Where it's used__: `Restaurant.spread_infection()` and `District.get_available_restaurant()` in `human.py`
 
@@ -114,7 +114,7 @@ __Where it's used__: `CovidModel.reached_hospitalization_limit()` in `base.py`
 
 __Valid values__: (1, 2, 3, ...)
 
-__Default__: 14 (`hospitalization_period_duration_shape`) and 1 (`hospitalization_period_duration_scale`)
+__Default__: 12 (`hospitalization_period_duration_shape`) and 1 (`hospitalization_period_duration_scale`)
 
 __Where it's used__: `Human.disease_evolution()` in `human.py` (`Human.hospitalization_duration` is used in the same function)
 
@@ -124,7 +124,7 @@ The % of the total population which could be in ICU at any given moment.
 
 __Valid values__: [0,1]
 
-__Default__: 0.01
+__Default__: 0.03
 
 __Where it's used__: `CovidModel.reached_icu_limit()` in `base.py`
 
@@ -145,7 +145,7 @@ __Where it's used__: `Human.disease_evolution()` in `human.py` (`Human.icu_durat
 
 __Valid values__: [0,1]
 
-__Default__: 0.05
+__Default__: 0.01
 
 __Where it's used__: `Human.parameter_changed()` in `human.py`. `Human.immune` (the human attribute) is used in `Human.infect()` in `human.py`.
 
@@ -155,7 +155,7 @@ __Where it's used__: `Human.parameter_changed()` in `human.py`. `Human.immune` (
 
 __Valid values__: (1, 2, 3, ...)
 
-__Default__: 7 (`incubation_period_shape`) and 2 (`incubation_period_scale`)
+__Default__: 6 (`incubation_period_shape`) and 1 (`incubation_period_scale`)
 
 __Where it's used__: `Human.infect()` in `human.py`. `Human.infection_incubation` (the human attribute) is used in `Human.is_symptomatic()` and `Human.disease_evolution()` in `human.py`.
 
@@ -165,7 +165,7 @@ The expected % of total pupulation which is infected before the simulation start
 
 __Valid values__: [0,1]
 
-__Default__: 0.05
+__Default__: 0.01
 
 __Where it's used__: `Human.factory()` in `human.py`.
 
@@ -175,7 +175,7 @@ __Where it's used__: `Human.factory()` in `human.py`.
 
 __Valid values__: (1, 2, 3, ...)
 
-__Default__: 4 (`latency_period_shape`) and 1 (`latency_period_scale`)
+__Default__: 2 (`latency_period_shape`) and 1 (`latency_period_scale`)
 
 __Where it's used__: `Human.infect()` in `human.py`. `Human.infection_latency` (the human attribute) is used in `Human.is_contagious()` in `human.py`.
 
@@ -255,7 +255,7 @@ __Valid values__: [0,1]
 
 __Default__: 0.4 (`risk_tolerance_mean`) and 0.3 (`risk_tolerance_stdev`)
 
-__Where it's used__: `herding_behavior_mean` and `herding_behavior_stdev` are used in `Human.initialize_individual_properties()` in `human.py`. The human's property __herding_behavior__ is used in `Human._standard_decision()` in `human.py`
+__Where it's used__: `risk_tolerance_mean` and `risk_tolerance_stdev` are used in `Human.initialize_individual_properties()` in `human.py`. The human's property __risk_tolerance__ is used in `Human._standard_decision()` in `human.py`
 
 ## social_policies
 
@@ -276,7 +276,7 @@ When a symptomatic infected (infection severity <= LOW) human is deciding what t
 
 __VALID VALUES__: [0,1]
 
-__DEFAULT__: 0.9
+__DEFAULT__: 0.0
 
 __Where it's used__: `Human.is_isolated()` in `human.py`
 
