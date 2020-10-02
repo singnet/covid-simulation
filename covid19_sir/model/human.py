@@ -46,19 +46,21 @@ class Human(AgentBase):
     @staticmethod
     def factory(covid_model, forced_age):
         # https://docs.google.com/document/d/14C4utmOi4WiBe7hOVtRt-NgMLh37pr_ntou-xUFAOjk/edit
-        moderate_severity_probs = [
-            0,
-            normal_ci(0.000243, 0.000832, 13),
-            normal_ci(0.00622, 0.0213, 50),
-            normal_ci(0.0204, 0.07, 437),
-            normal_ci(0.0253, 0.0868, 733),
-            normal_ci(0.0486, 0.167, 743),
-            normal_ci(0.0701, 0.24, 790),
-            normal_ci(0.0987, 0.338, 560),
-            normal_ci(0.11, 0.376, 263),
-            normal_ci(0.11, 0.376, 76)
-        ]
-        high_severity_probs = [0.05, 0.05, 0.05, 0.05, 0.063, 0.122, 0.274, 0.432, 0.709, 0.709]
+
+        #moderate_severity_probs = [
+        #    0,
+        #    normal_ci(0.000243, 0.000832, 13),
+        #    normal_ci(0.00622, 0.0213, 50),
+        #    normal_ci(0.0204, 0.07, 437),
+        #    normal_ci(0.0253, 0.0868, 733),
+        #    normal_ci(0.0486, 0.167, 743),
+        #    normal_ci(0.0701, 0.24, 790),
+        #    normal_ci(0.0987, 0.338, 560),
+        #    normal_ci(0.11, 0.376, 263),
+        #    normal_ci(0.11, 0.376, 76)
+        #]
+        moderate_severity_probs = [0.05, 0.10, 0.20, 0.30, 0.40, 0.60, 0.80, 0.99, 0.99, 0.99]
+        high_severity_probs = [0.05, 0.10, 0.20, 0.30, 0.40, 0.60, 0.80, 0.99, 0.99, 0.99]
         death_probs = [0.002, 0.00006, 0.0003, 0.0008, 0.0015, 0.006, 0.022, 0.051, 0.093, 0.093]
         if forced_age is None:
             age = int(np.random.beta(2, 5, 1) * 100)
@@ -108,6 +110,7 @@ class Human(AgentBase):
         self.infection_incubation = 0
         self.mild_duration = 0
         self.hospitalization_duration = 0
+        self.icu_duration = 0
         self.infection_status = InfectionStatus.SUSCEPTIBLE
         self.hospitalized = False
         self.work_info = None
@@ -119,7 +122,6 @@ class Human(AgentBase):
         for sel in TribeSelector:
             self.tribe[sel] = []
         self.mask_user = None
-        self.isolation_cheater = None
         self.immune = None
         self.early_symptom_detection = None
         self.parameter_changed()
@@ -143,6 +145,7 @@ class Human(AgentBase):
         s += f'Infection incubation: {self.infection_incubation}' + '\n'
         s += f'Infection mild: {self.mild_duration}' + '\n'
         s += f'Hospitalization: {self.hospitalization_duration}' + '\n'
+        s += f'ICU: {self.icu_duration}' + '\n'
         s += f'Is dead: {self.is_dead}' + '\n'
         s += f'Is hospitalized: {self.hospitalized}' + '\n'
         s += f'Is infected: {self.is_infected()}' + '\n'
@@ -153,7 +156,6 @@ class Human(AgentBase):
         # When a parameter is changed in the middle of simulation
         # the user may want to reroll some human's properties
         self.mask_user = flip_coin(get_parameters().get('mask_user_rate'))
-        self.isolation_cheater = flip_coin(get_parameters().get('isolation_cheater_rate'))
         self.immune = flip_coin(get_parameters().get('imune_rate'))
         if flip_coin(get_parameters().get('weareable_adoption_rate')):
             self.early_symptom_detection = 1  # number of days
@@ -187,16 +189,16 @@ class Human(AgentBase):
             shape = get_parameters().get('latency_period_shape')
             scale = get_parameters().get('latency_period_scale')
             self.infection_latency = np.random.gamma(shape, scale) - self.early_symptom_detection
-            logger().debug(f"Infection latency of {self} is {self.infection_latency}")
             if self.infection_latency < 1.0:
                 self.infection_latency = 1.0
+            logger().debug(f"Infection latency of {self} is {self.infection_latency}")
             shape = get_parameters().get('incubation_period_shape')
             scale = get_parameters().get('incubation_period_scale')
-            self.infection_incubation = self.infection_latency + np.random.gamma(shape, scale)
+            self.infection_incubation = np.random.gamma(shape, scale)
             logger().debug(f"Infection incubation of {self} is {self.infection_incubation}")
             shape = get_parameters().get('mild_period_duration_shape')
             scale = get_parameters().get('mild_period_duration_scale')
-            self.mild_duration = np.random.gamma(shape, scale) + self.infection_incubation
+            self.mild_duration = np.random.gamma(shape, scale)
             logger().debug(f"Mild duration of {self} is {self.mild_duration}")
 
     def disease_evolution(self):
@@ -211,7 +213,7 @@ class Human(AgentBase):
                     self.covid_model.global_count.asymptomatic_count -= 1
                     self.covid_model.global_count.symptomatic_count += 1
             elif self.disease_severity == DiseaseSeverity.LOW:
-                if self.infection_days_count > self.mild_duration:
+                if self.infection_days_count > self.infection_incubation + self.mild_duration:
                     # By the end of this period, either the patient is already with antibodies at
                     # a level sufficient to cure the disease or the symptoms will get worse and he/she
                     # will require hospitalization
@@ -224,19 +226,16 @@ class Human(AgentBase):
                             self.covid_model.global_count.total_hospitalized += 1
                             logger().info(f"{self} is now hospitalized")
                             self.hospitalized = True
+                            shape = get_parameters().get('hospitalization_period_duration_shape')
+                            scale = get_parameters().get('hospitalization_period_duration_scale')
+                            self.hospitalization_duration = np.random.gamma(shape, scale)
+                            logger().debug(f"Hospital duration of {self} is {self.hospitalization_duration}")
                         else:
                             logger().info(f"{self} couldn't be hospitalized (hospitalization limit reached)")
-                        shape = get_parameters().get('hospitalization_period_duration_shape')
-                        scale = get_parameters().get('hospitalization_period_duration_scale')
-                        self.hospitalization_duration = np.random.gamma(shape, scale) + self.infection_days_count
-                        logger().debug(f"Hospital duration of {self} is {self.hospitalization_duration}")
-
                     else:
                         self.recover()
             elif self.disease_severity == DiseaseSeverity.MODERATE:
-                if self.infection_days_count > self.hospitalization_duration:
-                    self.recover()
-                else:
+                if self.infection_days_count >= self.infection_incubation + self.mild_duration + self.hospitalization_duration:
                     if flip_coin(self.high_severity_prob):
                         logger().info(f"{self} evolved from MODERATE to HIGH")
                         self.disease_severity = DiseaseSeverity.HIGH
@@ -244,13 +243,22 @@ class Human(AgentBase):
                         self.covid_model.global_count.high_severity_count += 1
                         # If the disease evolves to HIGH and the person could not
                         # be accommodated in a hospital, he/she will die.
-                        if not self.hospitalized or self.death_mark:
+                        if not self.hospitalized or self.death_mark or self.covid_model.reached_icu_limit():
                             self.die()
+                        else:
+                            shape = get_parameters().get('icu_period_duration_shape')
+                            scale = get_parameters().get('icu_period_duration_scale')
+                            self.icu_duration = np.random.gamma(shape, scale)
+                            logger().debug(f"ICU duration of {self} is {self.icu_duration}")
+                    else:
+                        self.recover()
             elif self.disease_severity == DiseaseSeverity.HIGH:
-                if self.death_mark:
-                    self.die()
-                else:
-                    self.recover()
+                if self.infection_days_count >= self.infection_incubation + self.mild_duration +\
+                self.hospitalization_duration + self.icu_duration:
+                    if self.death_mark:
+                        self.die()
+                    else:
+                        self.recover()
 
     def recover(self):
         logger().info(f"{self} is recovered after a disease of severity {self.disease_severity}")
@@ -292,6 +300,9 @@ class Human(AgentBase):
 
     def is_symptomatic(self):
         return self.is_infected() and self.infection_days_count >= self.infection_incubation
+
+    def is_hospitalized(self):
+        return self.hospitalized
 
     def _standard_decision(self, pd, hd):
         if hd is None:
@@ -356,15 +367,9 @@ class Human(AgentBase):
             self.dilemma_history.history[dilemma][tribe].append(answer)
         return answer
 
-    def main_activity_isolated(self):
-        if self.is_infected():
-            if self.disease_severity == DiseaseSeverity.MODERATE or \
-                    self.disease_severity == DiseaseSeverity.HIGH:
-                return True
-            if self.is_symptomatic():
-                ir = get_parameters().get('symptomatic_isolation_rate')
-                if flip_coin(ir):
-                    return True
+    def is_isolated(self):
+        if self.is_symptomatic():
+            return flip_coin(get_parameters().get('symptomatic_isolation_rate'))
         if isinstance(self, Adult):
             for policy in get_parameters().get('social_policies'):
                 if policy in SocialPolicyUtil.locked_work_classes and \
@@ -450,7 +455,7 @@ class K12Student(Human):
         if self.is_dead:
             return
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
-            if not self.main_activity_isolated():
+            if not self.is_isolated():
                 self.home_district.move_to(self, self.school_district)
         elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
             self.school_district.move_to(self, self.home_district)
@@ -502,7 +507,7 @@ class Adult(Human):
 
     def working_day(self):
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
-            if self.main_activity_isolated():
+            if self.is_isolated():
                 self.work_info.isolated = True
             else:
                 self.work_info.isolated = False

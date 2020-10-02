@@ -161,11 +161,12 @@ class SimulationParameters:
         self.params = {'social_policies': kwargs.get("social_policies", []),
                        'mask_user_rate': kwargs.get("mask_user_rate", 0.0),
                        'mask_efficacy': kwargs.get("mask_efficacy", 0.0),
-                       'isolation_cheater_rate': kwargs.get("isolation_cheater_rate", 0.0),
-                       'isolation_cheating_severity': kwargs.get("isolation_cheating_severity", 0.0),
                        'imune_rate': kwargs.get("imune_rate", 0.05),
                        'initial_infection_rate': kwargs.get("initial_infection_rate", 0.05),
-                       'hospitalization_capacity': kwargs.get("hospitalization_capacity", 0.05),
+                       'hospitalization_capacity': kwargs.get("hospitalization_capacity", 0.50),
+                       'icu_capacity': kwargs.get("icu_capacity", 0.03),
+                       'icu_period_duration_shape': kwargs.get("icu_period_duration_shape", 10.0),
+                       'icu_period_duration_scale': kwargs.get("icu_period_duration_scale", 1.0),
                        'latency_period_shape': kwargs.get("latency_period_shape", 4.0),
                        'latency_period_scale': kwargs.get("latency_period_scale", 1.0),
                        'incubation_period_shape': kwargs.get("incubation_period_shape", 7.0),
@@ -180,7 +181,7 @@ class SimulationParameters:
                        'weareable_adoption_rate': kwargs.get("weareable_adoption_rate", 0.0),
                        'contagion_probability': kwargs.get("contagion_probability", 0.0),
                        'spreading_rate': kwargs.get("spreading_rate", 0.0),
-                       'symptomatic_isolation_rate': kwargs.get("symptomatic_isolation_rate", 0.0),
+                       'symptomatic_isolation_rate': kwargs.get("symptomatic_isolation_rate", 0.9),
                        'asymptomatic_contagion_probability': kwargs.get("asymptomatic_contagion_probability", 0.0),
                        'risk_tolerance_mean': kwargs.get("risk_tolerance_mean", 0.4),
                        'risk_tolerance_stdev': kwargs.get("risk_tolerance_stdev", 0.3),
@@ -262,6 +263,10 @@ class CovidModel(Model):
     def reached_hospitalization_limit(self):
         return (self.global_count.total_hospitalized / self.global_count.total_population) >= parameters.get(
             'hospitalization_capacity')
+
+    def reached_icu_limit(self):
+        return (self.global_count.high_severity_count / self.global_count.total_population) >= parameters.get(
+            'icu_capacity')
 
     def get_week_day(self):
         wd = [WeekDay.MONDAY,

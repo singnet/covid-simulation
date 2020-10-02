@@ -48,6 +48,7 @@ class Location(AgentBase):
         if h1.is_infected():
             logger().debug(f"Check to see if {h1} can infect {h2} in {self}")
             if h1.is_contagious() and not h2.is_infected():
+                logger().debug(f"contagion_probability = {self.get_parameter('contagion_probability')}")
                 if flip_coin(self.get_parameter('contagion_probability')):
                     me = self.get_parameter('mask_efficacy')
                     if not h1.is_wearing_mask() or (h1.is_wearing_mask() and not flip_coin(me)):
@@ -75,9 +76,10 @@ class Location(AgentBase):
         if len(self.humans) > 0:
             logger().info(f"{self} is spreading infection amongst {len(self.humans)} humans")
         for h1 in self.humans:
-            for h2 in self.humans:
-                if h1 != h2:
-                    self.check_spreading(h1, h2)
+            if h1.is_infected() and not h1.is_hospitalized() and not h1.is_isolated():
+                for h2 in self.humans:
+                    if h1 != h2:
+                        self.check_spreading(h1, h2)
 
 
 class BuildingUnit(Location):

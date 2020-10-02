@@ -87,7 +87,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
     ax.set_title('Contagion Evolution')
     ax.set_xlim((0, simulation_cycles))
     ax.set_ylim((-0.1,1.1))
-    ax.axhline(y=get_parameters().get('hospitalization_capacity'), c="black", ls='--', label='Critical limit')
+    ax.axhline(y=get_parameters().get('icu_capacity'), c="black", ls='--', label='Critical limit')
 	
     for s in randomlist:
         adict = {stat:all_runs[stat][s] for stat in desired_stats} 
@@ -228,7 +228,7 @@ class BasicStatistics:
         fig, ax = plt.subplots()
         ax.set_title('Contagion Evolution')
         ax.set_xlim((0, self.cycles_count))
-        ax.axhline(y=get_parameters().get('hospitalization_capacity'), c="black", ls='--', label='Critical limit')
+        ax.axhline(y=get_parameters().get('icu_capacity'), c="black", ls='--', label='Critical limit')
         for col in df.columns.values:
             ax.plot(df.index.values, df[col].values, c=color[col], label=col)
         ax.set_xlabel("Days")
