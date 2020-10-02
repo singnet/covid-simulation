@@ -276,9 +276,9 @@ When a symptomatic infected (infection severity <= LOW) human is deciding what t
 
 __VALID VALUES__: [0,1]
 
-__DEFAULT__: 0
+__DEFAULT__: 0.9
 
-__Where it's used__: `Human.main_activity_isolated()` in `human.py`
+__Where it's used__: `Human.is_isolated()` in `human.py`
 
 ## typical_restaurant_event_size
 
