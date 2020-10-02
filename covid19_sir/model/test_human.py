@@ -13,18 +13,8 @@ model = base.CovidModel()
 sample_human_1 = human.Human.factory(covid_model=model, forced_age=None)
 
 
-def test_human_factory():
-    assert sample_human_1
-    assert human.Human.count == 2
-    sample_human_2 = human.Human.factory(covid_model=model, forced_age=None)
-    assert sample_human_2
-    assert human.Human.count == 3
-    assert model.global_count.immune_count \
-           + model.global_count.susceptible_count \
-           + model.global_count.infected_count == 2
-
-
 def test_human_initialize_individual_properties():
+    assert sample_human_1
     sample_human_1.initialize_individual_properties()
     previous_extroversion = sample_human_1.properties.extroversion
     sample_human_1.initialize_individual_properties()
