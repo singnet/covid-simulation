@@ -124,6 +124,7 @@ class Human(AgentBase):
         self.mask_user = None
         self.immune = None
         self.early_symptom_detection = None
+        self.count_infected_humans = 0
         self.parameter_changed()
 
     def initialize_individual_properties(self):
