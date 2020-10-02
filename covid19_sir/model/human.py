@@ -367,15 +367,9 @@ class Human(AgentBase):
             self.dilemma_history.history[dilemma][tribe].append(answer)
         return answer
 
-    def main_activity_isolated(self):
-        if self.is_infected():
-            if self.disease_severity == DiseaseSeverity.MODERATE or \
-                    self.disease_severity == DiseaseSeverity.HIGH:
-                return True
-            if self.is_symptomatic():
-                ir = get_parameters().get('symptomatic_isolation_rate')
-                if flip_coin(ir):
-                    return True
+    def is_isolated(self):
+        if self.is_symptomatic():
+            return flip_coin(get_parameters().get('symptomatic_isolation_rate'))
         if isinstance(self, Adult):
             for policy in get_parameters().get('social_policies'):
                 if policy in SocialPolicyUtil.locked_work_classes and \
@@ -461,7 +455,7 @@ class K12Student(Human):
         if self.is_dead:
             return
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
-            if not self.main_activity_isolated():
+            if not self.is_isolated():
                 self.home_district.move_to(self, self.school_district)
         elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
             self.school_district.move_to(self, self.home_district)
@@ -513,7 +507,7 @@ class Adult(Human):
 
     def working_day(self):
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
-            if self.main_activity_isolated():
+            if self.is_isolated():
                 self.work_info.isolated = True
             else:
                 self.work_info.isolated = False

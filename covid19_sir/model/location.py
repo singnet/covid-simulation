@@ -76,7 +76,7 @@ class Location(AgentBase):
         if len(self.humans) > 0:
             logger().info(f"{self} is spreading infection amongst {len(self.humans)} humans")
         for h1 in self.humans:
-            if h1.is_infected() and not h1.is_hospitalized():
+            if h1.is_infected() and not h1.is_hospitalized() and not h1.is_isolated():
                 for h2 in self.humans:
                     if h1 != h2:
                         self.check_spreading(h1, h2)

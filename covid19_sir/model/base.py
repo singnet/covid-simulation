@@ -181,7 +181,7 @@ class SimulationParameters:
                        'weareable_adoption_rate': kwargs.get("weareable_adoption_rate", 0.0),
                        'contagion_probability': kwargs.get("contagion_probability", 0.0),
                        'spreading_rate': kwargs.get("spreading_rate", 0.0),
-                       'symptomatic_isolation_rate': kwargs.get("symptomatic_isolation_rate", 0.0),
+                       'symptomatic_isolation_rate': kwargs.get("symptomatic_isolation_rate", 0.9),
                        'asymptomatic_contagion_probability': kwargs.get("asymptomatic_contagion_probability", 0.0),
                        'risk_tolerance_mean': kwargs.get("risk_tolerance_mean", 0.4),
                        'risk_tolerance_stdev': kwargs.get("risk_tolerance_stdev", 0.3),
