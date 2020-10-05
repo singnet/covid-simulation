@@ -61,7 +61,18 @@ class Human(AgentBase):
         #]
         moderate_severity_probs = [0.05, 0.10, 0.20, 0.30, 0.40, 0.60, 0.80, 0.99, 0.99, 0.99]
         high_severity_probs = [0.05, 0.10, 0.20, 0.30, 0.40, 0.60, 0.80, 0.99, 0.99, 0.99]
-        death_probs = [0.002, 0.00006, 0.0003, 0.0008, 0.0015, 0.006, 0.022, 0.051, 0.093, 0.093]
+        death_probs = [0] * 10
+        death_probs[2] = 0.003
+        death_probs[0] = death_probs[2] / 9
+        death_probs[1] = death_probs[2] / 16
+        death_probs[3] = death_probs[2] * 4
+        death_probs[4] = death_probs[2] * 10
+        death_probs[5] = death_probs[2] * 30
+        death_probs[6] = death_probs[2] * 90
+        death_probs[7] = death_probs[2] * 220
+        death_probs[8] = death_probs[2] * 630
+        death_probs[9] = death_probs[2] * 1000
+
         if forced_age is None:
             age = int(np.random.beta(2, 5, 1) * 100)
         else:
@@ -218,7 +229,7 @@ class Human(AgentBase):
                     # By the end of this period, either the patient is already with antibodies at
                     # a level sufficient to cure the disease or the symptoms will get worse and he/she
                     # will require hospitalization
-                    if flip_coin(self.moderate_severity_prob):
+                    if self.death_mark or flip_coin(self.moderate_severity_prob):
                         # MODERATE cases requires hospitalization
                         logger().info(f"{self} evolved from LOW to MODERATE")
                         self.disease_severity = DiseaseSeverity.MODERATE
@@ -237,7 +248,7 @@ class Human(AgentBase):
                         self.recover()
             elif self.disease_severity == DiseaseSeverity.MODERATE:
                 if self.infection_days_count >= self.infection_incubation + self.mild_duration + self.hospitalization_duration:
-                    if flip_coin(self.high_severity_prob):
+                    if self.death_mark or flip_coin(self.high_severity_prob):
                         logger().info(f"{self} evolved from MODERATE to HIGH")
                         self.disease_severity = DiseaseSeverity.HIGH
                         self.covid_model.global_count.moderate_severity_count -= 1

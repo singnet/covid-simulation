@@ -78,10 +78,31 @@ class DebugUtils:
             if human.infection_status == InfectionStatus.INFECTED or \
                human.infection_status == InfectionStatus.RECOVERED:
                 raw_data.append(human.count_infected_humans)
-        df = pd.DataFrame({
+        return pd.DataFrame({
+            #TODO Add series for different location types
             'infections': raw_data
         })
-        return df
+
+    def get_age_group_stats(self):
+        count = [0] * 10
+        deaths = [0] * 10
+        recovered = [0] * 10
+        death_mark = [0] * 10
+        for human in self.humans:
+            index = human.age // 10
+            count[index] += 1
+            if human.is_dead:
+                deaths[index] += 1
+            if human.infection_status == InfectionStatus.RECOVERED:
+                recovered[index] += 1
+            if human.death_mark:
+                death_mark[index] += 1
+        return pd.DataFrame({
+            'count': count,
+            'deaths': deaths,
+            'recovered': recovered,
+            'death_mark': death_mark
+        })
 
     def _populate(self):
         for agent in self.model.agents:
