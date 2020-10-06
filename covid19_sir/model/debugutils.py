@@ -22,6 +22,8 @@ class DebugUtils:
         self.count_home = 0
         self.count_restaurant = 0
         self.count_work = 0
+        self.max_hospitalized = 0
+        self.max_icu = 0
         self._populate()
 
     def print_world(self):
@@ -64,6 +66,12 @@ class DebugUtils:
             else:
                 logger.warning(f"Unexpected infection location: {location}")
 
+    def update_hospitalization_status(self):
+        if self.model.global_count.total_hospitalized > self.max_hospitalized:
+            self.max_hospitalized = self.model.global_count.total_hospitalized
+        if self.model.global_count.high_severity_count > self.max_icu:
+            self.max_icu = self.model.global_count.high_severity_count
+
     def print_infection_status(self):
         self.update_infection_status()
         print(f"School: {self.count_school}")
@@ -103,6 +111,14 @@ class DebugUtils:
             'recovered': recovered,
             'death_mark': death_mark
         })
+
+    def start_cycle(self, model):
+        pass
+
+    def end_cycle(self, model):
+        self.update_human_status()
+        self.update_infection_status()
+        self.update_hospitalization_status()
 
     def _populate(self):
         for agent in self.model.agents:

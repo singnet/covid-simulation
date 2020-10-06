@@ -264,7 +264,23 @@ class RemovePolicy:
         if self.state == 0:
             if self.model.global_count.day_count == self.switch:
                 get_parameters().get('social_policies').remove(self.policy)
+                self.state = 1
 
+class AddPolicyInfectedRate:
+    def __init__(self, model, policy, v):
+        self.trigger = v
+        self.policy = policy
+        self.model = model
+        self.state = 0
+
+    def start_cycle(self, model):
+        pass
+
+    def end_cycle(self, model):
+        if self.state == 0:
+            if self.model.global_count.infected_count / self.model.global_count.total_population >= self.trigger:
+                get_parameters().get('social_policies').append(self.policy)
+                self.state = 1
 
 class Propaganda:
     def __init__(self, model, n):
