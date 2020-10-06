@@ -1,5 +1,6 @@
 from model.base import CovidModel, get_parameters
-from utils import Propaganda
+from model.utils import SocialPolicy
+from utils import Propaganda, AddPolicyInfectedRate
 
 def test_propaganda():
     model = CovidModel()
@@ -31,3 +32,17 @@ def test_propaganda():
     for i in range(100): 
         model.step()
         assert get_parameters().params['risk_tolerance_mean'] == 0.1
+
+def test_AddPolicyInfectedRate():
+    model = CovidModel()
+    listener = AddPolicyInfectedRate(model, SocialPolicy.LOCKDOWN_ALL, 0.5)
+    model.add_listener(listener)
+
+    model.global_count.total_population = 10
+    model.global_count.infected_count = 4
+    assert SocialPolicy.LOCKDOWN_ALL not in get_parameters().params['social_policies'] 
+    model.step()
+    assert SocialPolicy.LOCKDOWN_ALL not in get_parameters().params['social_policies'] 
+    model.global_count.infected_count = 5
+    model.step()
+    assert SocialPolicy.LOCKDOWN_ALL in get_parameters().params['social_policies'] 
