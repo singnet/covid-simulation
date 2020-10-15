@@ -1,7 +1,7 @@
 import math
 import numpy as np
 
-from model.base import (AgentBase, flip_coin, roulette_selection, get_parameters, unique_id, linear_rescale, normal_cap,
+from model.base import (AgentBase, flip_coin, get_parameters, unique_id, linear_rescale, normal_cap, random_selection,
                         normal_ci, logger)
 from model.utils import (WorkClasses, WeekDay, DiseaseSeverity, SocialPolicy, SocialPolicyUtil, InfectionStatus,
                          SimulationState, Dilemma, DilemmaDecisionHistory, TribeSelector, RestaurantType)
@@ -414,16 +414,10 @@ class Human(AgentBase):
             WorkClasses.RETAIL: (1.0, 1.0),
             WorkClasses.ESSENTIAL: (1.0, 1.0),
         }
-        classes = [key for key in income.keys()]
-        roulette = []
         self.work_info = WorkInfo()
 
         # TODO change to use some realistic distribution
-        count = 1
-        for wclass in classes:
-            roulette.append(count / len(classes))
-            count = count + 1
-        selected_class = roulette_selection(classes, roulette)
+        selected_class = random_selection([key for key in income.keys()])
         self.work_info.work_class = selected_class
         self.work_info.base_income, self.work_info.income_loss_isolated = income[selected_class]
 

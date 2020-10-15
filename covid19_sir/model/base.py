@@ -1,5 +1,6 @@
 import uuid
 import math
+import sys
 import numpy as np
 import logging
 from mesa import Agent, Model
@@ -33,25 +34,86 @@ def random_selection(v, n=1):
         selected.append(s)
     return selected
 
-
 def build_roulette(w):
-    r = []
-    s = 0
-    for v in w:
-        s += v
+    answer = []
+    s = sum(w)
     acc = 0
     for v in w:
-        r.append(acc + (v / s))
         acc += v / s
+        answer.append(acc)
+    answer[-1] = 1
+    return answer
+
+def _roulette_selection(values, weights, max_weigth=None, delete_selected=False):
+    assert len(values) == len(weights)
+    if max_weigth == None:
+        max_weigth = max(weights)
+    while True:
+        selected = np.random.randint(len(values))
+        if np.random.random() < weights[selected] / max_weigth:
+            answer = values[selected]
+            if delete_selected:
+                del values[selected]
+                del weights[selected]
+            return answer
+
+def _find_nearest(already_selected, roulette, pos, rand, delta):
+    if not already_selected[pos]:
+        return (pos, 0)
+    while (delta < 0 and pos > 0) or (delta > 0 and pos < (len(already_selected) -1)):
+        pos += delta
+        if not already_selected[pos]:
+            return (pos, abs(rand - roulette[pos]))
+    return (-1, sys.float_info.max)
 
 
-def roulette_selection(v, w):
-    assert len(v) == len(w)
-    r = np.random.random()
-    for i in range(len(w)):
-        if r <= w[i]:
-            return v[i]
-    return v[len(v) - 1]
+def roulette_selection(values, weights, num_selections=None):
+    assert len(values) == len(weights)
+    if num_selections is None:
+        num_selections = 1
+        return_scalar = True
+    else:
+        return_scalar = False
+    assert 0 < num_selections <= len(values)
+    num_values = len(values)
+    roulette = build_roulette(weights)
+    answer = []
+    already_selected = [False] * num_values
+    rand = sorted([np.random.random() for i in range(num_selections)])
+    rand_used = [False] * num_selections
+    current_rand = 0
+    for i in range(len(values)):
+        if rand[current_rand] <= roulette[i]:
+            answer.append(values[i])
+            already_selected[i] = True
+            rand_used[current_rand] = True
+            while current_rand < num_selections and rand[current_rand] <= roulette[i]:
+                current_rand += 1
+            if current_rand >= num_selections: break
+    if len(answer) < num_selections:
+        current_rand = 0
+        while rand_used[current_rand]: current_rand += 1
+        assert current_rand < num_selections
+        for i in range(len(values)):
+            while rand[current_rand] <= roulette[i]:
+                nearest_left, distance_left = _find_nearest(already_selected, roulette, i, rand[current_rand], -1)
+                nearest_right, distance_right = _find_nearest(already_selected, roulette, i, rand[current_rand], 1)
+                nearest = nearest_left if distance_left < distance_right else nearest_right
+                assert nearest >= 0
+                answer.append(values[nearest])
+                already_selected[nearest] = True
+                rand_used[current_rand] = True
+                while current_rand < num_selections and rand_used[current_rand]:
+                    current_rand += 1
+                if current_rand >= num_selections:
+                    break
+            if current_rand >= num_selections:
+                break
+    assert len(answer) == num_selections
+    if return_scalar:
+        return answer[0]
+    else:
+        return answer
 
 
 def normal_cap(mean, stdev, lower_bound=0, upper_bound=1):

@@ -1,7 +1,7 @@
 import copy
 import math
 import numpy as np
-from model.base import roulette_selection, linear_rescale
+from model.base import random_selection, roulette_selection, linear_rescale
 from model.human import Human, Infant, Toddler, K12Student, Adult, Elder
 from sklearn.datasets import make_blobs
 
@@ -35,16 +35,13 @@ class FamilyFactory:
             [Adult, Adult, K12Student, K12Student, Toddler],
             [Adult, Adult, K12Student, Toddler, Toddler],
             [Adult, Adult, K12Student, Infant, Toddler]]
-        # TODO use a realistic distribution
-        self._weights = []
-        for i in range(len(self._schema_collection)):
-            self._weights.append((i + 1) * (1.0 / len(self._schema_collection)))
         self.human_count = 0
         self.done = False
 
     def _select_family_schema(self, human):
         while True:
-            schema = roulette_selection(self._schema_collection, self._weights)
+            # TODO use a realistic distribution
+            schema = random_selection(self._schema_collection)
             if self._is_compatible(human, schema):
                 break
         return copy.deepcopy(schema)
@@ -124,24 +121,28 @@ class HomophilyRelationshipFactory:
         )
         p = 0
         for h1 in humans:
+            self.similarity[h1] = {}
+            self.similarity[h1][h1] = 1
             self.feature_vector[h1] = blobs[0][p]
             p += 1
-        for h1 in humans:
-            self.similarity[h1] = {}
-            for h2 in humans:
+        for i in range(0, len(humans) - 1):
+            h1 = humans[i]
+            for j in range(i + 1, len(humans)):
+                h2 = humans[j]
                 self.similarity[h1][h2] = self._compute_similarity(h1, h2)
+                self.similarity[h2][h1] = self.similarity[h1][h2]
 
     def build_tribe(self, human, humans, mininum, maximum):
-        n = linear_rescale(human.properties.extroversion, mininum, maximum)
-        w = [self.similarity[human][h] for h in humans]
-        tribe = [human]
-        count = 0
-        while n > 0 and count < len(humans):
-            count += 1
-            selected = roulette_selection(humans, w)
-            if selected not in tribe:
-                tribe.append(selected)
-                n -= 1
+        n = int(round(linear_rescale(human.properties.extroversion, mininum, maximum)))
+        if n >= len(humans):
+            n = len(humans) - 1
+        if n <= 0:
+            return [human]
+        tribe_candidates = humans.copy()
+        tribe_candidates.remove(human)
+        w = [self.similarity[human][h] for h in tribe_candidates]
+        tribe = roulette_selection(tribe_candidates, w, num_selections=n)
+        tribe.append(human)
         return tribe
 
     def _compute_similarity(self, h1, h2):
