@@ -1,5 +1,5 @@
 import copy
-from model.base import CovidModel, SimulationParameters, set_parameters, normal_ci, logger
+from model.base import CovidModel, SimulationParameters, set_parameters, beta_range, logger
 from utils import BasicStatistics, RemovePolicy, Propaganda, setup_city_layout
 from model.utils import SocialPolicy
 from model.debugutils import DebugUtils
@@ -25,7 +25,7 @@ basic_parameters = SimulationParameters(
     herding_behavior_mean=0.7,
     herding_behavior_stdev=0.2,
     allowed_restaurant_capacity=1.0,  # valid values: {1.0, 0.50, 0.25}
-    spreading_rate=normal_ci(2.41, 3.90, 20),
+    spreading_rate=beta_range(2.41, 3.90),  # normal_ci(2.41, 3.90, 20)
     social_policies=[
         SocialPolicy.LOCKDOWN_OFFICE,
         SocialPolicy.LOCKDOWN_FACTORY,

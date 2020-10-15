@@ -1,8 +1,8 @@
 import math
 import numpy as np
 
-from model.base import (AgentBase, flip_coin, get_parameters, unique_id, linear_rescale, normal_cap, random_selection,
-                        normal_ci, logger)
+from model.base import (AgentBase, flip_coin, get_parameters, unique_id, linear_rescale, random_selection,
+                        beta_distribution, logger)
 from model.utils import (WorkClasses, WeekDay, DiseaseSeverity, SocialPolicy, SocialPolicyUtil, InfectionStatus,
                          SimulationState, Dilemma, DilemmaDecisionHistory, TribeSelector, RestaurantType)
 
@@ -140,8 +140,8 @@ class Human(AgentBase):
 
     def initialize_individual_properties(self):
         super().initialize_individual_properties()
-        self.properties.extroversion = normal_cap(get_parameters().get('extroversion_mean'),
-                                                  get_parameters().get('extroversion_stdev'), 0.0, 1.0)
+        self.properties.extroversion = beta_distribution(get_parameters().get('extroversion_mean'),
+                                                         get_parameters().get('extroversion_stdev'))
         self.dilemma_history = DilemmaDecisionHistory()
 
     def info(self):
@@ -477,10 +477,10 @@ class Adult(Human):
         super().initialize_individual_properties()
         mean = get_parameters().get('risk_tolerance_mean')
         stdev = get_parameters().get('risk_tolerance_stdev')
-        self.properties.risk_tolerance = normal_cap(mean, stdev, 0.0, 1.0)
+        self.properties.risk_tolerance = beta_distribution(mean, stdev)
         mean = get_parameters().get('herding_behavior_mean')
         stdev = get_parameters().get('herding_behavior_stdev')
-        self.properties.herding_behavior = normal_cap(mean, stdev, 0.0, 1.0)
+        self.properties.herding_behavior = beta_distribution(mean, stdev)
 
     def is_working_day(self):
         return self.covid_model.get_week_day() in self.work_info.work_days
