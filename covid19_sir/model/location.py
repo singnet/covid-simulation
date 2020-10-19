@@ -1,4 +1,4 @@
-from model.base import (AgentBase, SimulationState, flip_coin, get_parameters, unique_id, random_selection, normal_ci,
+from model.base import (AgentBase, SimulationState, flip_coin, get_parameters, unique_id, random_selection, beta_range,
                         logger)
 from model.utils import RestaurantType
 
@@ -116,9 +116,9 @@ class Restaurant(Location):
         outdoor = True
         indoor = False
         # https://docs.google.com/document/d/1imCNXOyoyecfD_sVNmKpmbWVB6xqP-FWlHELAyOg1Vs/edit
-        base_fast_food = normal_ci(0.014, 0.1, 10)
-        base_fancy = normal_ci(0.07, 0.2, 10)
-        base_bar = normal_ci(0.174, 0.796, 10)
+        base_fast_food = beta_range(0.014, 0.1)  # normal_ci(0.014, 0.1, 10)
+        base_fancy = beta_range(0.07, 0.2)  # normal_ci(0.07, 0.2, 10)
+        base_bar = beta_range(0.174, 0.796)  # normal_ci(0.174, 0.796, 10)
         cp = {
             RestaurantType.FAST_FOOD: {
                 indoor: base_fast_food,
@@ -157,7 +157,7 @@ class Restaurant(Location):
         ci = {1.0: (0.19, 1.23), 0.5: (0.11, 0.74), 0.25: (0.08, 0.50)}
         # https://docs.google.com/document/d/1imCNXOyoyecfD_sVNmKpmbWVB6xqP-FWlHELAyOg1Vs/edit
         lb, ub = ci[capacity]
-        self.spreading_rate = normal_ci(lb, ub, 20)
+        self.spreading_rate = beta_range(lb, ub)  # normal_ci(lb, ub, 20)
         if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
             self.spread_infection()
 

@@ -116,6 +116,30 @@ def roulette_selection(values, weights, num_selections=None):
         return answer
 
 
+def convert_parameters(mean, stdev):
+    """Converts mean and standard deviation parameters into alpha and beta to be used in the beta distribution."""
+    var = stdev ** 2
+    assert var < mean * (1 - mean), "Variance check failed when converting mean and stdev parameters to alpha and beta."
+    alpha = mean * (mean * (1-mean)/var - 1)
+    beta = (1-mean) * (mean * (1-mean)/var - 1)
+    return alpha, beta
+
+
+def beta_distribution(mean, stdev):
+    """Draws random values from a beta distribution using alpha and beta parameters derived from mean and standard
+    deviation."""
+    alpha, beta = convert_parameters(mean, stdev)
+    return np.random.beta(alpha, beta)
+
+
+def beta_range(lower_bound, upper_bound):
+    """Draws a random number from a beta distribution with parameters alpha = 2 and beta = 2 (this assures that the
+    values will stay in the range [0, 1]. Then rescales the values to the desired range."""
+    assert lower_bound < upper_bound, "Parameter lower_bound must be smaller than upper_bound."
+    return (np.random.beta(2, 2) * (upper_bound - lower_bound)) + lower_bound
+
+
+# DEPRECATED
 def normal_cap(mean, stdev, lower_bound=0, upper_bound=1):
     r = np.random.normal(mean, stdev)
     if r < lower_bound:
@@ -125,6 +149,7 @@ def normal_cap(mean, stdev, lower_bound=0, upper_bound=1):
     return r
 
 
+# DEPRECATED
 def normal_ci(ci_lower, ci_upper, n):
     # Assumption of 95% CI
     mean = (ci_lower + ci_upper) / 2
