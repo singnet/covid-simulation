@@ -94,22 +94,34 @@ class DebugUtils:
     def get_age_group_stats(self):
         count = [0] * 10
         deaths = [0] * 10
+        infected = [0] * 10 # Snapshot. This not an accumulative measure.
         recovered = [0] * 10
         death_mark = [0] * 10
+        hospitalized = [0] * 10
+        icu = [0] * 10
         for human in self.humans:
             index = human.age // 10
             count[index] += 1
             if human.is_dead:
                 deaths[index] += 1
+            if human.infection_status == InfectionStatus.INFECTED:
+                infected[index] += 1
             if human.infection_status == InfectionStatus.RECOVERED:
                 recovered[index] += 1
             if human.death_mark:
                 death_mark[index] += 1
+            if human.has_been_hospitalized:
+                hospitalized[index] += 1
+            if human.has_been_icu:
+                icu[index] += 1
         return pd.DataFrame({
             'count': count,
             'deaths': deaths,
+            'infected': infected, # Snapshot. This not an accumulative measure.
             'recovered': recovered,
-            'death_mark': death_mark
+            'death_mark': death_mark,
+            'hospitalized': hospitalized,
+            'icu': icu
         })
 
     def start_cycle(self, model):

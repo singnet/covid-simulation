@@ -136,6 +136,8 @@ class Human(AgentBase):
         self.immune = None
         self.early_symptom_detection = None
         self.count_infected_humans = 0
+        self.has_been_hospitalized = False
+        self.has_been_icu = False
         self.parameter_changed()
 
     def initialize_individual_properties(self):
@@ -238,6 +240,7 @@ class Human(AgentBase):
                             self.covid_model.global_count.total_hospitalized += 1
                             logger().info(f"{self} is now hospitalized")
                             self.hospitalized = True
+                            self.has_been_hospitalized = True
                             shape = get_parameters().get('hospitalization_period_duration_shape')
                             scale = get_parameters().get('hospitalization_period_duration_scale')
                             self.hospitalization_duration = np.random.gamma(shape, scale)
@@ -261,6 +264,7 @@ class Human(AgentBase):
                             shape = get_parameters().get('icu_period_duration_shape')
                             scale = get_parameters().get('icu_period_duration_scale')
                             self.icu_duration = np.random.gamma(shape, scale)
+                            self.has_been_icu = True
                             logger().debug(f"ICU duration of {self} is {self.icu_duration}")
                     else:
                         self.recover()
