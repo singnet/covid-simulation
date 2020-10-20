@@ -24,6 +24,9 @@ class DebugUtils:
         self.count_work = 0
         self.max_hospitalized = 0
         self.max_icu = 0
+        self.new_infections = []
+        self.last_infected_count = model.global_count.total_population - model.global_count.susceptible_count
+        self.new_infections.append(self.last_infected_count)
         self._populate()
 
     def print_world(self):
@@ -71,6 +74,11 @@ class DebugUtils:
             self.max_hospitalized = self.model.global_count.total_hospitalized
         if self.model.global_count.high_severity_count > self.max_icu:
             self.max_icu = self.model.global_count.high_severity_count
+
+    def update_new_infection_history(self):
+        n = self.model.global_count.total_population - self.model.global_count.susceptible_count
+        self.new_infections.append(n - self.last_infected_count)
+        self.last_infected_count = n
 
     def print_infection_status(self):
         self.update_infection_status()
@@ -124,6 +132,15 @@ class DebugUtils:
             'icu': icu
         })
 
+    def get_new_symptomatic_stats(self, simulation_days):
+        answer = []
+        for i in range(simulation_days):
+            if i in self.model.global_count.new_symptomatic_count:
+                answer.append(self.model.global_count.new_symptomatic_count[i])
+            else:
+                answer.append(0)
+        return answer
+
     def start_cycle(self, model):
         pass
 
@@ -131,6 +148,7 @@ class DebugUtils:
         self.update_human_status()
         self.update_infection_status()
         self.update_hospitalization_status()
+        self.update_new_infection_history()
 
     def _populate(self):
         for agent in self.model.agents:
