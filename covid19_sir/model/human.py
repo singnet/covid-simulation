@@ -226,6 +226,10 @@ class Human(AgentBase):
                     self.disease_severity = DiseaseSeverity.LOW
                     self.covid_model.global_count.asymptomatic_count -= 1
                     self.covid_model.global_count.symptomatic_count += 1
+                    day = self.covid_model.global_count.day_count
+                    if day not in self.covid_model.global_count.new_symptomatic_count:
+                        self.covid_model.global_count.new_symptomatic_count[day] = 0
+                    self.covid_model.global_count.new_symptomatic_count[day] += 1
             elif self.disease_severity == DiseaseSeverity.LOW:
                 if self.infection_days_count > self.infection_incubation + self.mild_duration:
                     # By the end of this period, either the patient is already with antibodies at
@@ -258,7 +262,7 @@ class Human(AgentBase):
                         self.covid_model.global_count.high_severity_count += 1
                         # If the disease evolves to HIGH and the person could not
                         # be accommodated in a hospital, he/she will die.
-                        if not self.hospitalized or self.death_mark or self.covid_model.reached_icu_limit():
+                        if not self.hospitalized or self.covid_model.reached_icu_limit():
                             self.die()
                         else:
                             shape = get_parameters().get('icu_period_duration_shape')

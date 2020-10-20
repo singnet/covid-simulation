@@ -240,6 +240,7 @@ class SimulationStatus:
         self.total_population = 0
         self.work_population = 0
         self.total_income = 0.0
+        self.new_symptomatic_count = {}
         self.infection_info = {}
 
 
