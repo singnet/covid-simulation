@@ -1,6 +1,8 @@
+import pandas as pd
 from model.base import logger
 from model.human import Human, Adult, K12Student, Toddler, Infant, Elder
 from model.location import Location, District, Restaurant
+from model.utils import InfectionStatus
 
 
 class DebugUtils:
@@ -15,11 +17,16 @@ class DebugUtils:
         self.districts = []
         self.restaurants = []
         self.model = model
-        human_status = {}
+        self.human_status = {}
         self.count_school = 0
         self.count_home = 0
         self.count_restaurant = 0
         self.count_work = 0
+        self.max_hospitalized = 0
+        self.max_icu = 0
+        self.new_infections = []
+        self.last_infected_count = model.global_count.total_population - model.global_count.susceptible_count
+        self.new_infections.append(self.last_infected_count)
         self._populate()
 
     def print_world(self):
@@ -39,10 +46,10 @@ class DebugUtils:
                 print(humans_in_building)
 
     def update_human_status(self):
-        for human in humans:
-            if human not in human_status:
-                human_status[human] = {}
-            human_status[human][self.model.global_count.day_count] = human.info()
+        for human in self.humans:
+            if human not in self.human_status:
+                self.human_status[human] = {}
+            self.human_status[human][self.model.global_count.day_count] = human.info()
 
     def update_infection_status(self):
         self.count_school = 0
@@ -62,6 +69,17 @@ class DebugUtils:
             else:
                 logger.warning(f"Unexpected infection location: {location}")
 
+    def update_hospitalization_status(self):
+        if self.model.global_count.total_hospitalized > self.max_hospitalized:
+            self.max_hospitalized = self.model.global_count.total_hospitalized
+        if self.model.global_count.high_severity_count > self.max_icu:
+            self.max_icu = self.model.global_count.high_severity_count
+
+    def update_new_infection_history(self):
+        n = self.model.global_count.total_population - self.model.global_count.susceptible_count
+        self.new_infections.append(n - self.last_infected_count)
+        self.last_infected_count = n
+
     def print_infection_status(self):
         self.update_infection_status()
         print(f"School: {self.count_school}")
@@ -69,6 +87,68 @@ class DebugUtils:
         print(f"Restaurant: {self.count_restaurant}")
         print(f"Work: {self.count_work}")
         print(f"Total: {self.count_school + self.count_home + self.count_restaurant + self.count_work}")
+
+    def get_R0_stats(self):
+        raw_data = []
+        for human in self.humans:
+            if human.infection_status == InfectionStatus.INFECTED or \
+               human.infection_status == InfectionStatus.RECOVERED:
+                raw_data.append(human.count_infected_humans)
+        return pd.DataFrame({
+            #TODO Add series for different location types
+            'infections': raw_data
+        })
+
+    def get_age_group_stats(self):
+        count = [0] * 10
+        deaths = [0] * 10
+        infected = [0] * 10 # Snapshot. This not an accumulative measure.
+        recovered = [0] * 10
+        death_mark = [0] * 10
+        hospitalized = [0] * 10
+        icu = [0] * 10
+        for human in self.humans:
+            index = human.age // 10
+            count[index] += 1
+            if human.is_dead:
+                deaths[index] += 1
+            if human.infection_status == InfectionStatus.INFECTED:
+                infected[index] += 1
+            if human.infection_status == InfectionStatus.RECOVERED:
+                recovered[index] += 1
+            if human.death_mark:
+                death_mark[index] += 1
+            if human.has_been_hospitalized:
+                hospitalized[index] += 1
+            if human.has_been_icu:
+                icu[index] += 1
+        return pd.DataFrame({
+            'count': count,
+            'deaths': deaths,
+            'infected': infected, # Snapshot. This not an accumulative measure.
+            'recovered': recovered,
+            'death_mark': death_mark,
+            'hospitalized': hospitalized,
+            'icu': icu
+        })
+
+    def get_new_symptomatic_stats(self, simulation_days):
+        answer = []
+        for i in range(simulation_days):
+            if i in self.model.global_count.new_symptomatic_count:
+                answer.append(self.model.global_count.new_symptomatic_count[i])
+            else:
+                answer.append(0)
+        return answer
+
+    def start_cycle(self, model):
+        pass
+
+    def end_cycle(self, model):
+        self.update_human_status()
+        self.update_infection_status()
+        self.update_hospitalization_status()
+        self.update_new_infection_history()
 
     def _populate(self):
         for agent in self.model.agents:

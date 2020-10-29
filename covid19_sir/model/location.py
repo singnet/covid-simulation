@@ -1,4 +1,4 @@
-from model.base import (AgentBase, SimulationState, flip_coin, get_parameters, unique_id, random_selection, normal_ci,
+from model.base import (AgentBase, SimulationState, flip_coin, get_parameters, unique_id, random_selection, beta_range,
                         logger)
 from model.utils import RestaurantType
 
@@ -48,6 +48,7 @@ class Location(AgentBase):
         if h1.is_infected():
             logger().debug(f"Check to see if {h1} can infect {h2} in {self}")
             if h1.is_contagious() and not h2.is_infected():
+                logger().debug(f"contagion_probability = {self.get_parameter('contagion_probability')}")
                 if flip_coin(self.get_parameter('contagion_probability')):
                     me = self.get_parameter('mask_efficacy')
                     if not h1.is_wearing_mask() or (h1.is_wearing_mask() and not flip_coin(me)):
@@ -56,6 +57,7 @@ class Location(AgentBase):
                         logger().debug(f"Infection succeeded - {h1} has infected {h2} in {self} with contagion "
                                        f"probability {self.get_parameter('contagion_probability')}")
 
+                        h1.count_infected_humans += 1
                         h2.infect()
                     else:
                         if h1.is_wearing_mask():
@@ -75,9 +77,10 @@ class Location(AgentBase):
         if len(self.humans) > 0:
             logger().info(f"{self} is spreading infection amongst {len(self.humans)} humans")
         for h1 in self.humans:
-            for h2 in self.humans:
-                if h1 != h2:
-                    self.check_spreading(h1, h2)
+            if h1.is_infected() and not h1.is_hospitalized() and not h1.is_isolated():
+                for h2 in self.humans:
+                    if h1 != h2:
+                        self.check_spreading(h1, h2)
 
 
 class BuildingUnit(Location):
@@ -110,24 +113,24 @@ class HomogeneousBuilding(Location):
 class Restaurant(Location):
     def __init__(self, capacity, restaurant_type, is_outdoor, covid_model, strid_prefix, strid_suffix, **kwargs):
         super().__init__(covid_model, strid_prefix, strid_suffix)
-        OUTDOOR = True
-        INDOOR = False
+        outdoor = True
+        indoor = False
         # https://docs.google.com/document/d/1imCNXOyoyecfD_sVNmKpmbWVB6xqP-FWlHELAyOg1Vs/edit
-        base_fast_food = normal_ci(0.014, 0.1, 10)
-        base_fancy = normal_ci(0.07, 0.2, 10)
-        base_bar = normal_ci(0.174, 0.796, 10)
+        base_fast_food = beta_range(0.014, 0.1)  # normal_ci(0.014, 0.1, 10)
+        base_fancy = beta_range(0.07, 0.2)  # normal_ci(0.07, 0.2, 10)
+        base_bar = beta_range(0.174, 0.796)  # normal_ci(0.174, 0.796, 10)
         cp = {
             RestaurantType.FAST_FOOD: {
-                INDOOR: base_fast_food,
-                OUTDOOR: base_fast_food / 2
+                indoor: base_fast_food,
+                outdoor: base_fast_food / 2
             },
             RestaurantType.FANCY: {
-                INDOOR: base_fancy,
-                OUTDOOR: base_fancy / 2
+                indoor: base_fancy,
+                outdoor: base_fancy / 2
             },
             RestaurantType.BAR: {
-                INDOOR: base_bar,
-                OUTDOOR: base_bar / 2
+                indoor: base_bar,
+                outdoor: base_bar / 2
             }
         }
         self.capacity = capacity
@@ -154,7 +157,7 @@ class Restaurant(Location):
         ci = {1.0: (0.19, 1.23), 0.5: (0.11, 0.74), 0.25: (0.08, 0.50)}
         # https://docs.google.com/document/d/1imCNXOyoyecfD_sVNmKpmbWVB6xqP-FWlHELAyOg1Vs/edit
         lb, ub = ci[capacity]
-        self.spreading_rate = normal_ci(lb, ub, 20)
+        self.spreading_rate = beta_range(lb, ub)  # normal_ci(lb, ub, 20)
         if self.covid_model.current_state == SimulationState.POST_WORK_ACTIVITY:
             self.spread_infection()
 
@@ -176,7 +179,8 @@ class District(Location):
             if isinstance(location, Restaurant) and \
                     location.restaurant_type == restaurant_type and \
                     location.is_outdoor == outdoor and \
-                    (location.available * self.get_parameter('allowed_restaurant_capacity')) >= people_count:
+                    ((location.capacity - location.available) + people_count) <= \
+                    location.capacity * self.get_parameter('allowed_restaurant_capacity'):
                 return location
         logger().info("No restaurant is available")
         return None

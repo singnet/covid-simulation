@@ -11,7 +11,7 @@ import random
 import math
 import numpy as np
 
-from model.base import set_parameters, normal_ci
+from model.base import set_parameters, beta_range
 
 
 def confidence_interval(data, confidence=0.95):
@@ -87,7 +87,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
     ax.set_title('Contagion Evolution')
     ax.set_xlim((0, simulation_cycles))
     ax.set_ylim((-0.1,1.1))
-    ax.axhline(y=get_parameters().get('hospitalization_capacity'), c="black", ls='--', label='Critical limit')
+    ax.axhline(y=get_parameters().get('icu_capacity'), c="black", ls='--', label='Critical limit')
 	
     for s in randomlist:
         adict = {stat:all_runs[stat][s] for stat in desired_stats} 
@@ -228,7 +228,7 @@ class BasicStatistics:
         fig, ax = plt.subplots()
         ax.set_title('Contagion Evolution')
         ax.set_xlim((0, self.cycles_count))
-        ax.axhline(y=get_parameters().get('hospitalization_capacity'), c="black", ls='--', label='Critical limit')
+        ax.axhline(y=get_parameters().get('icu_capacity'), c="black", ls='--', label='Critical limit')
         for col in df.columns.values:
             ax.plot(df.index.values, df[col].values, c=color[col], label=col)
         ax.set_xlabel("Days")
@@ -264,7 +264,23 @@ class RemovePolicy:
         if self.state == 0:
             if self.model.global_count.day_count == self.switch:
                 get_parameters().get('social_policies').remove(self.policy)
+                self.state = 1
 
+class AddPolicyInfectedRate:
+    def __init__(self, model, policy, v):
+        self.trigger = v
+        self.policy = policy
+        self.model = model
+        self.state = 0
+
+    def start_cycle(self, model):
+        pass
+
+    def end_cycle(self, model):
+        if self.state == 0:
+            if self.model.global_count.infected_count / self.model.global_count.total_population >= self.trigger:
+                get_parameters().get('social_policies').append(self.policy)
+                self.state = 1
 
 class Propaganda:
     def __init__(self, model, n):
@@ -285,14 +301,13 @@ class Propaganda:
         self.model.reroll_human_properties()
 
     def end_cycle(self, model):
+        self.count += 1
         if self.state == 0:
             if self.model.global_count.day_count == self.switch:
                 self.state = 1
-                self.count += 1
                 self.tick()
         elif self.state == 1:
             if not (self.count % 3):
-                self.count += 1
                 self.tick()
 
 
@@ -330,17 +345,17 @@ def setup_city_layout(model, population_size):
                                    appartment_building_capacity,
                                    appartment_capacity,
                                    appartment_building_occupacy_rate,
-                                   normal_ci(0.021, 0.12, 10))
+                                   beta_range(0.021, 0.12))  # normal_ci(0.021, 0.12, 10)
     work_district = build_district("Work", model, population_size,
                                    work_building_capacity,
                                    office_capacity,
                                    work_building_occupacy_rate,
-                                   normal_ci(0.007, 0.06, 10))
+                                   beta_range(0.007, 0.06))  # normal_ci(0.007, 0.06, 10)
     school_district = build_district("School", model, population_size,
                                      school_capacity,
                                      classroom_capacity,
                                      school_occupacy_rate,
-                                     normal_ci(0.014, 0.08, 10))
+                                     beta_range(0.014, 0.08))  # normal_ci(0.014, 0.08, 10)
 
     home_district.debug = model.debug
     work_district.debug = model.debug
@@ -348,7 +363,7 @@ def setup_city_layout(model, population_size):
 
     # Add Restaurants to work_district
 
-    for i in range(10):
+    for i in range(get_parameters().params['restaurant_count_per_work_district']):
         if flip_coin(0.5):
             restaurant_type = RestaurantType.FAST_FOOD
             rtype = "FASTFOOD"
@@ -356,7 +371,12 @@ def setup_city_layout(model, population_size):
             restaurant_type = RestaurantType.FANCY
             rtype = "FANCY"
         restaurant = Restaurant(
-            normal_cap(50, 20, 16, 100),
+            normal_cap(
+                get_parameters().params['restaurant_capacity_mean'], 
+                get_parameters().params['restaurant_capacity_stdev'], 
+                16, 
+                200
+            ),
             restaurant_type,
             flip_coin(0.5),
             model,

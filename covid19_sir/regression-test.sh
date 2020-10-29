@@ -1,8 +1,8 @@
 #!/bin/sh
 
-\rm -rf /tmp/regression-test/
-mkdir /tmp/regression-test/
+\rm -f simulation.log &&\
+\rm -f /tmp/simulation.log &&\
+cp -f regression-test-baseline/simulation.log.gz /tmp &&\
+gunzip /tmp/simulation.log.gz &&\
 python3 simple-simulation.py 31415 &&\
-mv scenario[1234567].csv /tmp/regression-test/ &&\
-mv scenario[1234567].png /tmp/regression-test/ &&\
-diff /tmp/regression-test/ regression-test-baseline/
+diff simulation.log /tmp/simulation.log
