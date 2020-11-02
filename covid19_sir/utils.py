@@ -26,10 +26,10 @@ def confidence_interval(data, confidence=0.95):
     return start, m, end
 
 
-def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=None, debug=False,
+def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=[], debug=False,
                   desired_stats=None,fname="scenario", listeners = [],do_print=False, 
-                  home_grid_height = 3, home_grid_width = 4, 
-                  work_height = 1, work_width =2, school_height=2, school_width=1):
+                  home_grid_height = 1, home_grid_width = 1, 
+                  work_height = 1, work_width =1, school_height=1, school_width=1):
     color = {
             'susceptible': 'lightblue',
             'infected': 'gray',
@@ -41,7 +41,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
         }
     if desired_stats is None:
         desired_stats = ["susceptible", "infected", "recovered", "hospitalization", "icu", "death", "income"]
-    randomlist = random.sample(range(10000), num_runs) if seeds is None else seeds
+    randomlist = random.sample(range(10000), num_runs) if len(seeds) == 0  else seeds
     if do_print:
         print("Save these seeds if you want to rerun a scenario")
         print(randomlist)
@@ -79,11 +79,12 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             model.debug_each_n_cycles = 20
         np.random.seed(s + 1)
         random.seed(s + 2)
+        model.reset_randomizer(s)
+
         setup_grid_layout(model, population_size, home_grid_height, 
         home_grid_width,work_height,work_width, school_height, school_width)
         if do_print:
             print("run with seed {0}:".format(str(s)))
-        model.reset_randomizer(s)
         statistics = BasicStatistics(model)
         model.add_listener(statistics)
         for i in range(simulation_cycles):
@@ -279,6 +280,23 @@ class RemovePolicy:
             if self.model.global_count.day_count == self.switch:
                 get_parameters().get('social_policies').remove(self.policy)
                 self.state = 1
+
+class AddPolicy:
+    def __init__(self, model, policy, n):
+        self.switch = n
+        self.policy = policy
+        self.model = model
+        self.state = 0
+
+    def start_cycle(self, model):
+        pass
+
+    def end_cycle(self, model):
+        if self.state == 0:
+            if self.model.global_count.day_count == self.switch:
+                get_parameters().get('social_policies').append(self.policy)
+                self.state = 1
+
 
 class AddPolicyInfectedRate:
     def __init__(self, model, policy, v):
@@ -487,28 +505,27 @@ def setup_city_layout(model, population_size):
             elif isinstance(human, Toddler):
                 human.unique_id = "Toddler" + str(count)
 
-def setup_grid_layout(model, population_size, 
+def setup_grid_layout(model, population_size,
         home_grid_height, home_grid_width,work_height,work_width, school_height, school_width):
     #Makes a grid of homogeneous home districts, overlaid by school and work districts.
-    #home_grid_height is the number of home districts high the grid is, and 
+    #home_grid_height is the number of home districts high the grid is, and
     #home_grid_width is the nmber of home districts wide the grid is
     #school height and work height are how many home districts high a school
     #district and work are respectively, and the same for their length.
-    #each begins in grid 0,0 and cover the orignal home district grid.  
+    #each begins in grid 0,0 and cover the orignal home district grid.
     #Persons assigned to the home districts are also assigned to the school
     #and work districts that cover them. The parameters determine the amount
     #of leakage across groups of people.  With parameters (10,10,1,1,1,1) you get 100
-    #completely separated districts with no leakage.  With parameters (3,4,1,2,2,1) you 
-    #get a grid where every one is connected to everyone else, but there is a large 
+    #completely separated districts with no leakage.  With parameters (6,6,2,2,3,3) you
+    #get a grid where every one is connected to everyone else, but there is a
     #degree of separation.  For example, a person in home district (0,0) can be infected
-    #by a person in (2,3) but it would be bridged by five infections, slowing the 
+    #by a person in (5,5) but it would be bridged by three infections, slowing the
     #virus down.  Larger sizes for work and school districts enable faster spread. Fastest
     #spread occurs with parameters (1,1,1,1,1,1) or equivalently (10,10, 10,10,10,10)
     #or any of the same number
-    #Since this is just a way to allocate human interactions, no label is needed and 
+    #Since this is just a way to allocate human interactions, no label is needed and
     #the grid need not be saved, for interactions to occur, although this inforamtion
-    #may be useful for visualizations.
-    
+    #may be useful for visualizations.    
     work_building_capacity = 20
     office_capacity = 10
     work_building_occupacy_rate = 0.5
