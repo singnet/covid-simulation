@@ -45,6 +45,7 @@ class Location(AgentBase):
         super().step()
 
     def check_spreading(self, h1, h2):
+        #print(f"check-spreading in location {self.unique_id} of types {type(self).mro()}")
         if h1.is_infected():
             logger().debug(f"Check to see if {h1} can infect {h2} in {self}")
             if h1.is_contagious() and not h2.is_infected():
@@ -266,3 +267,5 @@ class District(Location):
             district_total_humans += sum_allocated
         txt = txt + f"Total of {district_total_humans} people allocated in this district.\n"
         return txt
+
+
