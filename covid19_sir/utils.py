@@ -65,6 +65,10 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
         paramcopy = copy.deepcopy(params)
         set_parameters(paramcopy)
         model = CovidModel(debug=debug)
+        np.random.seed(s + 1)
+        random.seed(s + 2)
+        model.reset_randomizer(s)
+
         l = []
         ls= copy.deepcopy(listeners)
         for listener in ls:
@@ -77,10 +81,6 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             #print(m)
         if debug:
             model.debug_each_n_cycles = 20
-        np.random.seed(s + 1)
-        random.seed(s + 2)
-        model.reset_randomizer(s)
-
         setup_grid_layout(model, population_size, home_grid_height, 
         home_grid_width,work_height,work_width, school_height, school_width)
         if do_print:
