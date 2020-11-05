@@ -99,7 +99,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             peak[stat].append(max(all_runs[stat][s]))
 			
 	
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(8,5))
     ax.set_title('Contagion Evolution')
     ax.set_xlim((0, simulation_cycles))
     ax.set_ylim((-0.1,1.1))
@@ -127,13 +127,17 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
         ax.plot(lower[stat],color=color[stat], linewidth=2) #mean curve.
         ax.plot(average[stat], color=color[stat],linewidth=2)
         ax.plot(upper[stat], color=color[stat],linewidth=2)
-        ax.fill_between(simulation_cycles, lower[stat], upper[stat], color=color[stat], alpha=.1, label = stat) #std curves.
+        ax.fill_between(simulation_cycles, lower[stat], upper[stat], color=color[stat], alpha=1, label = stat) #std curves.
 			
 			
     ax.set_xlabel("Days")
     ax.set_ylabel("% of Population")
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles, labels, loc='upper right')
+    # Shrink current axis by 20%
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    # Put a legend to the right of the current axis
+    ax.legend(handles, labels, loc='center left', bbox_to_anchor=(1, 0.5))
     fig.show()
     fig.savefig(fname+".png")
 	
