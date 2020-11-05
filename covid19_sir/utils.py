@@ -11,6 +11,7 @@ from scipy.stats import sem, t
 import random
 import math
 import numpy as np
+from numpy import mean
 
 from model.base import set_parameters, beta_range
 
@@ -107,7 +108,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
     for s in randomlist:
         adict = {stat:all_runs[stat][s] for stat in desired_stats} 
         df = pd.DataFrame (data=adict)
-        df.to_csv(fname+"-"+str(s)+".csv")
+        #df.to_csv(fname+"-"+str(s)+".csv")
   
     each_step = {}
     for stat in desired_stats:
@@ -282,7 +283,8 @@ class RemovePolicy:
     def end_cycle(self, model):
         if self.state == 0:
             if self.model.global_count.day_count == self.switch:
-                get_parameters().get('social_policies').remove(self.policy)
+                if self.policy in get_parameters().get('social_policies'):
+                    get_parameters().get('social_policies').remove(self.policy)
                 self.state = 1
 
 class AddPolicy:
@@ -317,6 +319,66 @@ class AddPolicyInfectedRate:
             if self.model.global_count.infected_count / self.model.global_count.total_population >= self.trigger:
                 get_parameters().get('social_policies').append(self.policy)
                 self.state = 1
+                
+                
+class AddPolicyInfectedRateWindow:
+    # Adds a policy after the infection rate has been above a value for n cycles
+    
+    def __init__(self, model, policy, v, n):
+        self.trigger = v
+        self.policy = policy
+        self.model = model
+        self.state = 0
+        self.recent_trigger_window =[]
+        self.n = n
+        
+    def start_cycle(self, model):
+        pass
+
+    def end_cycle(self, model):
+        self.recent_trigger_window.append(self.model.global_count.infected_count/ self.model.global_count.total_population)
+        while len( self.recent_trigger_window) > self.n:
+            self.recent_trigger_window.pop(0)
+        if self.state == 0 and len(self.recent_trigger_window) == self.n:
+            add = True
+            for rate in self.recent_trigger_window:
+                if  rate < self.trigger:
+                    add = False
+            if add:
+                get_parameters().get('social_policies').append(self.policy)
+                self.state = 1
+                
+     
+    
+class RemovePolicyInfectedRateWindow:
+    # Removes a policy after the infection rate has been below a value for n cycles
+    
+    def __init__(self, model, policy, v, n):
+        self.trigger = v
+        self.policy = policy
+        self.model = model
+        self.state = 0
+        self.recent_trigger_window = []
+        self.n=n
+
+    def start_cycle(self, model):
+        pass
+
+    def end_cycle(self, model):
+        self.recent_trigger_window.append(self.model.global_count.infected_count/ self.model.global_count.total_population)
+        while len( self.recent_trigger_window) > self.n:
+            self.recent_trigger_window.pop(0)
+        if self.state == 0 and len(self.recent_trigger_window) == self.n:
+            remove = True
+            for rate in self.recent_trigger_window:
+                if  rate >= self.trigger:
+                    remove = False
+                
+            if remove and self.policy in get_parameters().get('social_policies'):
+                get_parameters().get('social_policies').remove(self.policy)
+                self.state = 1
+                
+                
 
 class Propaganda:
     def __init__(self, model, n):
