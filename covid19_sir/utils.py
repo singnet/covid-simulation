@@ -141,7 +141,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             ax2.plot(upper[stat], color=color[stat], linewidth=.3)
             ax2.fill_between(np.arange(simulation_cycles), lower[stat], upper[stat], color=color[stat],
                              alpha=.1)  # std curves.
-			
+
 			
     ax.set_xlabel("Days")
     ax.set_ylabel("% of Population")
