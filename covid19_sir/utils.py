@@ -111,7 +111,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
         ax2.set_xlim((0, simulation_cycles))
         ax2.set_ylim(zoomed_plot_ylim)
         ax2.axhline(y=get_parameters().get('icu_capacity'), c="black", ls='--', label='Critical limit')
-	
+
     for s in randomlist:
         adict = {stat:all_runs[stat][s] for stat in desired_stats} 
         df = pd.DataFrame (data=adict)
@@ -131,17 +131,17 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
         #print (lower[stat])
         #print (upper[stat])
 #Plotting:
-        ax.plot(lower[stat],color=color[stat], linewidth=2) #mean curve.
-        ax.plot(average[stat], color=color[stat],linewidth=2)
-        ax.plot(upper[stat], color=color[stat],linewidth=2)
-        ax.fill_between(simulation_cycles, lower[stat], upper[stat], color=color[stat], alpha=1, label = stat) #std curves.
+        ax.plot(lower[stat], color=color[stat], linewidth=.3) #mean curve.
+        ax.plot(average[stat], color=color[stat], linewidth=2, label=stat)
+        ax.plot(upper[stat], color=color[stat], linewidth=.3)
+        ax.fill_between(np.arange(simulation_cycles), lower[stat], upper[stat], color=color[stat], alpha=.1) #std curves.
         if zoomed_plot:
             ax2.plot(lower[stat], color=color[stat], linewidth=.3)  # mean curve.
             ax2.plot(average[stat], color=color[stat], linewidth=2, label=stat)
             ax2.plot(upper[stat], color=color[stat], linewidth=.3)
             ax2.fill_between(np.arange(simulation_cycles), lower[stat], upper[stat], color=color[stat],
                              alpha=.1)  # std curves.
-			
+
 			
     ax.set_xlabel("Days")
     ax.set_ylabel("% of Population")
