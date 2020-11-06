@@ -27,10 +27,10 @@ def confidence_interval(data, confidence=0.95):
     return start, m, end
 
 
-def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=[], debug=False,
-                  desired_stats=None,fname="scenario", listeners = [],do_print=False, 
-                  home_grid_height = 1, home_grid_width = 1, 
-                  work_height = 1, work_width =1, school_height=1, school_width=1):
+def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=[], debug=False, desired_stats=None,
+                  fname="scenario", listeners=[], do_print=False, home_grid_height=1, home_grid_width=1,
+                  work_height=1, work_width=1, school_height=1, school_width=1, zoomed_plot=True,
+                  zoomed_plot_ylim=(-0.01, .12)):
     color = {
             'susceptible': 'lightblue',
             'infected': 'gray',
@@ -104,7 +104,14 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
     ax.set_xlim((0, simulation_cycles))
     ax.set_ylim((-0.1,1.1))
     ax.axhline(y=get_parameters().get('icu_capacity'), c="black", ls='--', label='Critical limit')
-	
+
+    if zoomed_plot:
+        fig2, ax2 = plt.subplots(figsize=(8, 5))
+        ax2.set_title('Contagion Evolution')
+        ax2.set_xlim((0, simulation_cycles))
+        ax2.set_ylim(zoomed_plot_ylim)
+        ax2.axhline(y=get_parameters().get('icu_capacity'), c="black", ls='--', label='Critical limit')
+
     for s in randomlist:
         adict = {stat:all_runs[stat][s] for stat in desired_stats} 
         df = pd.DataFrame (data=adict)
@@ -128,6 +135,12 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
         ax.plot(average[stat], color=color[stat], linewidth=2, label=stat)
         ax.plot(upper[stat], color=color[stat], linewidth=.3)
         ax.fill_between(np.arange(simulation_cycles), lower[stat], upper[stat], color=color[stat], alpha=.1) #std curves.
+        if zoomed_plot:
+            ax2.plot(lower[stat], color=color[stat], linewidth=.3)  # mean curve.
+            ax2.plot(average[stat], color=color[stat], linewidth=2, label=stat)
+            ax2.plot(upper[stat], color=color[stat], linewidth=.3)
+            ax2.fill_between(np.arange(simulation_cycles), lower[stat], upper[stat], color=color[stat],
+                             alpha=.1)  # std curves.
 			
 			
     ax.set_xlabel("Days")
@@ -140,7 +153,19 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
     ax.legend(handles, labels, loc='center left', bbox_to_anchor=(1, 0.5))
     fig.show()
     fig.savefig(fname+".png")
-	
+
+    if zoomed_plot:
+        ax2.set_xlabel("Days")
+        ax2.set_ylabel("% of Population")
+        handles, labels = ax2.get_legend_handles_labels()
+        # Shrink current axis by 20%
+        box = ax2.get_position()
+        ax2.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        # Put a legend to the right of the current axis
+        ax2.legend(handles, labels, loc='center left', bbox_to_anchor=(1, 0.5))
+        fig2.show()
+        fig2.savefig(fname + ".png")
+
     if do_print:
         for stat, x in avg.items():
             print("using average of time series:")
