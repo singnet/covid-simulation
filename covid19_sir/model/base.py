@@ -8,7 +8,7 @@ from mesa.time import RandomActivation
 from model.utils import SimulationState, WeekDay
 
 LOG_FILE_NAME = './simulation.log'
-LOGGING_LEVEL = logging.DEBUG
+LOGGING_LEVEL = logging.CRITICAL
 
 
 def flip_coin(prob):

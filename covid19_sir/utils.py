@@ -114,7 +114,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
 
     for s in randomlist:
         adict = {stat:all_runs[stat][s] for stat in desired_stats} 
-        df = pd.DataFrame (data=adict)
+        #df = pd.DataFrame (data=adict)
         #df.to_csv(fname+"-"+str(s)+".csv")
   
     each_step = {}
