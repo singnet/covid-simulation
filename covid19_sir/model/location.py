@@ -164,24 +164,26 @@ class Restaurant(Location):
 
 
 class District(Location):
-    def __init__(self, name, covid_model, strid_prefix, strid_suffix, **kwargs):
+    def __init__(self, name, covid_model, strid_prefix, strid_suffix,home_district_list=[], **kwargs):
         super().__init__(covid_model, strid_prefix, strid_suffix)
         self.allocation = {}
         self.name = name
         self.debug = False
+        self.home_district_list = home_district_list
 
     def get_buildings(self, human):
         if human in self.allocation:
             return self.allocation[human]
         return []
 
-    def get_available_restaurant(self, people_count, outdoor, restaurant_type):
+    def get_available_restaurant(self, people_count, outdoor, restaurant_type,favorites):
         for location in self.locations:
             if isinstance(location, Restaurant) and \
                     location.restaurant_type == restaurant_type and \
                     location.is_outdoor == outdoor and \
                     ((location.capacity - location.available) + people_count) <= \
-                    location.capacity * self.get_parameter('allowed_restaurant_capacity'):
+                    location.capacity * self.get_parameter('allowed_restaurant_capacity' and 
+                    location.strid in favorites):
                 return location
         logger().info("No restaurant is available")
         return None

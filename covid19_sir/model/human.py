@@ -512,9 +512,9 @@ class Adult(Human):
             restaurant_type = RestaurantType.FANCY
         else:
             restaurant_type = RestaurantType.FAST_FOOD
-        event = self.work_district.get_available_restaurant(len(accepted), outdoor, restaurant_type)
+        event = self.work_district.get_available_restaurant(len(accepted), outdoor, restaurant_type,self.restaurants)
         if event is not None and not outdoor:
-            event = self.work_district.get_available_restaurant(len(accepted), True, restaurant_type)
+            event = self.work_district.get_available_restaurant(len(accepted), True, restaurant_type,self.restaurants)
         if event is None:
             return
         event.available -= len(accepted)
