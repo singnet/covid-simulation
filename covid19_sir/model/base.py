@@ -282,7 +282,7 @@ class SimulationParameters:
                        'restaurant_capacity_mean': kwargs.get("restaurant_capacity_mean", 50),
                        'restaurant_capacity_stdev': kwargs.get("restaurant_capacity_stdev", 20),
                        'min_behaviors_to_copy': kwargs.get("min_behaviors_to_copy", 3),
-                       'num_communities': kwargs.get("num_communities",20),
+                       'num_communities': kwargs.get("num_communities",1),
                        'num_features':kwargs.get("num_features",10),
                        'temperature':kwargs.get("num_features",-1)}
 

@@ -29,7 +29,7 @@ def confidence_interval(data, confidence=0.95):
 
 def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=[], debug=False, desired_stats=None,
                   fname="scenario", listeners=[], do_print=False, home_grid_height=1, home_grid_width=1,
-                  work_home_list=[(0,0)], school_home_list=[(0,0)], temperature = -1, zoomed_plot=True,
+                  work_home_list=[[(0,0)]], school_home_list=[[(0,0)]], temperature = -1, zoomed_plot=True,
                   zoomed_plot_ylim=(-0.01, .12)):
     color = {
             'susceptible': 'lightblue',
@@ -902,6 +902,7 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     school_capacity = 50
     classroom_capacity = 20
     school_occupacy_rate = 0.5
+    family_temperature =  get_parameters().params['temperature']
     home_room_temperature = get_parameters().params['temperature']
     school_room_temperature = get_parameters().params['temperature']
     work_room_temperature = get_parameters().params['temperature']
@@ -928,7 +929,7 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
             home_district.debug = model.debug
 
             home_districts.append(home_district)
-            home_district_in_position[(hh,hw)] = home_district.strid
+            home_district_in_position[(hh,hw)] = home_district
 
     for w in range(len(work_home_list)):
         work_district = build_district(f"Work ({w})", model, population_size,
@@ -993,11 +994,13 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     family_factory = FamilyFactory(model)
     family_factory.factory(population_size)
     model.global_count.total_population = family_factory.human_count
+    print ("family_factory.human_count")
+    print (family_factory.human_count)
 
     # print(family_factory)
-    hrf = HomophilyRelationshipFactory(model,population_size,get_parameters().params['num_communities'],
+    hrf = HomophilyRelationshipFactory(model,family_factory.human_count,get_parameters().params['num_communities'],
         get_parameters().params['num_features'],home_district_in_position)
-    hrf.assign_features_to_families(family_factory.families)
+    hrf.assign_features_to_families(family_factory.families,family_temperature)
     hrf.map_home_districts_to_blobs(home_grid_height,home_grid_width)
     hrf.assign_features_to_homes(home_room_temperature)
     hrf.assign_features_to_schools(school_room_temperature)
