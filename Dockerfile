@@ -23,7 +23,8 @@ RUN apt-get update && \
     git \
     wget \
     vim \
-    curl
+    curl \
+    sudo
 
 RUN cd /tmp && \
     apt update && \
@@ -40,6 +41,10 @@ ADD ./requirements.txt ${SINGNET_DIR}
 
 RUN cd ${SINGNET_DIR} && \
     pip3 install -r requirements.txt
+
+COPY ./covid19_sir/notebooks/ramon/lib/ModularVisualization.py /usr/local/lib/python3.6/dist-packages/mesa/visualization/ModularVisualization.py
+
+COPY ./covid19_sir/notebooks/ramon/lib/ChartModule.js /usr/local/lib/python3.6/dist-packages/mesa/visualization/templates/js/ChartModule.js
 
 RUN addgroup --gid $GROUP_ID user && \
     adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID user
