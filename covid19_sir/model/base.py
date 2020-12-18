@@ -6,6 +6,7 @@ import logging
 from mesa import Agent, Model
 from mesa.time import RandomActivation
 from model.utils import SimulationState, WeekDay
+from mesa.datacollection import DataCollector
 
 LOG_FILE_NAME = './simulation.log'
 LOGGING_LEVEL = logging.CRITICAL
@@ -326,6 +327,18 @@ class AgentBase(Agent):
             self._debug()
 
 
+def get_infected_count(model):
+    return model.global_count.infected_count
+
+
+def get_hospitalized_count(model):
+    return model.global_count.total_hospitalized
+
+
+def get_death_count(model):
+    return model.global_count.death_count
+
+
 class CovidModel(Model):
     def __init__(self, debug=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -346,6 +359,12 @@ class CovidModel(Model):
             SimulationState.COMMUTING_TO_HOME: SimulationState.EVENING_AT_HOME,
             SimulationState.EVENING_AT_HOME: SimulationState.MORNING_AT_HOME
         }
+        self.running = True
+        self.datacollector = DataCollector(
+            model_reporters={"Infected": get_infected_count,
+                             "Hospitalized": get_hospitalized_count,
+                             "Dead": get_death_count}
+        )
 
     def reached_hospitalization_limit(self):
         return (self.global_count.total_hospitalized / self.global_count.total_population) >= parameters.get(
@@ -400,6 +419,7 @@ class CovidModel(Model):
             if self.current_state == SimulationState.MORNING_AT_HOME:
                 flag = True
 
+        self.datacollector.collect(self)
         for listener in self.listeners:
             listener.end_cycle(self)
         self.global_count.day_count += 1

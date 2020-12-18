@@ -11,7 +11,8 @@ from scipy.stats import sem, t
 import random
 import math
 import numpy as np
-from numpy import mean
+from mesa.space import MultiGrid
+from mesa.visualization.ModularVisualization import ModularServer
 
 from model.base import set_parameters, beta_range
 
@@ -640,9 +641,12 @@ def setup_grid_layout(model, population_size,
     work_grid_height = math.ceil(home_grid_height/work_height)
     work_grid_width = math.ceil(home_grid_width/work_width)
 
+    # Add model grid
+    model.grid = MultiGrid(home_grid_width, home_grid_height, True)
+
     for hw in range(home_grid_width):
         for hh in range(home_grid_height):
-
+            # print("Creating district: " + f"Home ({hh},{hw})")
             home_district = build_district(f"Home ({hh},{hw})", model, population_size,
                                    appartment_building_capacity,
                                    appartment_capacity,
@@ -652,15 +656,21 @@ def setup_grid_layout(model, population_size,
             home_district.debug = model.debug
 
             home_districts.append(home_district)
-            home_number = hw*home_grid_height + hh 
+            home_number = hw*home_grid_height + hh
             assert home_number == len(home_districts) - 1
+            # print("Placing home_district in " + str(hw) + " " + str(hh))
+            model.grid.place_agent(home_district, (hw, hh))
 
-            sh = hh // school_height 
+            # PLACING FAKE DISTRICT TO DISPLAY MORE INFORMATION ABOUT HOME DISTRICTS!
+            fake_district = District(f"F_Home ({hh},{hw})", model, '', f"F_Home ({hh},{hw})")
+            model.grid.place_agent(fake_district, (hw, hh))
+
+            sh = hh // school_height
             sw = hw // school_width
             school_number = sw*school_grid_height+ sh
             school_map[home_number] = school_number
 
-            wh = hh // work_height 
+            wh = hh // work_height
             ww = hw // work_width
             work_number = ww*work_grid_height+ wh
             work_map[home_number] = work_number
@@ -668,7 +678,7 @@ def setup_grid_layout(model, population_size,
 
     for ww in range(work_grid_width):
         for wh in range(work_grid_height):
-             
+
             work_district = build_district(f"Work ({wh},{ww})", model, population_size,
                                    work_building_capacity,
                                    office_capacity,
@@ -685,9 +695,9 @@ def setup_grid_layout(model, population_size,
                     rtype = "FANCY"
                 restaurant = Restaurant(
                     normal_cap(
-                        get_parameters().params['restaurant_capacity_mean'], 
-                        get_parameters().params['restaurant_capacity_stdev'], 
-                        16, 
+                        get_parameters().params['restaurant_capacity_mean'],
+                        get_parameters().params['restaurant_capacity_stdev'],
+                        16,
                         200
                     ),
                     restaurant_type,
@@ -711,21 +721,26 @@ def setup_grid_layout(model, population_size,
 
     for sw in range(school_grid_width):
         for sh in range(school_grid_height):
-    
+            # print("Creating district: " + f"School ({sh},{sw})")
+
             school_district = build_district(f"School ({sh},{sw})", model, population_size,
                                      school_capacity,
                                      classroom_capacity,
                                      school_occupacy_rate,
                                      beta_range(0.014, 0.08))  # normal_ci(0.014, 0.08, 10)
-            
+
             school_district.debug = model.debug
             school_districts.append(school_district)
 
+            # print("Placing school_district in " + str(sw * school_width) + " " + str(sh * school_height))
+            for sw_i in range(school_width):
+                for sh_i in range(school_height):
+                    model.grid.place_agent(school_district, (sw * school_width + sw_i, sh * school_height + sh_i))
     #print ("work_map")
     #print (work_map)
     #print ("school_map")
     #print (school_map)
-    
+
 
     # Build families
 
@@ -762,7 +777,7 @@ def setup_grid_layout(model, population_size,
         home_district = home_districts[home_district_num]
         work_district = work_districts[work_map[home_district_num]]
         school_district = school_districts[school_map[home_district_num]]
-    
+
         home_district.allocate(family, True, True, True)
         work_district.allocate(adults)
         school_district.allocate(students, True)
