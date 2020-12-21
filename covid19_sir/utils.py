@@ -28,7 +28,7 @@ def confidence_interval(data, confidence=0.95):
 
 
 def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=[], debug=False, desired_stats=None,
-                  fname="scenario", listeners=[], do_print=False, home_grid_height=1, home_grid_width=1,
+                  fname="scenario", listeners=[], do_print=False, home_grid_height=3, home_grid_width=4,
                   work_home_list=[[(0,0)]], school_home_list=[[(0,0)]], temperature = -1, zoomed_plot=True,
                   zoomed_plot_ylim=(-0.01, .12)):
     color = {
@@ -464,8 +464,8 @@ import networkx as nx
 
 class Network:
     def __init__(self, model,clumpiness=[]):
-        self.model = model      
-        self.districts = [ agent for agent in self.model.agents if isinstance(agent,District)]
+        #self.model = model      
+        self.districts = [ agent for agent in model.agents if isinstance(agent,District)]
         self.G = nx.MultiGraph()
         self.clumpiness = clumpiness
         
@@ -476,18 +476,18 @@ class Network:
         for district in self.districts:
             for building in district.locations:
                 for room in building.locations:
-                    for human in rooms.humans:
-                        if human.strid not in G.nodes:
-                            G.add_node(human.strid)
-                        if room.strid not in G.nodes:
-                            G.add_node(room.strid)
-                        G.add_edge(human.strid, room.strid,weight=room.get_parameter('contagion_probability'))
+                    for human in room.humans:
+                        if human.strid not in self.G.nodes:
+                            self.G.add_node(human.strid)
+                        if room.strid not in self.G.nodes:
+                            self.G.add_node(room.strid)
+                        self.G.add_edge(human.strid, room.strid,weight=room.get_parameter('contagion_probability'))
                 for human in building.humans:
-                    if human.strid not in G.nodes:
-                        G.add_node(human.strid)
-                    if building.strid not in G.nodes:
-                        G.add_node(building.strid)
-                    G.add_edge(human.strid, building.strid,weight=self.building.get_parameter('contagion_probability'))
+                    if human.strid not in self.G.nodes:
+                        self.G.add_node(human.strid)
+                    if building.strid not in self.G.nodes:
+                        self.G.add_node(building.strid)
+                    self.G.add_edge(human.strid, building.strid,weight=self.building.get_parameter('contagion_probability'))
 
     def end_cycle(self, model):
         self.clumpiness.append(nx.average_shortest_path_length(self.G,weight="weight"))
@@ -902,6 +902,7 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     school_capacity = 50
     classroom_capacity = 20
     school_occupacy_rate = 0.5
+    num_favorite_restaurants = 10
     family_temperature =  get_parameters().params['temperature']
     home_room_temperature = get_parameters().params['temperature']
     school_room_temperature = get_parameters().params['temperature']
@@ -909,6 +910,7 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     home_temperature = -1
     school_temperature = get_parameters().params['temperature']
     work_temperature = get_parameters().params['temperature']
+    restaurant_temperature = get_parameters().params['temperature']
 
 
 
@@ -1039,7 +1041,7 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     hrf.allocate_homes(family_factory.families, home_temperature)
     hrf.allocate_school_districts(school_districts,school_temperature)
     hrf.allocate_work_districts(work_districts, work_temperature)
-    hrf.allocate_favorite_restarurants(work_districts, restaurant_temperature)
+    hrf.allocate_favorite_restaurants(work_districts, restaurant_temperature, num_favorite_restaurants)
 
 
     # Set tribes
