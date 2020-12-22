@@ -482,6 +482,7 @@ class Adult(Human):
         super().__init__(covid_model, age, msp, hsp, mfd)
         self.social_event = None
         self.days_since_last_social_event = 0
+        self.restaurants = []
 
     def initialize_individual_properties(self):
         super().initialize_individual_properties()

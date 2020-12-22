@@ -182,8 +182,8 @@ class District(Location):
                     location.restaurant_type == restaurant_type and \
                     location.is_outdoor == outdoor and \
                     ((location.capacity - location.available) + people_count) <= \
-                    location.capacity * self.get_parameter('allowed_restaurant_capacity' and 
-                    location.strid in favorites):
+                    location.capacity * self.get_parameter('allowed_restaurant_capacity') and \
+                    location.strid in favorites:
                 return location
         logger().info("No restaurant is available")
         return None

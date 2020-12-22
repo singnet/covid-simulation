@@ -28,7 +28,7 @@ def confidence_interval(data, confidence=0.95):
 
 
 def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=[], debug=False, desired_stats=None,
-                  fname="scenario", listeners=[], do_print=False, home_grid_height=3, home_grid_width=4,
+                  fname="scenario", listeners=[], do_print=False, home_grid_height=1, home_grid_width=1,
                   work_home_list=[[(0,0)]], school_home_list=[[(0,0)]], temperature = -1, zoomed_plot=True,
                   zoomed_plot_ylim=(-0.01, .12)):
     color = {
@@ -467,6 +467,7 @@ class Network:
         #self.model = model      
         self.districts = [ agent for agent in model.agents if isinstance(agent,District)]
         self.G = nx.MultiGraph()
+        #self.G = nx.MultiGraph()
         self.clumpiness = clumpiness
         
     def start_cycle(self, model):
@@ -482,15 +483,25 @@ class Network:
                         if room.strid not in self.G.nodes:
                             self.G.add_node(room.strid)
                         self.G.add_edge(human.strid, room.strid,weight=room.get_parameter('contagion_probability'))
+                        #print (f"edge added betweem {human.strid} and {room.strid}")
                 for human in building.humans:
                     if human.strid not in self.G.nodes:
                         self.G.add_node(human.strid)
                     if building.strid not in self.G.nodes:
                         self.G.add_node(building.strid)
                     self.G.add_edge(human.strid, building.strid,weight=self.building.get_parameter('contagion_probability'))
+                    #print (f"edge added between {human.strid} and {building.strid}")
 
     def end_cycle(self, model):
-        self.clumpiness.append(nx.average_shortest_path_length(self.G,weight="weight"))
+        self.clumpiness.append(self.compute_clumpiness())
+
+    def compute_clumpiness(self):
+        avg_path = 0
+        connected_component_subgraphs = [self.G.subgraph(c) for c in nx.connected_components(self.G)]
+        for C in connected_component_subgraphs:
+            avg_path += nx.average_shortest_path_length(C, weight="weight") * len(C.nodes)
+        avg_path /= len(self.G.nodes)
+
 
         
         
