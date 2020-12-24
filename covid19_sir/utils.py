@@ -93,7 +93,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
         for i in range(simulation_cycles):
             model.step()
         print("clumpiness:")
-        print (getattr(network,clumpiness))
+        print (getattr(network,"clumpiness"))
         for stat in desired_stats:
             all_runs[stat][s] = getattr(statistics, stat)
             if stat is "income":
@@ -466,7 +466,7 @@ class Network:
     def __init__(self, model,clumpiness=[]):
         #self.model = model      
         self.districts = [ agent for agent in model.agents if isinstance(agent,District)]
-        self.G = nx.MultiGraph()
+        self.G = nx.Graph()
         #self.G = nx.MultiGraph()
         self.clumpiness = clumpiness
         
@@ -482,26 +482,54 @@ class Network:
                             self.G.add_node(human.strid)
                         if room.strid not in self.G.nodes:
                             self.G.add_node(room.strid)
-                        self.G.add_edge(human.strid, room.strid,weight=room.get_parameter('contagion_probability'))
+                        weight = -1 * np.log(room.get_parameter('contagion_probability'))
+                        self.G.add_edge(human.strid, room.strid,weight=weight)
                         #print (f"edge added betweem {human.strid} and {room.strid}")
                 for human in building.humans:
                     if human.strid not in self.G.nodes:
                         self.G.add_node(human.strid)
                     if building.strid not in self.G.nodes:
                         self.G.add_node(building.strid)
-                    self.G.add_edge(human.strid, building.strid,weight=self.building.get_parameter('contagion_probability'))
+                    weight = -1 * np.log(building.get_parameter('contagion_probability'))
+                    self.G.add_edge(human.strid, building.strid,weight=weight)
                     #print (f"edge added between {human.strid} and {building.strid}")
 
     def end_cycle(self, model):
-        self.clumpiness.append(self.compute_clumpiness())
+        self.clumpiness.append(self.compute_clumpiness2())
+        self.G.clear()
+        #self.G.remove_edges_from(self.G.edges())
 
-    def compute_clumpiness(self):
+    def compute_clumpiness1(self):
         avg_path = 0
         connected_component_subgraphs = [self.G.subgraph(c) for c in nx.connected_components(self.G)]
         for C in connected_component_subgraphs:
             avg_path += nx.average_shortest_path_length(C, weight="weight") * len(C.nodes)
         avg_path /= len(self.G.nodes)
+        return avg_path
 
+    def compute_clumpiness2(self):
+        #Just sample 
+        num_nodes = len(self.G.nodes)
+        k = 100
+        avg_len = 0
+        disconnects = 0
+        for i in range (k):
+            nodes = random.sample(self.G.nodes, 2)
+            try:
+                shortest_path = nx.dijkstra_path(self.G,nodes[0],nodes[1], weight = "weight")
+                shortest_path_len = len(shortest_path)
+            except(nx.NetworkXNoPath):
+                shortest_path_len = num_nodes
+                disconnects += 1
+
+            avg_len += shortest_path_len
+        avg_len /= k*num_nodes
+        disconnects /= k
+
+        print ("disconnects")
+        print (disconnects)
+
+        return avg_len
 
         
         

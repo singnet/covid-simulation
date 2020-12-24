@@ -642,8 +642,8 @@ class HomophilyRelationshipFactory:
         num_friends = min(n,len(friends_dist[chooser]))
         for i in range (num_friends):
             chosen = self.choice(friends_dist[chooser],temperature)
-            print ('chosen')
-            print (chosen)
+            #print ('chosen')
+            #print (chosen)
             if chosen in self.vector_to_human:
                 friend = self.vector_to_human[chosen]
                 friends.append(friend)
