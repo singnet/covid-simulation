@@ -4,7 +4,7 @@ from model.base import CovidModel, get_parameters, change_parameters, flip_coin,
 from model.human import Elder, Adult, K12Student, Toddler, Infant
 from model.location import District, HomogeneousBuilding, BuildingUnit, Restaurant
 from model.instantiation import FamilyFactory, HomophilyRelationshipFactory
-from model.utils import TribeSelector, RestaurantType
+from model.utils import TribeSelector, RestaurantType,SimulationState
 import model.utils
 import copy
 from scipy.stats import sem, t
@@ -474,6 +474,7 @@ class Network:
        self.state_change(model)
 
     def state_change(self,model):
+        similarities = []
         for district in self.districts:
             for building in district.locations:
                 for room in building.locations:
@@ -486,6 +487,9 @@ class Network:
                         self.G.add_edge(human.strid, room.strid,weight=weight)
                         #print (f"edge added betweem {human.strid} and {room.strid}")
                 for human in building.humans:
+                    if model.current_state == SimulationState.POST_WORK_ACTIVITY:
+                        sim = model.hrf.similarity(model.hrf.feature_vector[human],model.hrf.unit_info_map[building.strid]["vector"])
+                        similarities.append(sim)
                     if human.strid not in self.G.nodes:
                         self.G.add_node(human.strid)
                     if building.strid not in self.G.nodes:
@@ -493,8 +497,15 @@ class Network:
                     weight = -1 * np.log(building.get_parameter('contagion_probability'))
                     self.G.add_edge(human.strid, building.strid,weight=weight)
                     #print (f"edge added between {human.strid} and {building.strid}")
-
+        if len(similarities) > 0:
+            avg_sim = np.mean(similarities)
+            print(f"avg restaurant similarity {avg_sim}")
+            similarities = []
     def end_cycle(self, model):
+        #print ("self.G.nodes")
+        #print (self.G.nodes)
+        #print ("self.G.edges")
+        #print (self.G.edges)
         self.clumpiness.append(self.compute_clumpiness2())
         self.G.clear()
         #self.G.remove_edges_from(self.G.edges())
@@ -1041,6 +1052,7 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     # print(family_factory)
     hrf = HomophilyRelationshipFactory(model,family_factory.human_count,get_parameters().params['num_communities'],
         get_parameters().params['num_features'],home_district_in_position)
+    model.hrf = hrf
     hrf.assign_features_to_families(family_factory.families,family_temperature)
     hrf.map_home_districts_to_blobs(home_grid_height,home_grid_width)
     hrf.assign_features_to_homes(home_room_temperature)
@@ -1080,11 +1092,13 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     hrf.allocate_homes(family_factory.families, home_temperature)
     hrf.allocate_school_districts(school_districts,school_temperature)
     hrf.allocate_work_districts(work_districts, work_temperature)
-    hrf.allocate_favorite_restaurants(work_districts, restaurant_temperature, num_favorite_restaurants)
+    hrf.allocate_favorite_restaurants(all_adults, restaurant_temperature, num_favorite_restaurants)
 
 
     # Set tribes
 
+    adult_friend_similarity = []
+    student_friend_similarity = []
     count = 0
     for family in family_factory.families:
         for human in family:
@@ -1100,6 +1114,9 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
                 for h in t2:
                     if h not in human.tribe[TribeSelector.FRIEND]:
                         human.tribe[TribeSelector.FRIEND].append(h)
+                for h in human.tribe[TribeSelector.FRIEND]:
+                    sim = hrf.similarity(hrf.feature_vector[human],hrf.feature_vector[h])
+                    adult_friend_similarity.append(sim)
             elif isinstance(human, K12Student):
                 human.unique_id = "K12Student" + str(count)
                 human.tribe[TribeSelector.CLASSMATE] = school_district.get_buildings(human)[0].get_unit(
@@ -1110,10 +1127,16 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
                 for h in t2:
                     if h not in human.tribe[TribeSelector.FRIEND]:
                         human.tribe[TribeSelector.FRIEND].append(h)
+                for h in human.tribe[TribeSelector.FRIEND]:
+                    sim = hrf.similarity(hrf.feature_vector[human],hrf.feature_vector[h])
+                    student_friend_similarity.append(sim)
             elif isinstance(human, Elder):
                 human.unique_id = "Elder" + str(count)
             elif isinstance(human, Infant):
                 human.unique_id = "Infant" + str(count)
             elif isinstance(human, Toddler):
                 human.unique_id = "Toddler" + str(count)
+    avg_adult_sim = np.mean(adult_friend_similarity)
+    avg_student_sim = np.mean(student_friend_similarity)
+    print (f"Average friend similarity for adults: {avg_adult_sim} for kids: {avg_student_sim}")
 

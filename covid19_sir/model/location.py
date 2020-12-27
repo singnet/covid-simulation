@@ -177,13 +177,22 @@ class District(Location):
         return []
 
     def get_available_restaurant(self, people_count, outdoor, restaurant_type,favorites):
-        for location in self.locations:
+        #print ("favorites")
+        #print (favorites)
+        #for location in self.locations:
+        for location in favorites:
+            #print("location.strid")
+            #print (location.strid)
+            #print(isinstance(location, Restaurant))
+            #print(location.restaurant_type == restaurant_type))
+            #print(location.is_outdoor == outdoor)
+            #print(        ((location.capacity - location.available) + people_count) <= \
+                    #location.capacity * self.get_parameter('allowed_restaurant_capacity') )
             if isinstance(location, Restaurant) and \
                     location.restaurant_type == restaurant_type and \
                     location.is_outdoor == outdoor and \
                     ((location.capacity - location.available) + people_count) <= \
-                    location.capacity * self.get_parameter('allowed_restaurant_capacity') and \
-                    location.strid in favorites:
+                    location.capacity * self.get_parameter('allowed_restaurant_capacity'): 
                 return location
         logger().info("No restaurant is available")
         return None
