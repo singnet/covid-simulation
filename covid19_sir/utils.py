@@ -38,10 +38,11 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             'death': 'black',
             'hospitalization': 'orange',
             'icu': 'red',
-            'income': 'magenta'
+            'income': 'magenta',
+            'clumpiness':'purple'
         }
     if desired_stats is None:
-        desired_stats = ["susceptible", "infected", "recovered", "hospitalization", "icu", "death", "income"]
+        desired_stats = ["susceptible", "infected", "recovered", "hospitalization", "icu", "death", "income","clumpiness"]
     randomlist = random.sample(range(10000), num_runs) if len(seeds) == 0  else seeds
     if do_print:
         print("Save these seeds if you want to rerun a scenario")
@@ -92,10 +93,13 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
         model.add_listener(network)
         for i in range(simulation_cycles):
             model.step()
-        print("clumpiness:")
-        print (getattr(network,"clumpiness"))
+        #print("clumpiness:")
+        #print (getattr(network,"clumpiness"))
         for stat in desired_stats:
-            all_runs[stat][s] = getattr(statistics, stat)
+            if stat is "clumpiness":
+                all_runs[stat][s]=copy.deepcopy(getattr(network,"clumpiness"))
+            else:
+                all_runs[stat][s] = getattr(statistics, stat)
             if stat is "income":
                 all_runs[stat][s].pop(1)
             avg[stat].append(np.mean(all_runs[stat][s]))
@@ -537,8 +541,8 @@ class Network:
         avg_len /= k*num_nodes
         disconnects /= k
 
-        print ("disconnects")
-        print (disconnects)
+        #print ("disconnects")
+        #print (disconnects)
 
         return avg_len
 
@@ -1046,8 +1050,8 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     family_factory = FamilyFactory(model)
     family_factory.factory(population_size)
     model.global_count.total_population = family_factory.human_count
-    print ("family_factory.human_count")
-    print (family_factory.human_count)
+    #print ("family_factory.human_count")
+    #print (family_factory.human_count)
 
     # print(family_factory)
     hrf = HomophilyRelationshipFactory(model,family_factory.human_count,get_parameters().params['num_communities'],
@@ -1107,7 +1111,7 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
             human.tribe[TribeSelector.FAMILY] = family
             if isinstance(human, Adult):
                 human.unique_id = "Adult" + str(count)
-                human.tribe[TribeSelector.COWORKER] = work_district.get_buildings(human)[0].get_unit(human).allocation
+                human.tribe[TribeSelector.COWORKER] = human.work_district.get_buildings(human)[0].get_unit(human).allocation
                 t1 = hrf.build_tribe(human, human.tribe[TribeSelector.COWORKER], 1, office_capacity)
                 t2 = hrf.build_tribe(human, human.tribe[TribeSelector.AGE_GROUP], 1, 20)
                 human.tribe[TribeSelector.FRIEND] = t1
@@ -1119,8 +1123,11 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
                     adult_friend_similarity.append(sim)
             elif isinstance(human, K12Student):
                 human.unique_id = "K12Student" + str(count)
-                human.tribe[TribeSelector.CLASSMATE] = school_district.get_buildings(human)[0].get_unit(
+                if len(human.school_district.get_buildings(human)) > 0:
+                    human.tribe[TribeSelector.CLASSMATE] = human.school_district.get_buildings(human)[0].get_unit(
                     human).allocation
+                else:
+                    print(f"error in {human} allocation to school district {human.school_district}")
                 t1 = hrf.build_tribe(human, human.tribe[TribeSelector.CLASSMATE], 1, classroom_capacity)
                 t2 = hrf.build_tribe(human, human.tribe[TribeSelector.AGE_GROUP], 1, 20)
                 human.tribe[TribeSelector.FRIEND] = t1

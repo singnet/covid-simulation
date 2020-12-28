@@ -220,8 +220,8 @@ class HomophilyRelationshipFactory:
     from statistics import mean
 
     def assign_features_to_families(self,families,temperature= -0.9):
-        print ("temperature-features to families")
-        print (temperature)
+        #print ("temperature-features to families")
+        #print (temperature)
         distribution = copy.deepcopy(self.roulette_distribution)
         tup_vec1 = None
         similarities = []
@@ -297,37 +297,37 @@ class HomophilyRelationshipFactory:
         self.home_districts_to_blobs = {}
         blob_grid_to_blobs = {}
         xfactor, yfactor = self.find_best_factoring(self.n_blobs)
-        print("xfactor")
-        print (xfactor)
-        print("yfactor")
-        print (yfactor)
-        print ("grid_width")
-        print (grid_width)
-        print("grid_height")
-        print(grid_height)
+        #print("xfactor")
+        #print (xfactor)
+        #print("yfactor")
+        #print (yfactor)
+        #print ("grid_width")
+        #print (grid_width)
+        #print("grid_height")
+        #print(grid_height)
         blobnum =0   
         for y in range(yfactor):
             for x in range (xfactor):
                 blob_grid_pos = (int(y),int(x))
-                print ("blob_grid_pos")
-                print (blob_grid_pos)
+                #print ("blob_grid_pos")
+                #print (blob_grid_pos)
                 if blob_grid_pos not in blob_grid_to_blobs:
                     blob_grid_to_blobs[blob_grid_pos]= blobnum
                     blobnum = blobnum+1 if blobnum <= self.n_blobs else 0
         for y in range(grid_height):
             for x in range(grid_width):
                 grid_pos = (int(y),int(x))
-                print ("grid_pos")
-                print (grid_pos)
+                #print ("grid_pos")
+                #print (grid_pos)
                 blob_grid_pos = self.convert_grid_to_blob_grid(grid_pos, grid_height, grid_width, yfactor,xfactor)
-                print ("blob_grid_pos")
-                print (blob_grid_pos)
+                #print ("blob_grid_pos")
+                #print (blob_grid_pos)
                 blobnum = blob_grid_to_blobs[blob_grid_pos]
-                print("blobnum")
-                print(blobnum)
+                #print("blobnum")
+                #print(blobnum)
                 district = self.home_district_in_position[grid_pos]
-                print ("district")
-                print (district)
+                #print ("district")
+                #print (district)
                 if district.strid not in self.home_districts_to_blobs:
                     self.home_districts_to_blobs[district.strid]=blobnum
                     
@@ -349,8 +349,8 @@ class HomophilyRelationshipFactory:
         for k in keys:
             if k not in keep_set:
                 self.remove_tup_vec(distribution,k)
-        print ('len(distribution)')
-        print (len(distribution))
+        #print ('len(distribution)')
+        #print (len(distribution))
 
 
  
@@ -362,8 +362,8 @@ class HomophilyRelationshipFactory:
 
 
     def assign_features_to_homes(self,temperature=-0.9):
-        print("temperature - assign features to homes")
-        print(temperature)
+        #print("temperature - assign features to homes")
+        #print(temperature)
         distribution = copy.deepcopy(self.roulette_distribution)
         #print("distribution")
         #print(distribution)
