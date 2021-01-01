@@ -962,9 +962,9 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     school_room_temperature = get_parameters().params['temperature']
     work_room_temperature = get_parameters().params['temperature']
     home_temperature = -1
-    school_temperature = get_parameters().params['temperature']
-    work_temperature = get_parameters().params['temperature']
-    restaurant_temperature = get_parameters().params['temperature']
+    school_temperature = -1
+    work_temperature = -1
+    restaurant_temperature = -1
 
 
 

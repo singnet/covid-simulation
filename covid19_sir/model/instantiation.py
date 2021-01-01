@@ -124,7 +124,7 @@ class HomophilyRelationshipFactory:
         self.vector_to_office = {}
         self.vector_to_restaurant = {}
         self.unit_info_map = self.unit_info_map()
-        n_vec = population_size
+        n_vec = population_size *2 
         blobs,assignments = make_blobs(
             n_samples=n_vec,
             n_features=n_features,
@@ -157,14 +157,15 @@ class HomophilyRelationshipFactory:
             tuple_vec1 = tuple(vector1)
             distances = KeyedVectors.cosine_similarities(vector1,self.vectors)
             #distances = self.vectors.cosine_similarities(vector1,self.vectors)
-            self.roulette_distribution[tuple_vec1] = {}
+            #self.roulette_distribution[tuple_vec1] = {}
+            temp ={}
             sum_distances = (distances-distances.min()).sum()
             for j in range(n_vec):
                 if i != j:
                     vector2 = self.vectors[j]
                     tuple_vec2 = tuple(vector2)
-                    self.roulette_distribution[tuple_vec1][tuple_vec2] = (distances[j] - distances.min()) / sum_distances
-            
+                    temp[tuple_vec2] = (distances[j] - distances.min()) / sum_distances
+            self.roulette_distribution[tuple_vec1]=dict(sorted(temp.items(), key=lambda item: item[1]),reverse=True)
 
     def similarity(self,tup_vec1, tup_vec2):
         vec1 = np.array(list(tup_vec1))
@@ -198,10 +199,12 @@ class HomophilyRelationshipFactory:
         #print ("distribution")
         #print (distribution)
         if len(distribution) > 0:
-            if temperature == 0 or np.random.random() > abs(temperature):
+            if temperature < 0:
+                N=math.ceil(len(distribution)*(1+temperature))
+                short_dist = dict(list(distribution.items())[0: N])
+                choice = self.roulette_wheel(short_dist)
+            elif temperature == 0 or np.random.random()> temperature:
                 choice = self.roulette_wheel(distribution)
-            elif temperature < 0:
-                choice = max(distribution,key=distribution.get)
             else:
                 choice = random.choice(list(distribution))
 
@@ -223,9 +226,9 @@ class HomophilyRelationshipFactory:
         #print ("temperature-features to families")
         #print (temperature)
         distribution = copy.deepcopy(self.roulette_distribution)
-        tup_vec1 = None
         similarities = []
         for family in families:
+            tup_vec1 = None
             for human in family:
                 if len(distribution) > 0:
                     if tup_vec1 is None:
@@ -523,7 +526,8 @@ class HomophilyRelationshipFactory:
                 
     def allocate_homes(self, families, temperature):
         similarities = []
-        for family in families:
+        shuffled_families = random.shuffle(copy.deepcopy(families))
+        for family in shuffled_families:
             person = random.choice(family)
             #print("person")
             #print (person)
@@ -556,7 +560,8 @@ class HomophilyRelationshipFactory:
 
            
     def allocate_schools(self, school_district_distribution,students,temperature):
-        for student in students:
+        shuffled_students = random.shuffle(copy.deepcopy(students))
+        for student in shuffled_students:
             vector = self.feature_vector[student]
             choice = self.choice(school_district_distribution[vector],temperature)
             classroom_str = random.choice(self.vector_to_classroom[choice])
@@ -611,7 +616,8 @@ class HomophilyRelationshipFactory:
 
            
     def allocate_workplaces(self, work_district_distribution, workers,temperature):
-        for worker in workers:
+        shuffled_workers = random.shuffle(copy.deepcopy(workers))
+        for worker in shuffled_workers:
             vector = self.feature_vector[worker]
             choice = self.choice(work_district_distribution[vector],temperature)
             office_str = random.choice(self.vector_to_office[choice])
@@ -653,7 +659,8 @@ class HomophilyRelationshipFactory:
 
   
     def allocate_favorite_restaurants(self, adults,temperature,n_favorites):
-        for adult in adults:
+        shuffled_adults = random.shuffle(copy.deepcopy(adults))
+        for adult in shuffled_adults:
             adult.restaurants =[] 
             if adult in self.feature_vector:
                 vector = self.feature_vector[adult]
