@@ -139,6 +139,8 @@ class Human(AgentBase):
         self.has_been_hospitalized = False
         self.has_been_icu = False
         self.parameter_changed()
+        self.social_event = None
+        
 
     def initialize_individual_properties(self):
         super().initialize_individual_properties()

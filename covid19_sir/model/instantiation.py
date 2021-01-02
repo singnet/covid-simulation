@@ -190,55 +190,59 @@ class HomophilyRelationshipFactory:
         return choice
 
 
-    def choice (self,distribution,temperature=-1):
+    def choice (self,chooser,keepset = set(),temperature=-1):
         choice = None
         #print ("temperature")
         #print (temperature)
-        #print ("len(distribution)")
-        #print (len(distribution))
-        #print ("distribution")
-        #print (distribution)
-        if len(distribution) > 0:
+        #print ("chooser")
+        #print (chooser)
+        #print ("keepset")
+        #print (keepset)
+        if len(keepset) > 0:
             if temperature < 0:
-                N=math.ceil(len(distribution)*(1+temperature))
-                short_dist = dict(list(distribution.items())[0: N])
-                choice = self.roulette_wheel(short_dist)
+                #print ("dist len")
+                #print (len(self.roulette_distribution[chooser]))
+                N=math.ceil(len(self.roulette_distribution[chooser])*(1+temperature)) +1
+                #print("N")
+                #print(N)
+                short_dist = {}
+                dist_list = list(self.roulette_distribution[chooser].items())
+                count = 0
+                while len(short_dist) < N and count < len(dist_list):
+                    if dist_list[count][0] in keepset:
+                        short_dist[dist_list[count][0]] = dist_list[count][1]
+                    count +=1
+                #print("short_dist")
+                #print(short_dist)
+                choice = self.roulette_wheel(short_dist) if len(short_dist) > 0 else None
             elif temperature == 0 or np.random.random()> temperature:
-                choice = self.roulette_wheel(distribution)
+                choice = self.roulette_wheel(self.roulette_distribution[chooser])
             else:
-                choice = random.choice(list(distribution))
+                choice = random.choice(list(self.roulette_distribution[chooser]))
 
         return choice
-
-
-    def remove_tup_vec(self,distribution,tup_vec):
-        if tup_vec in distribution:
-            distribution.pop(tup_vec)
-        keys = copy.deepcopy(list(distribution.keys()))
-        for key in keys:
-            if tup_vec in distribution[key]:
-                distribution[key].pop(tup_vec)
-
 
     from statistics import mean
 
     def assign_features_to_families(self,families,temperature= -0.9):
         #print ("temperature-features to families")
         #print (temperature)
-        distribution = copy.deepcopy(self.roulette_distribution)
+        #distribution = copy.deepcopy(self.roulette_distribution)
+        keepset = set(self.roulette_distribution.keys())
         similarities = []
         for family in families:
             tup_vec1 = None
             for human in family:
-                if len(distribution) > 0:
+                if len(keepset) > 0:
                     if tup_vec1 is None:
-                        tup_vec1 = random.choice(list(distribution.keys())) 
+                        #tup_vec1 = random.choice(list(distribution.keys())) 
+                        tup_vec1 = random.choice(tuple(keepset)) 
                         if tup_vec1 is None:
                             print (f"{human} None vector, random_choice of len {len(distribution)}")
                         self.feature_vector[human] = tup_vec1
                         self.vector_to_human[tup_vec1] = human
                     else:
-                        tup_vec2 = self.choice(distribution[tup_vec1],temperature)
+                        tup_vec2 = self.choice(tup_vec1,keepset,temperature)
                         if tup_vec2 is None:
                             print (f"{human} None vector, not matching {tup_vec1}  of len {len(distribution[tup_vec1])}")
                         else:
@@ -248,7 +252,8 @@ class HomophilyRelationshipFactory:
                             #len(distribution[tup_vec1])} and similarity {sim}")
                         self.feature_vector[human] = tup_vec2
                         self.vector_to_human[tup_vec2] = human
-                        self.remove_tup_vec(distribution,tup_vec1)
+                        keepset.remove(tup_vec1)
+                        #self.remove_tup_vec(distribution,tup_vec1)
                         tup_vec1 = tup_vec2
         avg_sim = mean(similarities)
         print (f"Average similarity between family members is {avg_sim} at temperature {temperature}")
@@ -333,85 +338,58 @@ class HomophilyRelationshipFactory:
                 #print (district)
                 if district.strid not in self.home_districts_to_blobs:
                     self.home_districts_to_blobs[district.strid]=blobnum
-                    
-    def only_keep_columns_in_set(self,distribution,allocated):
-        removeset=set()
-        for tup1_vec,tup1_map in distribution.items():
-            for tup2_vec,val in tup1_map.items():
-                if tup2_vec not in allocated:
-                    removeset.add(tup2_vec)
-        for tup_vec in removeset:
-            keys = copy.deepcopy(list(distribution.keys()))
-            for key in keys:
-                if tup_vec in distribution[key]:
-                    distribution[key].pop(tup_vec)
-    
-    def filter_distribution(self,distribution,vectors):
-        keep_set = set([tuple(v) for v in vectors])
-        keys = copy.deepcopy(list(distribution.keys()))
-        for k in keys:
-            if k not in keep_set:
-                self.remove_tup_vec(distribution,k)
-        #print ('len(distribution)')
-        #print (len(distribution))
-
-
- 
-    def remove_column(self,distribution,tup_vec):
-        keys = copy.deepcopy(list(distribution.keys()))
-        for key in keys:
-            if tup_vec in distribution[key]:
-                distribution[key].pop(tup_vec)
 
 
     def assign_features_to_homes(self,temperature=-0.9):
         #print("temperature - assign features to homes")
         #print(temperature)
-        distribution = copy.deepcopy(self.roulette_distribution)
+        #distribution = copy.deepcopy(self.roulette_distribution)
         #print("distribution")
         #print(distribution)
-        allocated = set()
-        self.home_distribution = copy.deepcopy(self.roulette_distribution)
+        self.home_keepset = set()
+        #self.home_distribution = copy.deepcopy(self.roulette_distribution)
         home_districts = [ agent for agent in self.model.agents if isinstance(agent,District) and 'Home' in agent.strid]
         
         #print (self.home_districts_to_blobs)
         for home_district in home_districts:
             vectors_for_home_district = self.blob_dict[self.home_districts_to_blobs[home_district.strid]]
-            self.filter_distribution(distribution,vectors_for_home_district)
+            keepset = set([tuple(v) for v in vectors_for_home_district])
             tup_vec1 = None
             for apartment_buildings in home_district.locations:
                 for apartment in apartment_buildings.locations:
-                    if len(distribution) == 0:
-                        distribution = copy.deepcopy(self.roulette_distribution)
-                        self.filter_distribution(distribution,vectors_for_home_district)
-                    if len(distribution) > 0:
+                    if len(keepset) == 0:
+                        #distribution = copy.deepcopy(self.roulette_distribution)
+                        #self.filter_distribution(distribution,vectors_for_home_district)
+                        keepset = set([tuple(v) for v in vectors_for_home_district])
+                    if len(keepset) > 0:
                         if tup_vec1 is None:
-                            #tup_vec1 = tuple(random.choice(vectors_for_home_district)) 
-                            tup_vec1 = random.choice(list(distribution.keys())) 
+                            tup_vec1 = tuple(random.choice(vectors_for_home_district)) 
+                            #tup_vec1 = random.choice(keepset) 
                             if tup_vec1 not in self.vector_to_home:
                                 self.vector_to_home [tup_vec1] = []
                             self.vector_to_home[tup_vec1].append(apartment.strid)
                             self.unit_info_map[apartment.strid]["vector"] = tup_vec1
                         else:
-                            tup_vec2 = self.choice(distribution[tup_vec1],temperature)
+                            tup_vec2 = self.choice(tup_vec1,keepset,temperature)
                             if tup_vec2 not in self.vector_to_home:
                                 self.vector_to_home [tup_vec2] = []
                             self.vector_to_home[tup_vec2].append(apartment.strid)
                             self.unit_info_map[apartment.strid]["vector"] = tup_vec2
-                            self.remove_tup_vec(distribution,tup_vec1)
+                            keepset.remove(tup_vec1)
+                            #self.remove_tup_vec(distribution,tup_vec1)
                             #self.remove_column(distribution,tup_vec1)
                             tup_vec1=tup_vec2
-                        allocated.add(tup_vec1) 
+                        self.home_keepset.add(tup_vec1)
         #print("self.vector_to_home")
         #print(self.vector_to_home)
         #print("self.unit_info_map")
         #print(self.unit_info_map)
-        self.only_keep_columns_in_set(self.home_distribution,allocated)
+        #self.only_keep_columns_in_set(self.home_distribution,allocated)
         #print ( "distribution")
         #print(distribution)
 
     def assign_features_to_schools(self,temperature=-0.9):
-        distribution = copy.deepcopy(self.roulette_distribution)
+        #distribution = copy.deepcopy(self.roulette_distribution)
         #allocated = set()
         #self.school_distribution = copy.deepcopy(self.roulette_distribution)
         school_districts = [ agent for agent in self.model.agents if isinstance(agent,District) and 'School' in agent.strid]
@@ -420,29 +398,31 @@ class HomophilyRelationshipFactory:
             for home_district_position in school_district.home_district_list:
                 home_district_strid = self.home_district_in_position[home_district_position].strid
                 vectors_for_school_district.extend(self.blob_dict[self.home_districts_to_blobs[home_district_strid]])
-            #print ("vectors_for_school_district")
+            keepset = set([tuple(v) for v in vectors_for_school_district])
             #print (vectors_for_school_district)
-            self.filter_distribution(distribution,vectors_for_school_district)
+            #keepset = set(self.roulette_distribution.keys())
+            #self.filter_keepset(keepset,vectors_for_school_district)
+            #self.filter_distribution(distribution,vectors_for_school_district)
             tup_vec1=None
             for school in school_district.locations:
                 for classroom in school.locations:
-                    if len(distribution) == 0:
-                        distribution = copy.deepcopy(self.roulette_distribution)
-                        self.filter_distribution(distribution,vectors_for_school_district)
-                    if len(distribution) > 0:
+                    if len(keepset) == 0:
+                        keepset = set([tuple(v) for v in vectors_for_school_district])
+                    if len(keepset) > 0:
                         if tup_vec1 is None:
-                            tup_vec1 = random.choice(list(distribution.keys())) 
+                            tup_vec1 = random.choice(tuple(keepset)) 
                             if tup_vec1 not in self.vector_to_classroom:
                                 self.vector_to_classroom [tup_vec1] = []
                             self.vector_to_classroom[tup_vec1].append(classroom.strid)
                             self.unit_info_map[classroom.strid]["vector"] = tup_vec1
                         else:
-                            tup_vec2 = self.choice(distribution[tup_vec1],temperature)
+                            tup_vec2 = self.choice(tup_vec1,keepset,temperature)
                             if tup_vec2 not in self.vector_to_classroom:
                                 self.vector_to_classroom [tup_vec2] = []
                             self.vector_to_classroom[tup_vec2].append(classroom.strid)
                             self.unit_info_map[classroom.strid]["vector"] = tup_vec2
-                            self.remove_tup_vec(distribution,tup_vec1)
+                            keepset.remove(tup_vec1)
+                            #self.remove_tup_vec(distribution,tup_vec1)
                             #self.remove_column(distribution,tup_vec1)
                             tup_vec1=tup_vec2
                         #allocated.add(tup_vec1) 
@@ -450,18 +430,19 @@ class HomophilyRelationshipFactory:
 
 
     def assign_features_to_offices(self,temperature=-0.9):
-        distribution = copy.deepcopy(self.roulette_distribution)
+        #distribution = copy.deepcopy(self.roulette_distribution)
         #allocated = set()
         #self.work_distribution = copy.deepcopy(self.roulette_distribution)
-        allocated_restaurants = set()
-        self.restaurant_distribution = copy.deepcopy(self.roulette_distribution)
+        self.restaurant_keepset = set()
+        #self.restaurant_distribution = copy.deepcopy(self.roulette_distribution)
         work_districts = [ agent for agent in self.model.agents if isinstance(agent,District) and 'Work' in agent.strid]
         for work_district in work_districts:
             vectors_for_work_district = []
             for home_district_position in work_district.home_district_list:
                 home_district_strid = self.home_district_in_position[home_district_position].strid
                 vectors_for_work_district.extend(self.blob_dict[self.home_districts_to_blobs[home_district_strid]])
-            self.filter_distribution(distribution,vectors_for_work_district)
+            keepset = set([tuple(v) for v in vectors_for_work_district])
+            #self.filter_distribution(distribution,vectors_for_work_district)
             tup_vec1=None
             for office_building in work_district.locations:
                 if 'Restaurant' in office_building.strid:
@@ -470,31 +451,32 @@ class HomophilyRelationshipFactory:
                         self.vector_to_restaurant [tup_vec1] = []
                     self.vector_to_restaurant[tup_vec1].append(office_building.strid)
                     self.unit_info_map[office_building.strid]["vector"] = tup_vec1
-                    allocated_restaurants.add(tup_vec1)
+                    self.restaurant_keepset.add(tup_vec1)
                 for office in office_building.locations:
-                    if len(distribution) == 0:
-                        distribution = copy.deepcopy(self.roulette_distribution)
-                        self.filter_distribution(distribution,vectors_for_work_district)
-                    if len(distribution) > 0:
+                    if len(keepset) == 0:
+                        keepset = set([tuple(v) for v in vectors_for_work_district])
+                        #distribution = copy.deepcopy(self.roulette_distribution)
+                        #self.filter_distribution(distribution,vectors_for_work_district)
+                    if len(keepset) > 0:
                         if tup_vec1 is None:
-                            tup_vec1 = random.choice(list(distribution.keys())) 
+                            tup_vec1 = random.choice(tuple(keepset)) 
                             if tup_vec1 not in self.vector_to_office:
                                 self.vector_to_office [tup_vec1] = []
                             self.vector_to_office[tup_vec1].append(office.strid)
                             self.unit_info_map[office.strid]["vector"] = tup_vec1
                         else:
-                            tup_vec2 = self.choice(distribution[tup_vec1],temperature)
+                            tup_vec2 = self.choice(tup_vec1,keepset,temperature)
                             if tup_vec2 not in self.vector_to_office:
                                 self.vector_to_office [tup_vec2] = []
                             self.vector_to_office[tup_vec2].append(office.strid)
                             self.unit_info_map[office.strid]["vector"]=tup_vec2
-                            self.remove_tup_vec(distribution,tup_vec1)
+                            keepset.remove(tup_vec1)
+                            #self.remove_tup_vec(distribution,tup_vec1)
                             #self.remove_column(distribution,tup_vec1)
                             tup_vec1=tup_vec2
                         #allocated.add(tup_vec1) 
         #self.only_keep_columns_in_set(self.work_distribution,allocated)
-        self.only_keep_columns_in_set(self.restaurant_distribution,allocated_restaurants)
-
+        #self.only_keep_columns_in_set(self.restaurant_distribution,allocated_restaurants)
 
 
     def unit_info_map(self):
@@ -526,26 +508,33 @@ class HomophilyRelationshipFactory:
                 
     def allocate_homes(self, families, temperature):
         similarities = []
-        shuffled_families = random.shuffle(copy.deepcopy(families))
-        for family in shuffled_families:
+        #shuffled_families = copy.deepcopy(families)
+        #random.shuffle(shuffled_families)
+        for family in families:
             person = random.choice(family)
             #print("person")
+            #print (type(person))
             #print (person)
             #print ("self.feature_vector")
+            #print (type(list(self.feature_vector.items())[0][0]))
             #print (self.feature_vector)
-            vector = self.feature_vector[person]
-            #print("vector")
-            #print (vector)
-            #print("self.home_distribution[vector]")
-            #print (self.home_distribution[vector])
-            choice = self.choice(self.home_distribution[vector], temperature)
-            home = self.vector_to_home[choice].pop()
-            self.allocate_home(home,family)
-            #print (f"allocated home {home}")
-            if len(self.vector_to_home[choice]) == 0:
-                self.remove_column(self.home_distribution,choice)
-            sim = self.similarity(vector,choice)
-            similarities.append(sim)
+            vector = self.feature_vector[person] if person in self.feature_vector else None
+            if vector is not None:
+                #print("vector")
+                #print (vector)
+                #print("self.home_distribution[vector]")
+                #print (self.home_distribution[vector])
+                choice = self.choice(vector,self.home_keepset,temperature)
+                home = self.vector_to_home[choice].pop()
+                self.allocate_home(home,family)
+                #print (f"allocated home {home}")
+                if len(self.vector_to_home[choice]) == 0:
+                    #self.remove_column(self.home_distribution,choice)
+                    self.home_keepset.remove(choice)
+                sim = self.similarity(vector,choice)
+                similarities.append(sim)
+            else:
+                print (f"{person} not found")
         avg_sim = mean(similarities)
         print (f"Average similarity between family and home is {avg_sim} at temperature {temperature}")
 
@@ -559,18 +548,20 @@ class HomophilyRelationshipFactory:
         student.school_district = self.unit_info_map[classroom]["district"]
 
            
-    def allocate_schools(self, school_district_distribution,students,temperature):
-        shuffled_students = random.shuffle(copy.deepcopy(students))
-        for student in shuffled_students:
+    def allocate_schools(self, keepset,students,temperature):
+        #shuffled_students = copy.deepcopy(students)
+        #random.shuffle(shuffled_students)
+        for student in students:
             vector = self.feature_vector[student]
-            choice = self.choice(school_district_distribution[vector],temperature)
+            choice = self.choice(vector,keepset,temperature)
             classroom_str = random.choice(self.vector_to_classroom[choice])
             self.allocate_school(classroom_str,student)
             #print(f"student {student} put in classroom {classroom_str}")
             classroom = self.unit_info_map[classroom_str]["unit"]
             vacancy = classroom.capacity - len(classroom.allocation)
             if vacancy <=0 and len(self.vector_to_classroom[choice])==0:
-                self.remove_column(school_district_distribution,choice)
+                keepset.remove(choice)
+                #self.remove_column(school_district_distribution,choice)
                 self.vector_to_classroom[choice].remove(classroom_str)
                 
 
@@ -583,8 +574,8 @@ class HomophilyRelationshipFactory:
                 for classroom in school.locations:
                     if "vector" in self.unit_info_map[classroom.strid]:
                         included_set.add(self.unit_info_map[classroom.strid]["vector"])   
-            school_district_distribution = copy.deepcopy(self.roulette_distribution)
-            self.only_keep_columns_in_set(school_district_distribution,included_set)
+            #school_district_distribution = copy.deepcopy(self.roulette_distribution)
+            #self.only_keep_columns_in_set(school_district_distribution,included_set)
             for grid_tuple in school_district.home_district_list:
                 home_district = self.home_district_in_position[grid_tuple]
                 for apartment_building in home_district.locations:
@@ -592,7 +583,7 @@ class HomophilyRelationshipFactory:
                         for human in apartment.allocation:
                             if isinstance(human,K12Student):
                                 students.add(human)
-            self.allocate_schools(school_district_distribution,students,temperature)
+            self.allocate_schools(included_set,students,temperature)
             for school in school_district.locations:
                 for classroom in school.locations:
                     for student in classroom.allocation:
@@ -602,8 +593,6 @@ class HomophilyRelationshipFactory:
                         similarities.append (sim)
         avg_sim = mean(similarities)
         print (f"Average similarity between students and their classroom is {avg_sim} at temperature {temperature}")
-
-    
 
 
     def allocate_workplace(self,office,worker):
@@ -615,17 +604,19 @@ class HomophilyRelationshipFactory:
         worker.work_district = self.unit_info_map[office]["district"]
 
            
-    def allocate_workplaces(self, work_district_distribution, workers,temperature):
-        shuffled_workers = random.shuffle(copy.deepcopy(workers))
-        for worker in shuffled_workers:
+    def allocate_workplaces(self, keepset, workers,temperature):
+        #shuffled_workers = copy.deepcopy(workers)
+        #random.shuffle(shuffled_workers)
+        for worker in workers:
             vector = self.feature_vector[worker]
-            choice = self.choice(work_district_distribution[vector],temperature)
+            choice = self.choice(vector,keepset,temperature)
             office_str = random.choice(self.vector_to_office[choice])
             self.allocate_workplace(office_str,worker)
             office = self.unit_info_map[office_str]["unit"]
             vacancy = office.capacity - len(office.allocation)
             if vacancy <=0 and len(self.vector_to_office[choice]) == 0:
-                self.remove_column(work_district_distribution,choice)
+                keepset.remove(choice)
+                #self.remove_column(work_district_distribution,choice)
                 self.vector_to_office[choice].remove(office_str)
 
     def allocate_work_districts(self,work_districts,temperature):
@@ -636,8 +627,8 @@ class HomophilyRelationshipFactory:
                 for office in office_building.locations:
                     if "vector" in self.unit_info_map[office.strid]:
                         included_set.add(self.unit_info_map[office.strid]["vector"])   
-            work_district_distribution = copy.deepcopy(self.roulette_distribution)
-            self.only_keep_columns_in_set(work_district_distribution,included_set)
+            #work_district_distribution = copy.deepcopy(self.roulette_distribution)
+            #self.only_keep_columns_in_set(work_district_distribution,included_set)
             for grid_tuple in work_district.home_district_list:
                 home_district = self.home_district_in_position[grid_tuple]
                 for apartment_building in home_district.locations:
@@ -645,7 +636,7 @@ class HomophilyRelationshipFactory:
                         for human in apartment.allocation:
                             if isinstance(human,Adult):
                                 workers.add(human)
-            self.allocate_workplaces(work_district_distribution,workers,temperature)
+            self.allocate_workplaces(included_set,workers,temperature)
             similarities =[]
             for office_building in work_district.locations:
                 for office in office_building.locations:
@@ -659,58 +650,49 @@ class HomophilyRelationshipFactory:
 
   
     def allocate_favorite_restaurants(self, adults,temperature,n_favorites):
-        shuffled_adults = random.shuffle(copy.deepcopy(adults))
-        for adult in shuffled_adults:
+        #shuffled_adults = copy.deepcopy(adults)
+        #random.shuffle(shuffled_adults)
+        for adult in adults:
             adult.restaurants =[] 
             if adult in self.feature_vector:
                 vector = self.feature_vector[adult]
+                keepset = copy.deepcopy(self.restaurant_keepset)
                 #print("self.restaurant_distribution[vector]")
                 #print (self.restaurant_distribution[vector])
-                distribution = self.copy_distribution(self.restaurant_distribution,[vector])
+                #distribution = self.copy_distribution(self.restaurant_distribution,[vector])
                 #print ("vector_to_restuarant")
                 #print (self.vector_to_restaurant.keys())
                 for n in range(n_favorites):
-                    choice = self.choice(distribution[vector], temperature)
+                    choice = self.choice(vector, keepset,temperature)
                     restaurant_strs = self.vector_to_restaurant[choice]
                     restaurant_str = random.choice(restaurant_strs)
                     restaurant = self.unit_info_map[restaurant_str]["building"]
                     adult.restaurants.append(restaurant)
                     #print(f"adult {adult} chooses restaurant {restaurant}")
-                    self.remove_column(distribution,choice)
+                    keepset.remove(choice)
+                    #self.remove_column(distribution,choice)
                     #vacancy = restaurant.capacity - len(restaurant.allocation)
                     #if vacancy <=0:
                         #self.remove_column(self.restaurant_distribution,choice)
             else:
                 print(f"adult {adult} was not assigned a feature vector")
 
-    def copy_distribution(self,distribution,choosers=None,candidates=None):
-        #makes a new distribution and copies what is needed
-        new_dist = {}
-        if choosers is None:
-            choosers = list(distrubution.keys())
-        if candidates is None:
-            candidates = list(distribution[choosers[0]].keys())
-        for chooser in choosers:
-            new_dist[chooser] = {}
-            for candidate in candidates:
-                new_dist[chooser][candidate] = distribution[chooser][candidate]
-        return new_dist
-        
 
     def find_friends(self,human,humans,n,temperature=-0.9):
         friends=[]
         chooser = self.feature_vector[human]
-        candidates = [self.feature_vector[human] for human in humans]
-        friends_dist = self.copy_distribution(self.roulette_distribution,[chooser], candidates)
-        num_friends = min(n,len(friends_dist[chooser]))
+        keepset = set([self.feature_vector[human] for human in humans])
+        #friends_dist = self.copy_distribution(self.roulette_distribution,[chooser], candidates)
+        num_friends = min(n,len(keepset))
         for i in range (num_friends):
-            chosen = self.choice(friends_dist[chooser],temperature)
+            chosen = self.choice(chooser,keepset,temperature)
             #print ('chosen')
             #print (chosen)
             if chosen in self.vector_to_human:
                 friend = self.vector_to_human[chosen]
                 friends.append(friend)
-                self.remove_column(friends_dist,chosen)
+                keepset.remove(chosen)
+                #self.remove_column(friends_dist,chosen)
         return friends
 
 
