@@ -1112,8 +1112,8 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
             if isinstance(human, Adult):
                 human.unique_id = "Adult" + str(count)
                 human.tribe[TribeSelector.COWORKER] = human.work_district.get_buildings(human)[0].get_unit(human).allocation
-                t1 = hrf.build_tribe(human, human.tribe[TribeSelector.COWORKER], 1, office_capacity)
-                t2 = hrf.build_tribe(human, human.tribe[TribeSelector.AGE_GROUP], 1, 20)
+                t1 = hrf.build_tribe(human, human.tribe[TribeSelector.COWORKER], 1, office_capacity,restaurant_temperature)
+                t2 = hrf.build_tribe(human, human.tribe[TribeSelector.AGE_GROUP], 1, 20, restaurant_temperature)
                 human.tribe[TribeSelector.FRIEND] = t1
                 for h in t2:
                     if h not in human.tribe[TribeSelector.FRIEND]:
@@ -1128,8 +1128,8 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
                     human).allocation
                 else:
                     print(f"error in {human} allocation to school district {human.school_district}")
-                t1 = hrf.build_tribe(human, human.tribe[TribeSelector.CLASSMATE], 1, classroom_capacity)
-                t2 = hrf.build_tribe(human, human.tribe[TribeSelector.AGE_GROUP], 1, 20)
+                t1 = hrf.build_tribe(human, human.tribe[TribeSelector.CLASSMATE], 1, classroom_capacity, restaurant_temperature)
+                t2 = hrf.build_tribe(human, human.tribe[TribeSelector.AGE_GROUP], 1, 20, restaurant_temperature)
                 human.tribe[TribeSelector.FRIEND] = t1
                 for h in t2:
                     if h not in human.tribe[TribeSelector.FRIEND]:

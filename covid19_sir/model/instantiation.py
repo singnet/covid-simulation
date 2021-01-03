@@ -124,7 +124,7 @@ class HomophilyRelationshipFactory:
         self.vector_to_office = {}
         self.vector_to_restaurant = {}
         self.unit_info_map = self.unit_info_map()
-        n_vec = population_size *2 
+        n_vec = population_size 
         blobs,assignments = make_blobs(
             n_samples=n_vec,
             n_features=n_features,
@@ -155,17 +155,29 @@ class HomophilyRelationshipFactory:
             #vector1 = self.vectors.get_vector(i)
             vector1 = self.vectors[i]
             tuple_vec1 = tuple(vector1)
-            distances = KeyedVectors.cosine_similarities(vector1,self.vectors)
+            similarities = KeyedVectors.cosine_similarities(vector1,self.vectors)
+            #print (distances)
             #distances = self.vectors.cosine_similarities(vector1,self.vectors)
             #self.roulette_distribution[tuple_vec1] = {}
             temp ={}
-            sum_distances = (distances-distances.min()).sum()
+            sum_similarities = (similarities-similarities.min()).sum()
             for j in range(n_vec):
                 if i != j:
                     vector2 = self.vectors[j]
                     tuple_vec2 = tuple(vector2)
-                    temp[tuple_vec2] = (distances[j] - distances.min()) / sum_distances
-            self.roulette_distribution[tuple_vec1]=dict(sorted(temp.items(), key=lambda item: item[1]),reverse=True)
+                    temp[tuple_vec2] = (similarities[j] - similarities.min()) / sum_similarities
+            
+            self.roulette_distribution[tuple_vec1]=dict(sorted(temp.items(), key=lambda item: -item[1]))
+            #print (self.roulette_distribution[tuple_vec1].values())
+            #last = None
+            #descending = True
+            #for k,v in self.roulette_distribution[tuple_vec1].items():
+                #if last is not None and v >= last:
+                    #descending = False
+                #last = v
+            #print (f"descending:{descending}")
+
+                    
 
     def similarity(self,tup_vec1, tup_vec2):
         vec1 = np.array(list(tup_vec1))
@@ -196,30 +208,63 @@ class HomophilyRelationshipFactory:
         #print (temperature)
         #print ("chooser")
         #print (chooser)
-        #print ("keepset")
-        #print (keepset)
+        #print ("len keepset")
+        #print (len(keepset))
         if len(keepset) > 0:
-            if temperature < 0:
-                #print ("dist len")
-                #print (len(self.roulette_distribution[chooser]))
-                N=math.ceil(len(self.roulette_distribution[chooser])*(1+temperature)) +1
-                #print("N")
-                #print(N)
-                short_dist = {}
-                dist_list = list(self.roulette_distribution[chooser].items())
-                count = 0
-                while len(short_dist) < N and count < len(dist_list):
-                    if dist_list[count][0] in keepset:
-                        short_dist[dist_list[count][0]] = dist_list[count][1]
-                    count +=1
-                #print("short_dist")
-                #print(short_dist)
-                choice = self.roulette_wheel(short_dist) if len(short_dist) > 0 else None
-            elif temperature == 0 or np.random.random()> temperature:
-                choice = self.roulette_wheel(self.roulette_distribution[chooser])
-            else:
-                choice = random.choice(list(self.roulette_distribution[chooser]))
+            #print ("dist len")
+            #print (len(self.roulette_distribution[chooser]))
+            N=math.ceil(len(self.roulette_distribution[chooser]
+                )*(1+temperature)) +1 if temperature < 0 else len(self.roulette_distribution[chooser])
+            #print("N")
+            #print(N)
+            short_dist = {}
 
+            #last = None
+            #descending = True
+            #for k,v in self.roulette_distribution[chooser].items():
+                #if last is not None and v >= last:
+                    #descending = False
+                #last = v
+            #print (f"roulette descending:{descending}")
+
+             
+            dist_list = list(self.roulette_distribution[chooser].items())
+            count = 0
+            while len(short_dist) < N and count < len(dist_list):
+                if dist_list[count][0] in keepset:
+                    short_dist[dist_list[count][0]] = dist_list[count][1]
+                count +=1
+ 
+            #last = None
+            #descending = True
+            #for tup in self.roulette_distribution[chooser].items():
+                #if last is not None and tup[1] >= last:
+                    #descending = False
+                #last = tup[1]
+            #print (f"dist list descending:{descending}")
+
+           #print("len short_dist")
+            #print(len(short_dist))
+            if temperature <= 0 or np.random.random()>temperature:
+                choice = self.roulette_wheel(short_dist) if len(short_dist) > 0 else None
+            else:
+                choice = random.choice(list(short_dist))if len (short_dist)> 0 else None
+        else:
+            print("empty keepset")
+        if choice is None:
+            equals = len(keepset) ==1 and chooser in keepset
+            print(f"None choice. Only choice is self ?  {equals}")
+        else:
+            sim = self.similarity(chooser,choice)
+           # print(f"sim {sim} temperature {temperature}")
+           # print("most similar in the keepset:")
+            max = -1
+            for v in keepset:
+                sim2 = self.similarity(chooser,v)
+                if sim2 > max and v != chooser:
+                    max = sim2
+            if max > sim:
+                print (f"Max is {max} but chosen is {sim} for temperature {temperature}")
         return choice
 
     from statistics import mean
@@ -230,7 +275,10 @@ class HomophilyRelationshipFactory:
         #distribution = copy.deepcopy(self.roulette_distribution)
         keepset = set(self.roulette_distribution.keys())
         similarities = []
+        tup_vec1 = None
         for family in families:
+            if tup_vec1 is not None:
+                keepset.remove(tup_vec1)
             tup_vec1 = None
             for human in family:
                 if len(keepset) > 0:
@@ -349,15 +397,17 @@ class HomophilyRelationshipFactory:
         self.home_keepset = set()
         #self.home_distribution = copy.deepcopy(self.roulette_distribution)
         home_districts = [ agent for agent in self.model.agents if isinstance(agent,District) and 'Home' in agent.strid]
-        
         #print (self.home_districts_to_blobs)
+        tup_vec1 = None
         for home_district in home_districts:
             vectors_for_home_district = self.blob_dict[self.home_districts_to_blobs[home_district.strid]]
             keepset = set([tuple(v) for v in vectors_for_home_district])
+            if tup_vec1 is not None and tup_vec1 in keepset:
+                keepset.remove(tup_vec1)
             tup_vec1 = None
             for apartment_buildings in home_district.locations:
                 for apartment in apartment_buildings.locations:
-                    if len(keepset) == 0:
+                    if len(keepset) == 0 or len(keepset) == 1 and tup_vec1 in keepset:
                         #distribution = copy.deepcopy(self.roulette_distribution)
                         #self.filter_distribution(distribution,vectors_for_home_district)
                         keepset = set([tuple(v) for v in vectors_for_home_district])
@@ -370,13 +420,13 @@ class HomophilyRelationshipFactory:
                             self.vector_to_home[tup_vec1].append(apartment.strid)
                             self.unit_info_map[apartment.strid]["vector"] = tup_vec1
                         else:
+                            keepset.remove(tup_vec1)
                             tup_vec2 = self.choice(tup_vec1,keepset,temperature)
                             if tup_vec2 not in self.vector_to_home:
                                 self.vector_to_home [tup_vec2] = []
                             self.vector_to_home[tup_vec2].append(apartment.strid)
                             self.unit_info_map[apartment.strid]["vector"] = tup_vec2
-                            keepset.remove(tup_vec1)
-                            #self.remove_tup_vec(distribution,tup_vec1)
+                                                        #self.remove_tup_vec(distribution,tup_vec1)
                             #self.remove_column(distribution,tup_vec1)
                             tup_vec1=tup_vec2
                         self.home_keepset.add(tup_vec1)
@@ -393,6 +443,7 @@ class HomophilyRelationshipFactory:
         #allocated = set()
         #self.school_distribution = copy.deepcopy(self.roulette_distribution)
         school_districts = [ agent for agent in self.model.agents if isinstance(agent,District) and 'School' in agent.strid]
+        tup_vec1=None
         for school_district in school_districts:
             vectors_for_school_district = []
             for home_district_position in school_district.home_district_list:
@@ -403,10 +454,12 @@ class HomophilyRelationshipFactory:
             #keepset = set(self.roulette_distribution.keys())
             #self.filter_keepset(keepset,vectors_for_school_district)
             #self.filter_distribution(distribution,vectors_for_school_district)
-            tup_vec1=None
+            if tup_vec1 is not None and tup_vec1 in keepset:
+                keepset.remove(tup_vec1)
+            tup_vec1 = None
             for school in school_district.locations:
                 for classroom in school.locations:
-                    if len(keepset) == 0:
+                    if len(keepset) == 0 or len(keepset) == 1 and tup_vec1 in keepset:
                         keepset = set([tuple(v) for v in vectors_for_school_district])
                     if len(keepset) > 0:
                         if tup_vec1 is None:
@@ -416,12 +469,12 @@ class HomophilyRelationshipFactory:
                             self.vector_to_classroom[tup_vec1].append(classroom.strid)
                             self.unit_info_map[classroom.strid]["vector"] = tup_vec1
                         else:
+                            keepset.remove(tup_vec1)
                             tup_vec2 = self.choice(tup_vec1,keepset,temperature)
                             if tup_vec2 not in self.vector_to_classroom:
                                 self.vector_to_classroom [tup_vec2] = []
                             self.vector_to_classroom[tup_vec2].append(classroom.strid)
                             self.unit_info_map[classroom.strid]["vector"] = tup_vec2
-                            keepset.remove(tup_vec1)
                             #self.remove_tup_vec(distribution,tup_vec1)
                             #self.remove_column(distribution,tup_vec1)
                             tup_vec1=tup_vec2
@@ -436,6 +489,7 @@ class HomophilyRelationshipFactory:
         self.restaurant_keepset = set()
         #self.restaurant_distribution = copy.deepcopy(self.roulette_distribution)
         work_districts = [ agent for agent in self.model.agents if isinstance(agent,District) and 'Work' in agent.strid]
+        tup_vec1 = None
         for work_district in work_districts:
             vectors_for_work_district = []
             for home_district_position in work_district.home_district_list:
@@ -443,17 +497,19 @@ class HomophilyRelationshipFactory:
                 vectors_for_work_district.extend(self.blob_dict[self.home_districts_to_blobs[home_district_strid]])
             keepset = set([tuple(v) for v in vectors_for_work_district])
             #self.filter_distribution(distribution,vectors_for_work_district)
+            if tup_vec1 is not None and tup_vec1 in keepset:
+                keepset.remove(tup_vec1)
             tup_vec1=None
             for office_building in work_district.locations:
                 if 'Restaurant' in office_building.strid:
-                    tup_vec1 = tuple(random.choice(vectors_for_work_district)) 
-                    if tup_vec1 not in self.vector_to_restaurant:
-                        self.vector_to_restaurant [tup_vec1] = []
-                    self.vector_to_restaurant[tup_vec1].append(office_building.strid)
-                    self.unit_info_map[office_building.strid]["vector"] = tup_vec1
-                    self.restaurant_keepset.add(tup_vec1)
+                    tup_vec3 = tuple(random.choice(vectors_for_work_district)) 
+                    if tup_vec3 not in self.vector_to_restaurant:
+                        self.vector_to_restaurant [tup_vec3] = []
+                    self.vector_to_restaurant[tup_vec3].append(office_building.strid)
+                    self.unit_info_map[office_building.strid]["vector"] = tup_vec3
+                    self.restaurant_keepset.add(tup_vec3)
                 for office in office_building.locations:
-                    if len(keepset) == 0:
+                    if len(keepset) == 0 or len(keepset) == 1 and tup_vec1 in keepset:
                         keepset = set([tuple(v) for v in vectors_for_work_district])
                         #distribution = copy.deepcopy(self.roulette_distribution)
                         #self.filter_distribution(distribution,vectors_for_work_district)
@@ -465,12 +521,12 @@ class HomophilyRelationshipFactory:
                             self.vector_to_office[tup_vec1].append(office.strid)
                             self.unit_info_map[office.strid]["vector"] = tup_vec1
                         else:
+                            keepset.remove(tup_vec1)
                             tup_vec2 = self.choice(tup_vec1,keepset,temperature)
                             if tup_vec2 not in self.vector_to_office:
                                 self.vector_to_office [tup_vec2] = []
                             self.vector_to_office[tup_vec2].append(office.strid)
                             self.unit_info_map[office.strid]["vector"]=tup_vec2
-                            keepset.remove(tup_vec1)
                             #self.remove_tup_vec(distribution,tup_vec1)
                             #self.remove_column(distribution,tup_vec1)
                             tup_vec1=tup_vec2
@@ -681,7 +737,7 @@ class HomophilyRelationshipFactory:
     def find_friends(self,human,humans,n,temperature=-0.9):
         friends=[]
         chooser = self.feature_vector[human]
-        keepset = set([self.feature_vector[human] for human in humans])
+        keepset = set([self.feature_vector[human2] for human2 in humans])
         #friends_dist = self.copy_distribution(self.roulette_distribution,[chooser], candidates)
         num_friends = min(n,len(keepset))
         for i in range (num_friends):
