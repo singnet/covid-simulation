@@ -259,12 +259,12 @@ class HomophilyRelationshipFactory:
            # print(f"sim {sim} temperature {temperature}")
            # print("most similar in the keepset:")
             max = -1
-            for v in keepset:
-                sim2 = self.similarity(chooser,v)
-                if sim2 > max and v != chooser:
-                    max = sim2
-            if max > sim:
-                print (f"Max is {max} but chosen is {sim} for temperature {temperature}")
+            #for v in keepset:
+                #sim2 = self.similarity(chooser,v)
+                #if sim2 > max and v != chooser:
+                    #max = sim2
+            #if max > sim:
+                #print (f"Max is {max} but chosen is {sim} for temperature {temperature}")
         return choice
 
     from statistics import mean
@@ -402,10 +402,10 @@ class HomophilyRelationshipFactory:
         for home_district in home_districts:
             vectors_for_home_district = self.blob_dict[self.home_districts_to_blobs[home_district.strid]]
             keepset = set([tuple(v) for v in vectors_for_home_district])
-            if tup_vec1 is not None and tup_vec1 in keepset:
-                keepset.remove(tup_vec1)
-            tup_vec1 = None
             for apartment_buildings in home_district.locations:
+                if tup_vec1 is not None and tup_vec1 in keepset:
+                    keepset.remove(tup_vec1)
+                tup_vec1 = None
                 for apartment in apartment_buildings.locations:
                     if len(keepset) == 0 or len(keepset) == 1 and tup_vec1 in keepset:
                         #distribution = copy.deepcopy(self.roulette_distribution)
@@ -420,7 +420,10 @@ class HomophilyRelationshipFactory:
                             self.vector_to_home[tup_vec1].append(apartment.strid)
                             self.unit_info_map[apartment.strid]["vector"] = tup_vec1
                         else:
-                            keepset.remove(tup_vec1)
+                            if tup_vec1 in keepset:
+                                keepset.remove(tup_vec1)
+                            else:
+                                print (f"tup_vec1 not in keepset of size {len(keepset)}")
                             tup_vec2 = self.choice(tup_vec1,keepset,temperature)
                             if tup_vec2 not in self.vector_to_home:
                                 self.vector_to_home [tup_vec2] = []
@@ -454,10 +457,10 @@ class HomophilyRelationshipFactory:
             #keepset = set(self.roulette_distribution.keys())
             #self.filter_keepset(keepset,vectors_for_school_district)
             #self.filter_distribution(distribution,vectors_for_school_district)
-            if tup_vec1 is not None and tup_vec1 in keepset:
-                keepset.remove(tup_vec1)
-            tup_vec1 = None
             for school in school_district.locations:
+                if tup_vec1 is not None and tup_vec1 in keepset:
+                    keepset.remove(tup_vec1)
+                tup_vec1 = None
                 for classroom in school.locations:
                     if len(keepset) == 0 or len(keepset) == 1 and tup_vec1 in keepset:
                         keepset = set([tuple(v) for v in vectors_for_school_district])
@@ -497,10 +500,10 @@ class HomophilyRelationshipFactory:
                 vectors_for_work_district.extend(self.blob_dict[self.home_districts_to_blobs[home_district_strid]])
             keepset = set([tuple(v) for v in vectors_for_work_district])
             #self.filter_distribution(distribution,vectors_for_work_district)
-            if tup_vec1 is not None and tup_vec1 in keepset:
-                keepset.remove(tup_vec1)
-            tup_vec1=None
             for office_building in work_district.locations:
+                if tup_vec1 is not None and tup_vec1 in keepset:
+                    keepset.remove(tup_vec1)
+                tup_vec1=None
                 if 'Restaurant' in office_building.strid:
                     tup_vec3 = tuple(random.choice(vectors_for_work_district)) 
                     if tup_vec3 not in self.vector_to_restaurant:
