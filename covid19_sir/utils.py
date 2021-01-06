@@ -470,8 +470,8 @@ class Network:
     def __init__(self, model,clumpiness=[]):
         #self.model = model      
         self.districts = [ agent for agent in model.agents if isinstance(agent,District)]
-        self.G = nx.Graph()
-        #self.G = nx.MultiGraph()
+        #self.G = nx.Graph()
+        self.G = nx.MultiGraph()
         self.clumpiness = clumpiness
         
     def start_cycle(self, model):
@@ -525,7 +525,7 @@ class Network:
     def compute_clumpiness2(self):
         #Just sample 
         num_nodes = len(self.G.nodes)
-        k = 100
+        k = 1000
         avg_len = 0
         disconnects = 0
         for i in range (k):
@@ -947,7 +947,7 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     #(x,y) where x is the place among the width and y is the place along the height.
     
      
-    work_building_capacity = 20
+    work_building_capacity = 100
     office_capacity = 10
     work_building_occupacy_rate = 0.5
     appartment_building_capacity = 20
@@ -1110,7 +1110,10 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
             human.tribe[TribeSelector.FAMILY] = family
             if isinstance(human, Adult):
                 human.unique_id = "Adult" + str(count)
-                human.tribe[TribeSelector.COWORKER] = human.work_district.get_buildings(human)[0].get_unit(human).allocation
+                if human.work_district is not None:
+                    human.tribe[TribeSelector.COWORKER] = human.work_district.get_buildings(human)[0].get_unit(human).allocation
+                else:
+                    print(f"Adult {human} was not assigned a work district")
                 t1 = hrf.build_tribe(human, human.tribe[TribeSelector.COWORKER], 1, office_capacity,restaurant_temperature)
                 t2 = hrf.build_tribe(human, human.tribe[TribeSelector.AGE_GROUP], 1, 20, restaurant_temperature)
                 human.tribe[TribeSelector.FRIEND] = t1
@@ -1122,11 +1125,12 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
                     adult_friend_similarity.append(sim)
             elif isinstance(human, K12Student):
                 human.unique_id = "K12Student" + str(count)
-                if len(human.school_district.get_buildings(human)) > 0:
-                    human.tribe[TribeSelector.CLASSMATE] = human.school_district.get_buildings(human)[0].get_unit(
+                if human.school_district is not None:
+                    if len(human.school_district.get_buildings(human)) > 0:
+                        human.tribe[TribeSelector.CLASSMATE] = human.school_district.get_buildings(human)[0].get_unit(
                     human).allocation
                 else:
-                    print(f"error in {human} allocation to school district {human.school_district}")
+                    print (f"student {human} wasnt assigned a school district")
                 t1 = hrf.build_tribe(human, human.tribe[TribeSelector.CLASSMATE], 1, classroom_capacity, restaurant_temperature)
                 t2 = hrf.build_tribe(human, human.tribe[TribeSelector.AGE_GROUP], 1, 20, restaurant_temperature)
                 human.tribe[TribeSelector.FRIEND] = t1
@@ -1145,4 +1149,11 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     avg_adult_sim = np.mean(adult_friend_similarity)
     avg_student_sim = np.mean(student_friend_similarity)
     print (f"Average friend similarity for adults: {avg_adult_sim} for kids: {avg_student_sim}")
+    print ("home_districts")
+    print (home_districts)
+    print ("work_districts")
+    print (work_districts)
+    print ("school_districts")
+    print (school_districts)
 
+ 
