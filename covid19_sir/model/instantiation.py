@@ -129,7 +129,7 @@ class HomophilyRelationshipFactory:
             n_samples=n_vec,
             n_features=n_features,
             centers=n_blobs,
-            cluster_std=1.0,
+            cluster_std=0.1,#1.0
             center_box=(-10.0, 10.0),
             shuffle=False,
             random_state=iseed
@@ -625,6 +625,8 @@ class HomophilyRelationshipFactory:
 
     def allocate_school_districts(self,school_districts,temperature):
         similarities = []
+        room_sizes = {}
+        count = 0
         for school_district in school_districts:
             included_set = set()
             students=set()
@@ -645,6 +647,9 @@ class HomophilyRelationshipFactory:
             self.allocate_schools(included_set,students,temperature)
             for school in school_district.locations:
                 for classroom in school.locations:
+                    if len(classroom.allocation) > 0: 
+                        room_sizes[count]= len(classroom.allocation)
+                        count +=1
                     for student in classroom.allocation:
                         tup_vec1 = self.unit_info_map[classroom.strid]["vector"]
                         tup_vec2 = self.feature_vector[student]
@@ -652,6 +657,8 @@ class HomophilyRelationshipFactory:
                         similarities.append (sim)
         avg_sim = mean(similarities)
         print (f"Average similarity between students and their classroom is {avg_sim} at temperature {temperature}")
+        avg_size = mean(list(room_sizes.values()))
+        print (f"Average classroom occupancy is {avg_size} and number classrooms is {len(room_sizes)}")
 
 
     def allocate_workplace(self,office,worker):
@@ -680,6 +687,7 @@ class HomophilyRelationshipFactory:
                 self.vector_to_office[choice].remove(office_str)
 
     def allocate_work_districts(self,work_districts,temperature):
+        similarities=[]
         for work_district in work_districts:
             included_set = set()
             workers=set()
@@ -697,9 +705,13 @@ class HomophilyRelationshipFactory:
                             if isinstance(human,Adult):
                                 workers.add(human)
             self.allocate_workplaces(included_set,workers,temperature)
-            similarities =[]
+            room_sizes = {}
+            count = 0
             for office_building in work_district.locations:
                 for office in office_building.locations:
+                    if len(office.allocation) > 0:
+                        room_sizes[count] = len(office.allocation)
+                        count += 1
                     for worker in office.allocation:
                         tup_vec1 = self.unit_info_map[office.strid]["vector"]
                         tup_vec2 = self.feature_vector[worker]
@@ -707,7 +719,8 @@ class HomophilyRelationshipFactory:
                         similarities.append (sim)
         avg_sim = mean(similarities)
         print (f"Average similarity between workers is {avg_sim} at temperature {temperature}")
-
+        avg_size = mean(list(room_sizes.values()))
+        print (f"Average office occupancy is {avg_size} and number offices is {len(room_sizes)}")
   
     def allocate_favorite_restaurants(self, adults,temperature,n_favorites):
         #shuffled_adults = copy.deepcopy(adults)
@@ -724,16 +737,17 @@ class HomophilyRelationshipFactory:
                 #print (self.vector_to_restaurant.keys())
                 for n in range(n_favorites):
                     choice = self.choice(vector, keepset,temperature)
-                    restaurant_strs = self.vector_to_restaurant[choice]
-                    restaurant_str = random.choice(restaurant_strs)
-                    restaurant = self.unit_info_map[restaurant_str]["building"]
-                    adult.restaurants.append(restaurant)
-                    #print(f"adult {adult} chooses restaurant {restaurant}")
-                    keepset.remove(choice)
-                    #self.remove_column(distribution,choice)
-                    #vacancy = restaurant.capacity - len(restaurant.allocation)
-                    #if vacancy <=0:
-                        #self.remove_column(self.restaurant_distribution,choice)
+                    if choice in self.vector_to_restaurant:
+                        restaurant_strs = self.vector_to_restaurant[choice]
+                        restaurant_str = random.choice(restaurant_strs)
+                        restaurant = self.unit_info_map[restaurant_str]["building"]
+                        adult.restaurants.append(restaurant)
+                        #print(f"adult {adult} chooses restaurant {restaurant}")
+                        keepset.remove(choice)
+                        #self.remove_column(distribution,choice)
+                        #vacancy = restaurant.capacity - len(restaurant.allocation)
+                        #if vacancy <=0:
+                            #self.remove_column(self.restaurant_distribution,choice)
             else:
                 print(f"adult {adult} was not assigned a feature vector")
 

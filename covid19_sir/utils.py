@@ -152,7 +152,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
 
 			
     ax.set_xlabel("Days")
-    ax.set_ylabel("% of Population")
+    ax.set_ylabel("Ratio of Population")
     handles, labels = ax.get_legend_handles_labels()
     # Shrink current axis by 20%
     box = ax.get_position()
@@ -164,7 +164,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
 
     if zoomed_plot:
         ax2.set_xlabel("Days")
-        ax2.set_ylabel("% of Population")
+        ax2.set_ylabel("Ratio of Population")
         handles, labels = ax2.get_legend_handles_labels()
         # Shrink current axis by 20%
         box = ax2.get_position()
@@ -467,12 +467,12 @@ import networkx as nx
 
 
 class Network:
-    def __init__(self, model,clumpiness=[]):
+    def __init__(self, model):
         #self.model = model      
         self.districts = [ agent for agent in model.agents if isinstance(agent,District)]
         #self.G = nx.Graph()
         self.G = nx.MultiGraph()
-        self.clumpiness = clumpiness
+        self.clumpiness = [] 
         
     def start_cycle(self, model):
        self.state_change(model)
@@ -525,7 +525,7 @@ class Network:
     def compute_clumpiness2(self):
         #Just sample 
         num_nodes = len(self.G.nodes)
-        k = 1000
+        k = 100
         avg_len = 0
         disconnects = 0
         for i in range (k):
@@ -947,16 +947,16 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     #(x,y) where x is the place among the width and y is the place along the height.
     
      
-    work_building_capacity = 100
-    office_capacity = 10
-    work_building_occupacy_rate = 0.5
+    work_building_capacity = 70
+    office_capacity =3 
+    work_building_occupacy_rate = 1.0 
     appartment_building_capacity = 20
     appartment_capacity = 5
     appartment_building_occupacy_rate = 0.5
-    school_capacity = 50
-    classroom_capacity = 20
-    school_occupacy_rate = 0.5
-    num_favorite_restaurants = 10
+    school_capacity = 6
+    classroom_capacity = 5
+    school_occupacy_rate = 1.0
+    num_favorite_restaurants =2 
     family_temperature =  get_parameters().params['temperature']
     home_room_temperature = get_parameters().params['temperature']
     school_room_temperature = get_parameters().params['temperature']
@@ -971,11 +971,14 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     work_districts=[]
     school_districts = []
     home_district_in_position = {}
+    agents_per_home_district = math.ceil(population_size/(home_grid_width*home_grid_height))
+    agents_per_school_district = math.ceil((0.25*population_size) /len(school_home_list))
+    agents_per_work_district = math.ceil((0.5*population_size)/len(work_home_list))
 
     for hw in range(home_grid_width):
         for hh in range(home_grid_height):
 
-            home_district = build_district(f"Home ({hh},{hw})", model, population_size,
+            home_district = build_district(f"Home ({hh},{hw})", model, agents_per_home_district,
                                    appartment_building_capacity,
                                    appartment_capacity,
                                    appartment_building_occupacy_rate,
@@ -987,7 +990,7 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
             home_district_in_position[(hh,hw)] = home_district
 
     for w in range(len(work_home_list)):
-        work_district = build_district(f"Work ({w})", model, population_size,
+        work_district = build_district(f"Work ({w})", model, agents_per_work_district,
                                work_building_capacity,
                                office_capacity,
                                work_building_occupacy_rate,
@@ -1029,7 +1032,7 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
 
     for s in range(len(school_home_list)):
 
-        school_district = build_district(f"School ({s})", model, population_size,
+        school_district = build_district(f"School ({s})", model, agents_per_school_district,
                                  school_capacity,
                                  classroom_capacity,
                                  school_occupacy_rate,
