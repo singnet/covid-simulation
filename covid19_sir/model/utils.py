@@ -103,6 +103,8 @@ class DilemmaDecisionHistory:
         answer = None
         count = 0
         num_peers_can_copy = 0
+        #print ("decider.tribe[tribe]")
+        #print (decider.tribe[tribe])
         for peer in decider.tribe[tribe]:
             if len(peer.dilemma_history.history[dilemma][tribe]) > 0:
                 num_peers_can_copy += 1

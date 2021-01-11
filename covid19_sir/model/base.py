@@ -195,7 +195,7 @@ class Logger:
         if Logger.__instance is not None:
             raise Exception("Invalid re-instantiation of Logger")
         else:
-            # print("log initialized")
+            print("log initialized")
             logging.basicConfig(
                 filename=LOG_FILE_NAME,
                 level=LOGGING_LEVEL,
@@ -281,7 +281,10 @@ class SimulationParameters:
                        'restaurant_count_per_work_district': kwargs.get("restaurant_count_per_work_district", 10),
                        'restaurant_capacity_mean': kwargs.get("restaurant_capacity_mean", 50),
                        'restaurant_capacity_stdev': kwargs.get("restaurant_capacity_stdev", 20),
-                       'min_behaviors_to_copy': kwargs.get("min_behaviors_to_copy", 3)}
+                       'min_behaviors_to_copy': kwargs.get("min_behaviors_to_copy", 3),
+                       'num_communities': kwargs.get("num_communities",1),
+                       'num_features':kwargs.get("num_features",10),
+                       'temperature':kwargs.get("temperature",-1)}
 
     def get(self, key):
         return self.params[key]
@@ -396,6 +399,8 @@ class CovidModel(Model):
         while not flag:
             logger().info(f"STATE: {self.current_state}")
             self.schedule.step()
+            for listener in self.listeners:
+                listener.state_change(self)
             self.current_state = self.next_state[self.current_state]
             if self.current_state == SimulationState.MORNING_AT_HOME:
                 flag = True

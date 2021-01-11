@@ -139,6 +139,8 @@ class Human(AgentBase):
         self.has_been_hospitalized = False
         self.has_been_icu = False
         self.parameter_changed()
+        self.social_event = None
+        
 
     def initialize_individual_properties(self):
         super().initialize_individual_properties()
@@ -471,9 +473,9 @@ class K12Student(Human):
         if self.is_dead:
             return
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
-            if not self.is_isolated():
+            if not self.is_isolated() and self.school_district is not None:
                 self.home_district.move_to(self, self.school_district)
-        elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
+        elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME and self.school_district is not None:
             self.school_district.move_to(self, self.home_district)
 
 
@@ -482,6 +484,7 @@ class Adult(Human):
         super().__init__(covid_model, age, msp, hsp, mfd)
         self.social_event = None
         self.days_since_last_social_event = 0
+        self.restaurants = []
 
     def initialize_individual_properties(self):
         super().initialize_individual_properties()
@@ -512,14 +515,15 @@ class Adult(Human):
             restaurant_type = RestaurantType.FANCY
         else:
             restaurant_type = RestaurantType.FAST_FOOD
-        event = self.work_district.get_available_restaurant(len(accepted), outdoor, restaurant_type)
-        if event is not None and not outdoor:
-            event = self.work_district.get_available_restaurant(len(accepted), True, restaurant_type)
-        if event is None:
-            return
-        event.available -= len(accepted)
-        for human in accepted:
-            human.social_event = (self, event)
+        if self.work_district is not None:
+            event = self.work_district.get_available_restaurant(len(accepted), outdoor, restaurant_type,self.restaurants)
+            if event is not None and not outdoor and self.work_district is not None:
+                event = self.work_district.get_available_restaurant(len(accepted), True, restaurant_type,self.restaurants)
+            if event is None:
+                return
+            event.available -= len(accepted)
+            for human in accepted:
+                human.social_event = (self, event)
 
     def working_day(self):
         if self.covid_model.current_state == SimulationState.COMMUTING_TO_MAIN_ACTIVITY:
@@ -527,13 +531,14 @@ class Adult(Human):
                 self.work_info.isolated = True
             else:
                 self.work_info.isolated = False
-                self.home_district.move_to(self, self.work_district)
+                if self.work_district is not None:
+                    self.home_district.move_to(self, self.work_district)
             self.covid_model.global_count.total_income += self.work_info.current_income()
         elif self.covid_model.current_state == SimulationState.MAIN_ACTIVITY:
             if self.personal_decision(Dilemma.INVITE_FRIENDS_TO_RESTAURANT):
                 self.invite_friends_to_restaurant()
         elif self.covid_model.current_state == SimulationState.COMMUTING_TO_POST_WORK_ACTIVITY:
-            if self.social_event is not None:
+            if self.social_event is not None and self.work_district is not None:
                 table, restaurant = self.social_event
                 self.home_district.move_to(self, restaurant)
                 self.work_district.move_to(self, restaurant)
@@ -544,7 +549,7 @@ class Adult(Human):
                 restaurant.available += 1
                 self.days_since_last_social_event = 0
                 self.social_event = None
-            else:
+            elif self.work_district is not None:
                 self.work_district.move_to(self, self.home_district)
         elif self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
             self.days_since_last_social_event += 1

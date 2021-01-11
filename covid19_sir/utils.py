@@ -4,7 +4,7 @@ from model.base import CovidModel, get_parameters, change_parameters, flip_coin,
 from model.human import Elder, Adult, K12Student, Toddler, Infant
 from model.location import District, HomogeneousBuilding, BuildingUnit, Restaurant
 from model.instantiation import FamilyFactory, HomophilyRelationshipFactory
-from model.utils import TribeSelector, RestaurantType
+from model.utils import TribeSelector, RestaurantType,SimulationState
 import model.utils
 import copy
 from scipy.stats import sem, t
@@ -29,7 +29,7 @@ def confidence_interval(data, confidence=0.95):
 
 def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=[], debug=False, desired_stats=None,
                   fname="scenario", listeners=[], do_print=False, home_grid_height=1, home_grid_width=1,
-                  work_height=1, work_width=1, school_height=1, school_width=1, zoomed_plot=True,
+                  work_home_list=[[(0,0)]], school_home_list=[[(0,0)]], temperature = -1, zoomed_plot=True,
                   zoomed_plot_ylim=(-0.01, .12)):
     color = {
             'susceptible': 'lightblue',
@@ -38,10 +38,11 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             'death': 'black',
             'hospitalization': 'orange',
             'icu': 'red',
-            'income': 'magenta'
+            'income': 'magenta',
+            'clumpiness':'purple'
         }
     if desired_stats is None:
-        desired_stats = ["susceptible", "infected", "recovered", "hospitalization", "icu", "death", "income"]
+        desired_stats = ["susceptible", "infected", "recovered", "hospitalization", "icu", "death", "income","clumpiness"]
     randomlist = random.sample(range(10000), num_runs) if len(seeds) == 0  else seeds
     if do_print:
         print("Save these seeds if you want to rerun a scenario")
@@ -81,17 +82,24 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
         np.random.seed(s + 1)
         random.seed(s + 2)
         model.reset_randomizer(s)
-
-        setup_grid_layout(model, population_size, home_grid_height, 
-        home_grid_width,work_height,work_width, school_height, school_width)
+        setup_homophilic_layout(model,population_size,home_grid_height,home_grid_width,work_home_list,school_home_list)
+        #setup_grid_layout(model, population_size, home_grid_height, 
+        #home_grid_width,work_height,work_width, school_height, school_width)
         if do_print:
             print("run with seed {0}:".format(str(s)))
         statistics = BasicStatistics(model)
         model.add_listener(statistics)
+        network = Network(model)
+        model.add_listener(network)
         for i in range(simulation_cycles):
             model.step()
+        #print("clumpiness:")
+        #print (getattr(network,"clumpiness"))
         for stat in desired_stats:
-            all_runs[stat][s] = getattr(statistics, stat)
+            if stat is "clumpiness":
+                all_runs[stat][s]=copy.deepcopy(getattr(network,"clumpiness"))
+            else:
+                all_runs[stat][s] = getattr(statistics, stat)
             if stat is "income":
                 all_runs[stat][s].pop(1)
             avg[stat].append(np.mean(all_runs[stat][s]))
@@ -144,7 +152,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
 
 			
     ax.set_xlabel("Days")
-    ax.set_ylabel("% of Population")
+    ax.set_ylabel("Ratio of Population")
     handles, labels = ax.get_legend_handles_labels()
     # Shrink current axis by 20%
     box = ax.get_position()
@@ -156,7 +164,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
 
     if zoomed_plot:
         ax2.set_xlabel("Days")
-        ax2.set_ylabel("% of Population")
+        ax2.set_ylabel("Ratio of Population")
         handles, labels = ax2.get_legend_handles_labels()
         # Shrink current axis by 20%
         box = ax2.get_position()
@@ -246,6 +254,9 @@ class BasicStatistics:
         self.icu.append(self.covid_model.global_count.high_severity_count / pop)
         self.death.append(self.covid_model.global_count.death_count / pop)
         self.income.append(self.covid_model.global_count.total_income / work_pop)
+    
+    def state_change(self, model):
+        pass
 
     def end_cycle(self, model):
         pass
@@ -305,6 +316,9 @@ class RemovePolicy:
     def start_cycle(self, model):
         pass
 
+    def state_change(self,model):
+        pass
+
     def end_cycle(self, model):
         if self.state == 0:
             if self.model.global_count.day_count == self.switch:
@@ -322,6 +336,9 @@ class AddPolicy:
     def start_cycle(self, model):
         pass
 
+    def state_change(self,model):
+        pass
+
     def end_cycle(self, model):
         if self.state == 0:
             if self.model.global_count.day_count == self.switch:
@@ -337,6 +354,9 @@ class AddPolicyInfectedRate:
         self.state = 0
 
     def start_cycle(self, model):
+        pass
+
+    def state_change(self,model):
         pass
 
     def end_cycle(self, model):
@@ -358,6 +378,9 @@ class AddPolicyInfectedRateWindow:
         self.n = n
         
     def start_cycle(self, model):
+        pass
+
+    def state_change(self,model):
         pass
 
     def end_cycle(self, model):
@@ -389,6 +412,9 @@ class RemovePolicyInfectedRateWindow:
     def start_cycle(self, model):
         pass
 
+    def state_change(self,model):
+        pass
+
     def end_cycle(self, model):
         self.recent_trigger_window.append(self.model.global_count.infected_count/ self.model.global_count.total_population)
         while len( self.recent_trigger_window) > self.n:
@@ -415,6 +441,9 @@ class Propaganda:
     def start_cycle(self, model):
         pass
 
+    def state_change(self,model):
+        pass
+
     def tick(self):
         v = get_parameters().get('risk_tolerance_mean') - 0.1
         if v < 0.1:
@@ -434,10 +463,95 @@ class Propaganda:
                 self.tick()
 
 
+import networkx as nx
+
+
+class Network:
+    def __init__(self, model):
+        #self.model = model      
+        self.districts = [ agent for agent in model.agents if isinstance(agent,District)]
+        #self.G = nx.Graph()
+        self.G = nx.MultiGraph()
+        self.clumpiness = [] 
+        
+    def start_cycle(self, model):
+       self.state_change(model)
+
+    def state_change(self,model):
+        similarities = []
+        for district in self.districts:
+            for building in district.locations:
+                for room in building.locations:
+                    for human in room.humans:
+                        if human.strid not in self.G.nodes:
+                            self.G.add_node(human.strid)
+                        if room.strid not in self.G.nodes:
+                            self.G.add_node(room.strid)
+                        weight = -1 * np.log(room.get_parameter('contagion_probability'))
+                        self.G.add_edge(human.strid, room.strid,weight=weight)
+                        #print (f"edge added betweem {human.strid} and {room.strid}")
+                for human in building.humans:
+                    if model.current_state == SimulationState.POST_WORK_ACTIVITY:
+                        sim = model.hrf.similarity(model.hrf.feature_vector[human],model.hrf.unit_info_map[building.strid]["vector"])
+                        similarities.append(sim)
+                    if human.strid not in self.G.nodes:
+                        self.G.add_node(human.strid)
+                    if building.strid not in self.G.nodes:
+                        self.G.add_node(building.strid)
+                    weight = -1 * np.log(building.get_parameter('contagion_probability'))
+                    self.G.add_edge(human.strid, building.strid,weight=weight)
+                    #print (f"edge added between {human.strid} and {building.strid}")
+        if len(similarities) > 0:
+            avg_sim = np.mean(similarities)
+            print(f"avg restaurant similarity {avg_sim}")
+            similarities = []
+    def end_cycle(self, model):
+        #print ("self.G.nodes")
+        #print (self.G.nodes)
+        #print ("self.G.edges")
+        #print (self.G.edges)
+        self.clumpiness.append(self.compute_clumpiness2())
+        self.G.clear()
+        #self.G.remove_edges_from(self.G.edges())
+
+    def compute_clumpiness1(self):
+        avg_path = 0
+        connected_component_subgraphs = [self.G.subgraph(c) for c in nx.connected_components(self.G)]
+        for C in connected_component_subgraphs:
+            avg_path += nx.average_shortest_path_length(C, weight="weight") * len(C.nodes)
+        avg_path /= len(self.G.nodes)
+        return avg_path
+
+    def compute_clumpiness2(self):
+        #Just sample 
+        num_nodes = len(self.G.nodes)
+        k = 100
+        avg_len = 0
+        disconnects = 0
+        for i in range (k):
+            nodes = random.sample(self.G.nodes, 2)
+            try:
+                shortest_path = nx.dijkstra_path(self.G,nodes[0],nodes[1], weight = "weight")
+                shortest_path_len = len(shortest_path)
+            except(nx.NetworkXNoPath):
+                shortest_path_len = num_nodes
+                disconnects += 1
+
+            avg_len += shortest_path_len
+        avg_len /= k*num_nodes
+        disconnects /= k
+
+        #print ("disconnects")
+        #print (disconnects)
+
+        return avg_len
+
+        
+        
 def build_district(name, model, population_size, building_capacity, unit_capacity,
-                   occupacy_rate, contagion_probability):
+                   occupacy_rate, contagion_probability, home_district_list=[]):
     logger().info(f"Building district {name} contagion_probability = {contagion_probability}")
-    district = District(name, model, '', name)
+    district = District(name, model, '', name, home_district_list)
     building_count = math.ceil(
         math.ceil(population_size / unit_capacity) * (1 / occupacy_rate)
         / building_capacity)
@@ -821,8 +935,228 @@ def setup_grid_layout(model, population_size,
             elif isinstance(human, Toddler):
                 human.unique_id = "Toddler" + str(count)
 
+
+
+def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_width,work_home_list=[],school_home_list=[],
+         temperature=-1):
+    # This is made to be implemented on a realistic map.  The input is meant to describe a realistic map.
+    # Send a grid shape of home districts and two list of lists of grid tuples of the home district representing 
+    # the school and work districts that the homes belong in.  Non-grids shapes can be projected onto a grid with 
+    # smaller home district sizes for higher resolution.  An empty list assumes one work district.  Each list in 
+    # the list of lists is one of the work or school districts. Represent the districts with a list of tuples
+    #(x,y) where x is the place among the width and y is the place along the height.
+    
+     
+    work_building_capacity = 70
+    office_capacity =3 
+    work_building_occupacy_rate = 1.0 
+    appartment_building_capacity = 20
+    appartment_capacity = 5
+    appartment_building_occupacy_rate = 0.5
+    school_capacity = 6
+    classroom_capacity = 5
+    school_occupacy_rate = 1.0
+    num_favorite_restaurants =2 
+    family_temperature =  get_parameters().params['temperature']
+    home_room_temperature = get_parameters().params['temperature']
+    school_room_temperature = get_parameters().params['temperature']
+    work_room_temperature = get_parameters().params['temperature']
+    home_temperature = -1
+    school_temperature = get_parameters().params['temperature']
+    work_temperature = get_parameters().params['temperature']
+    restaurant_temperature = get_parameters().params['temperature']
+
+
+    home_districts = []
+    work_districts=[]
+    school_districts = []
+    home_district_in_position = {}
+    agents_per_home_district = math.ceil(population_size/(home_grid_width*home_grid_height))
+    agents_per_school_district = math.ceil((0.25*population_size) /len(school_home_list))
+    agents_per_work_district = math.ceil((0.5*population_size)/len(work_home_list))
+
+    for hw in range(home_grid_width):
+        for hh in range(home_grid_height):
+
+            home_district = build_district(f"Home ({hh},{hw})", model, agents_per_home_district,
+                                   appartment_building_capacity,
+                                   appartment_capacity,
+                                   appartment_building_occupacy_rate,
+                                   beta_range(0.021, 0.12))  # normal_ci(0.021, 0.12, 10)
+
+            home_district.debug = model.debug
+
+            home_districts.append(home_district)
+            home_district_in_position[(hh,hw)] = home_district
+
+    for w in range(len(work_home_list)):
+        work_district = build_district(f"Work ({w})", model, agents_per_work_district,
+                               work_building_capacity,
+                               office_capacity,
+                               work_building_occupacy_rate,
+                               beta_range(0.007, 0.06),
+                               work_home_list[w])  # normal_ci(0.007, 0.06, 10)
+        # Add Restaurants to work_district
+
+        for i in range(get_parameters().params['restaurant_count_per_work_district']):
+            if flip_coin(0.5):
+                restaurant_type = RestaurantType.FAST_FOOD
+                rtype = "FASTFOOD"
+            else:
+                restaurant_type = RestaurantType.FANCY
+                rtype = "FANCY"
+            restaurant = Restaurant(
+                normal_cap(
+                    get_parameters().params['restaurant_capacity_mean'], 
+                    get_parameters().params['restaurant_capacity_stdev'], 
+                    16, 
+                    200
+                ),
+                restaurant_type,
+                flip_coin(0.5),
+                model,
+                '',
+                rtype + '-' + str(i)+ f"({w})")
+            work_district.locations.append(restaurant)
+        for i in range(2):
+            bar = Restaurant(
+                normal_cap(100, 20, 50, 200),
+                RestaurantType.BAR,
+                flip_coin(0.5),
+                model,
+                '',
+                'BAR-' + str(i)+ f"({w})")
+            work_district.locations.append(bar)
+        work_district.debug = model.debug
+        work_districts.append(work_district)
+
+    for s in range(len(school_home_list)):
+
+        school_district = build_district(f"School ({s})", model, agents_per_school_district,
+                                 school_capacity,
+                                 classroom_capacity,
+                                 school_occupacy_rate,
+                                 beta_range(0.014, 0.08),
+                                 school_home_list[s])  # normal_ci(0.014, 0.08, 10)
+        
+        school_district.debug = model.debug
+        school_districts.append(school_district)
+
+
     # print(home_district)
     # print(work_district)
     # print(school_district)
 
-    # exit()
+    # Build families
+
+    family_factory = FamilyFactory(model)
+    family_factory.factory(population_size)
+    model.global_count.total_population = family_factory.human_count
+    #print ("family_factory.human_count")
+    #print (family_factory.human_count)
+
+    # print(family_factory)
+    hrf = HomophilyRelationshipFactory(model,family_factory.human_count,get_parameters().params['num_communities'],
+        get_parameters().params['num_features'],home_district_in_position)
+    model.hrf = hrf
+    hrf.assign_features_to_families(family_factory.families,family_temperature)
+    hrf.map_home_districts_to_blobs(home_grid_height,home_grid_width)
+    hrf.assign_features_to_homes(home_room_temperature)
+    hrf.assign_features_to_schools(school_room_temperature)
+    hrf.assign_features_to_offices(work_room_temperature)
+
+    age_group_sets = {
+        Infant: [],
+        Toddler: [],
+        K12Student: [],
+        Adult: [],
+        Elder: []
+    }
+
+    # Allocate buildings to people
+
+    all_adults = []
+    all_students = []
+    for family in family_factory.families:
+        adults = [human for human in family if isinstance(human, Adult)]
+        students = [human for human in family if isinstance(human, K12Student)]
+    
+        #home_district.allocate(family, True, True, True)
+        #work_district.allocate(adults)
+        #school_district.allocate(students, True)
+        for human in family:
+            age_group_sets[type(human)].append(human)
+            #human.home_district = home_district
+            #home_district.get_buildings(human)[0].get_unit(human).humans.append(human)
+        for adult in adults:
+            #adult.work_district = work_district
+            all_adults.append(adult)
+        for student in students:
+            #student.school_district = school_district
+            all_students.append(student)
+
+    hrf.allocate_homes(family_factory.families, home_temperature)
+    hrf.allocate_school_districts(school_districts,school_temperature)
+    hrf.allocate_work_districts(work_districts, work_temperature)
+    hrf.allocate_favorite_restaurants(all_adults, restaurant_temperature, num_favorite_restaurants)
+
+
+    # Set tribes
+
+    adult_friend_similarity = []
+    student_friend_similarity = []
+    count = 0
+    for family in family_factory.families:
+        for human in family:
+            count += 1
+            human.tribe[TribeSelector.AGE_GROUP] = age_group_sets[type(human)]
+            human.tribe[TribeSelector.FAMILY] = family
+            if isinstance(human, Adult):
+                human.unique_id = "Adult" + str(count)
+                if human.work_district is not None:
+                    human.tribe[TribeSelector.COWORKER] = human.work_district.get_buildings(human)[0].get_unit(human).allocation
+                else:
+                    print(f"Adult {human} was not assigned a work district")
+                t1 = hrf.build_tribe(human, human.tribe[TribeSelector.COWORKER], 1, office_capacity,restaurant_temperature)
+                t2 = hrf.build_tribe(human, human.tribe[TribeSelector.AGE_GROUP], 1, 20, restaurant_temperature)
+                human.tribe[TribeSelector.FRIEND] = t1
+                for h in t2:
+                    if h not in human.tribe[TribeSelector.FRIEND]:
+                        human.tribe[TribeSelector.FRIEND].append(h)
+                for h in human.tribe[TribeSelector.FRIEND]:
+                    sim = hrf.similarity(hrf.feature_vector[human],hrf.feature_vector[h])
+                    adult_friend_similarity.append(sim)
+            elif isinstance(human, K12Student):
+                human.unique_id = "K12Student" + str(count)
+                if human.school_district is not None:
+                    if len(human.school_district.get_buildings(human)) > 0:
+                        human.tribe[TribeSelector.CLASSMATE] = human.school_district.get_buildings(human)[0].get_unit(
+                    human).allocation
+                else:
+                    print (f"student {human} wasnt assigned a school district")
+                t1 = hrf.build_tribe(human, human.tribe[TribeSelector.CLASSMATE], 1, classroom_capacity, restaurant_temperature)
+                t2 = hrf.build_tribe(human, human.tribe[TribeSelector.AGE_GROUP], 1, 20, restaurant_temperature)
+                human.tribe[TribeSelector.FRIEND] = t1
+                for h in t2:
+                    if h not in human.tribe[TribeSelector.FRIEND]:
+                        human.tribe[TribeSelector.FRIEND].append(h)
+                for h in human.tribe[TribeSelector.FRIEND]:
+                    sim = hrf.similarity(hrf.feature_vector[human],hrf.feature_vector[h])
+                    student_friend_similarity.append(sim)
+            elif isinstance(human, Elder):
+                human.unique_id = "Elder" + str(count)
+            elif isinstance(human, Infant):
+                human.unique_id = "Infant" + str(count)
+            elif isinstance(human, Toddler):
+                human.unique_id = "Toddler" + str(count)
+    avg_adult_sim = np.mean(adult_friend_similarity)
+    avg_student_sim = np.mean(student_friend_similarity)
+    print (f"Average friend similarity for adults: {avg_adult_sim} for kids: {avg_student_sim}")
+    print ("home_districts")
+    print (home_districts)
+    print ("work_districts")
+    print (work_districts)
+    print ("school_districts")
+    print (school_districts)
+
+ 
