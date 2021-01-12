@@ -213,8 +213,16 @@ class HomophilyRelationshipFactory:
         if len(keepset) > 0:
             #print ("dist len")
             #print (len(self.roulette_distribution[chooser]))
-            N=math.ceil(len(self.roulette_distribution[chooser]
-                )*(1+temperature)) +1 if temperature < 0 else len(self.roulette_distribution[chooser])
+            N=0
+            if temperature < 0:
+                cummu =0
+                for key, sim in self.roulette_distribution[chooser].items():
+                    cummu += sim
+                    N+=1
+                    if cummu > 1+temperature:
+                        break
+            else:
+                N=len(self.roulette_distribution[chooser])
             #print("N")
             #print(N)
             short_dist = {}
