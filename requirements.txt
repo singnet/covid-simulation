@@ -7,3 +7,9 @@ scipy==1.5.2
 notebook==6.1.3
 jupyterhub==1.1.0
 pytest==6.0.1
+pyproj==1.9.6
+libpysal
+cython
+geopandas
+rtree==0.9.4
+geojson_utils
