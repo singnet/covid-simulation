@@ -112,6 +112,13 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
     ax.set_xlim((0, simulation_cycles))
     ax.set_ylim((-0.1,1.1))
     ax.axhline(y=get_parameters().get('icu_capacity'), c="black", ls='--', label='Critical limit')
+	
+    fig3, ax3 = plt.subplots(figsize=(8,5))
+    ax3.set_title('Clumpiness')
+    ax3.set_xlim((0, simulation_cycles))
+    #ax3.set_ylim((-0.1,1.1))
+    #ax3.axhline(y=get_parameters().get('icu_capacity'), c="black", ls='--', label='Critical limit')
+
 
     if zoomed_plot:
         fig2, ax2 = plt.subplots(figsize=(8, 5))
@@ -149,8 +156,14 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             ax2.plot(upper[stat], color=color[stat], linewidth=.3)
             ax2.fill_between(np.arange(simulation_cycles), lower[stat], upper[stat], color=color[stat],
                              alpha=.1)  # std curves.
+    ax3.plot(lower["clumpiness"], color=color["clumpiness"], linewidth=.3)  # mean curve.
+    ax3.plot(average["clumpiness"], color=color["clumpiness"], linewidth=2, label="clumpiness")
+    ax3.plot(upper["clumpiness"], color=color["clumpiness"], linewidth=.3)
+    ax3.fill_between(np.arange(simulation_cycles), lower["clumpiness"], upper["clumpiness"], color=color["clumpiness"],
+                             alpha=.1)  # std curves.
 
-			
+
+        			
     ax.set_xlabel("Days")
     ax.set_ylabel("Ratio of Population")
     handles, labels = ax.get_legend_handles_labels()
@@ -173,6 +186,18 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
         ax2.legend(handles, labels, loc='center left', bbox_to_anchor=(1, 0.5))
         fig2.show()
         fig2.savefig(fname + ".png")
+    
+    ax3.set_xlabel("Days")
+    #ax3.set_ylabel("Ratio of Population")
+    handles, labels = ax3.get_legend_handles_labels()
+        # Shrink current axis by 20%
+    box = ax3.get_position()
+    ax3.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        # Put a legend to the right of the current axis
+    ax3.legend(handles, labels, loc='center left', bbox_to_anchor=(1, 0.5))
+    fig3.show()
+    fig3.savefig(fname + ".png")
+
 
     if do_print:
         for stat, x in avg.items():
@@ -538,7 +563,8 @@ class Network:
                 disconnects += 1
 
             avg_len += shortest_path_len
-        avg_len /= k*num_nodes
+        avg_len /= k
+        #avg_len /= k*num_nodes
         disconnects /= k
 
         #print ("disconnects")
@@ -953,8 +979,11 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     appartment_building_capacity = 20
     appartment_capacity = 5
     appartment_building_occupacy_rate = 0.5
-    school_capacity = 6
-    classroom_capacity = 5
+    #school_capacity = 6
+    #classroom_capacity = 5
+    #school_occupacy_rate = 1.0
+    school_capacity = 70
+    classroom_capacity = 3
     school_occupacy_rate = 1.0
     num_favorite_restaurants =2 
     family_temperature =  get_parameters().params['temperature']

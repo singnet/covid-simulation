@@ -99,8 +99,8 @@ class Human(AgentBase):
             covid_model.global_count.immune_count += 1
         else:
             covid_model.global_count.susceptible_count += 1
-        if flip_coin(get_parameters().get('initial_infection_rate')):
-            human.infect()
+        #if flip_coin(get_parameters().get('initial_infection_rate')):
+            #human.infect()
         return human
 
     def __init__(self, covid_model, age, msp, hsp, mfd):
@@ -555,7 +555,22 @@ class Adult(Human):
             self.days_since_last_social_event += 1
 
     def non_working_day(self):
-        pass
+        if self.covid_model.current_state == SimulationState.MAIN_ACTIVITY:
+            if self.personal_decision(Dilemma.INVITE_FRIENDS_TO_RESTAURANT):
+                self.invite_friends_to_restaurant()
+        elif self.covid_model.current_state == SimulationState.COMMUTING_TO_POST_WORK_ACTIVITY:
+            if self.social_event is not None and self.work_district is not None:
+                table, restaurant = self.social_event
+                self.home_district.move_to(self, restaurant)
+                self.work_district.move_to(self, restaurant)
+        elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
+            if self.social_event is not None:
+                table, restaurant = self.social_event
+                self.home_district.move_from(self, restaurant)
+                restaurant.available += 1
+                self.days_since_last_social_event = 0
+                self.social_event = None
+                #print ("social event on weekend")
 
     def step(self):
         super().step()
