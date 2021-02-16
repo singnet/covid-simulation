@@ -462,6 +462,34 @@ class Propaganda:
             if not (self.count % 3):
                 self.tick()
 
+class Vaccination:
+    def __init__(self, model, start_day, max_days_until_full_vaccination, work_class):
+        self.model = model
+        self.start_day = start_day
+        self.end_day = start_day + max_days_until_full_vaccination - 1
+        self.work_class = work_class
+
+    def start_cycle(self, model):
+        pass
+
+    def state_change(self,model):
+        pass
+
+    def tick(self):
+        workers = [agent for agent in self.model.agents if isinstance(agent, Adult) and agent.work_info.work_class == self.work_class]
+        if self.model.global_count.day_count >= self.end_day:
+            prob = 1
+        else:
+            prob = (self.model.global_count.day_count - self.start_day + 1) / (self.end_day - self.start_day + 1)
+        for worker in workers:
+            if not worker.vaccinated:
+                if flip_coin(prob):
+                    worker.vaccinate()
+
+    def end_cycle(self, model):
+        if self.model.global_count.day_count >= self.start_day and self.model.global_count.day_count <= self.end_day:
+            self.tick()
+
 
 import networkx as nx
 

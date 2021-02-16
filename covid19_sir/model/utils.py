@@ -21,6 +21,7 @@ class WorkClasses(Enum):
     FACTORY = auto()
     RETAIL = auto()
     ESSENTIAL = auto()
+    TEACHER = auto()
 
 
 class WeekDay(Enum):

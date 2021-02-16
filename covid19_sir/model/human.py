@@ -140,6 +140,7 @@ class Human(AgentBase):
         self.has_been_icu = False
         self.parameter_changed()
         self.social_event = None
+        self.vaccinated = False
         
 
     def initialize_individual_properties(self):
@@ -189,6 +190,16 @@ class Human(AgentBase):
             self.disease_evolution()
             if not self.is_infected() and not self.is_dead and flip_coin(0.0002):
                     self.infect()
+
+    def vaccinate(self):
+        self.vaccinated = True
+        if flip_coin(get_parameters().get('vaccine_immunization_rate')):
+            self.immune = True
+        else:
+            symptom_attenuation = get_parameters().get('vaccine_symptom_attenuation')
+            self.moderate_severity_prob = self.moderate_severity_prob * symptom_attenuation
+            self.high_severity_prob = self.moderate_severity_prob * symptom_attenuation
+
 
     def infect(self):
         # https://www.acpjournals.org/doi/10.7326/M20-0504
@@ -451,7 +462,18 @@ class Human(AgentBase):
             selected_class == WorkClasses.RETAIL or \
             selected_class == WorkClasses.ESSENTIAL
 
-        self.work_info.house_bound_worker = WorkClasses.HOUSEBOUND
+        self.work_info.house_bound_worker = selected_class == WorkClasses.HOUSEBOUND
+
+
+    def change_work_info_to_teacher(self):
+        self.work_info = WorkInfo()
+        self.work_info.work_class = WorkClasses.TEACHER
+        self.work_info.base_income, self.work_info.income_loss_isolated = (1.0, 0.0)
+        self.work_info.can_work_from_home = False
+        self.work_info.meet_non_coworkers_at_work = True
+        self.work_info.essential_worker = False
+        self.work_info.fixed_work_location = True
+        self.work_info.house_bound_worker = False
 
 
 class Infant(Human):
