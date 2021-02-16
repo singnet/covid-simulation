@@ -30,7 +30,7 @@ def confidence_interval(data, confidence=0.95):
 def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=[], debug=False, desired_stats=None,
                   fname="scenario", listeners=[], do_print=False, home_grid_height=1, home_grid_width=1,
                   work_home_list=[[(0,0)]], school_home_list=[[(0,0)]], temperature = -1, zoomed_plot=True,
-                  zoomed_plot_ylim=(-0.01, .12)):
+                  zoomed_plot_ylim=(-0.01, .12),compute_hoprank = False):
     color = {
             'susceptible': 'lightblue',
             'infected': 'gray',
@@ -89,7 +89,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             print("run with seed {0}:".format(str(s)))
         statistics = BasicStatistics(model)
         model.add_listener(statistics)
-        network = Network(model)
+        network = Network(model,fname,compute_hoprank)
         model.add_listener(network)
         for i in range(simulation_cycles):
             model.step()
@@ -492,13 +492,21 @@ import networkx as nx
 
 
 class Network:
-    def __init__(self, model):
+    def __init__(self, model,fname, compute_hoprank = False):
         #self.model = model      
         self.districts = [ agent for agent in model.agents if isinstance(agent,District)]
-        #self.G = nx.Graph()
-        self.G = nx.MultiGraph()
+        self.G = nx.Graph()
+        #self.G = nx.MultiGraph()
+        #self.G = nx.DiGraph()
+        self.old_clumpiness = []
         self.clumpiness = [] 
-        
+        self.location_hopranks = []
+        self.blob_hopranks = []
+        self.print_cycle = 5
+        self.infinity =9
+        self.fname = fname
+        self.compute_hoprank = compute_hoprank
+
     def start_cycle(self, model):
        self.state_change(model)
 
@@ -513,7 +521,9 @@ class Network:
                         if room.strid not in self.G.nodes:
                             self.G.add_node(room.strid)
                         weight = -1 * np.log(room.get_parameter('contagion_probability'))
-                        self.G.add_edge(human.strid, room.strid,weight=weight)
+                        #For new clumpiness:
+                        #weight = math.sqrt(room.get_parameter('contagion_probability'))
+                        self.G.add_edge(room.strid,human.strid,weight=weight)
                         #print (f"edge added betweem {human.strid} and {room.strid}")
                 for human in building.humans:
                     if model.current_state == SimulationState.POST_WORK_ACTIVITY:
@@ -523,6 +533,8 @@ class Network:
                         self.G.add_node(human.strid)
                     if building.strid not in self.G.nodes:
                         self.G.add_node(building.strid)
+                    #for new clumpiness:
+                    #weight = math.sqrt(room.get_parameter('contagion_probability'))
                     weight = -1 * np.log(building.get_parameter('contagion_probability'))
                     self.G.add_edge(human.strid, building.strid,weight=weight)
                     #print (f"edge added between {human.strid} and {building.strid}")
@@ -530,12 +542,31 @@ class Network:
             avg_sim = np.mean(similarities)
             print(f"avg restaurant similarity {avg_sim}")
             similarities = []
+
+
     def end_cycle(self, model):
         #print ("self.G.nodes")
         #print (self.G.nodes)
         #print ("self.G.edges")
         #print (self.G.edges)
-        self.clumpiness.append(self.compute_clumpiness2())
+
+        #To run new clumpiness uncomment the following:
+        #print("computing old clumpiness...")
+        #self.old_clumpiness.append(self.compute_clumpiness2())
+        #print("computing new clumpiness...")
+        #clumpiness,hoprank = self.compute_clumpiness3(compute_hoprank = self.compute_hoprank)
+        #print("ending cycle...")
+        #if self.compute_hoprank:
+            #self.location_hopranks.append(self.location_hopranks(model,hoprank))
+            #self.blob_hopranks.append(self.blob_hopranks(model,hoprank))
+            #if model.global_count.day_count % self.print_cycle==0:
+                #self.print_hopranks()
+
+        #To run new clumpiness comment the following:
+        clumpiness = self.compute_clumpiness2()
+        self.clumpiness.append(clumpiness)
+                
+                
         self.G.clear()
         #self.G.remove_edges_from(self.G.edges())
 
@@ -559,7 +590,7 @@ class Network:
                 shortest_path = nx.dijkstra_path(self.G,nodes[0],nodes[1], weight = "weight")
                 shortest_path_len = len(shortest_path)
             except(nx.NetworkXNoPath):
-                shortest_path_len = num_nodes
+                shortest_path_len =self.infinity 
                 disconnects += 1
 
             avg_len += shortest_path_len
@@ -572,7 +603,182 @@ class Network:
 
         return avg_len
 
-        
+    def print_hopranks(self):
+        df = pd.DataFrame(data = self.location_hopranks["Restaurant"])
+        df.to_csv(f"{self.fname}-restaurant_hopranks.csv")
+        df = pd.DataFrame(data = self.location_hopranks["School"])
+        df.to_csv(f"{self.fname}-school_hopranks.csv")
+        df = pd.DataFrame(data = self.location_hopranks["Office"])
+        df.to_csv("office_hopranks.csv")
+        df = pd.DataFrame(data = self.location_hopranks["Home_District"])
+        df.to_csv(f"{self.fname}-home_district_hopranks.csv")
+        df = pd.DataFrame(data=self.blob_hopranks)
+        df.to_csv(f"{self.fname}-blob_hopranks.csv")
+
+    def blob_hopranks(self,model,hoprank):
+        blobranks = {}
+        avg_blobranks = {}
+        for node,hops in hoprank.items():
+            if node in model.strid_to_human:
+                blob = model.vector_to_blob[model.feature_vector(model.strid_to_human[node])]
+                if blob not in blobranks:
+                    blobranks[blob] = []
+                blobranks[blob].append(hops)
+        for blob,hoplist in blobranks.itms():
+            avg_blobranks[blob] = np.mean(hoplist)
+        return avg_blobranks
+
+    def location_hopranks(self,model,hoprank):
+        ranks = {}
+        ranks["School"] = {}
+        ranks["Office"]= {}
+        ranks["Home_District"] ={}
+        ranks["Restuarant"] = {}
+
+        home_districts = {}
+        for node,hops in hoprank.items():
+            if node in model.unit_info_map and model.unit_info_map[node]["unit"].allocation > 1:
+                if "Home" in node:
+                    did = model.unit_info_map[node]["district"].strid 
+                    if did not in home_districts:
+                        home_districts[did]=[]
+                    home_districts[did].append(hops)
+                elif "School" in node:
+                    ranks["School"][node]=hops
+                elif "Work" in node:
+                    ranks["Office"][node]=hops
+                elif "Restaurant" in node:
+                    ranks["Restuarant"][node]=hops
+        for did,hoplist in home_districts.items():
+            ranks["Home_District"][did]= np.mean(hoplist)
+
+        return ranks
+
+
+    def probabilities_by_grouped_lengths(self,node,probs_by_lengths):
+        # probs_by_lengths comes in [node1][node2][len] form, and we are changing it to [len]
+        lengths_to_probs = {}
+        if node in probs_by_lengths:
+            for node2,len_dict in probs_by_lengths[node].items():
+                for length,prob in len_dict.items():
+                    if length not in lengths_to_probs:
+                        lengths_to_probs[length] = 1.
+                    lengths_to_probs[length] *= (1.-prob)
+        for node2,node_dict in probs_by_lengths.items():
+            if node in node_dict:
+                for length,prob in node_dict[node].items():
+                    if length not in lengths_to_probs:
+                        lengths_to_probs[length] = 1.
+                    lengths_to_probs[length] *= (1.-prob)
+        lengths_to_probabilities = {k:1.-v for k,v in lengths_to_probs.items()}
+       # if len(lengths_to_probabilities) > 0:
+            #print(f"{node} hops to probs:  {lengths_to_probabilities}")
+        return lengths_to_probabilities 
+                
+
+    def probabilities_by_individual_lengths(self,node1,node2):
+        #print(f"finding all simple_paths from node {node1} to {node2}")
+        all_simple_paths = nx.all_simple_paths(self.G,node1,node2,cutoff=self.infinity-1.)
+        #test= nx.pagerank(self.G)
+        #print(f"pagerank: {test}")
+        pathlist = list(all_simple_paths)
+        num_paths = len(pathlist)
+        if num_paths > 0:
+            maxlen = 0
+            for path in pathlist:
+                #print (path)
+                length = len(path)
+                if length > maxlen:
+                    maxlen = length
+            print(f"found {num_paths} paths, greatest length of {maxlen}  from {node1} to {node2}")
+
+        # Since the packet can replicate it is ok to treat all routes as though non overlapping
+        lengths_to_probabilities = {}
+        temp = {}
+        #for path in all_simple_paths:
+        for path in pathlist:
+            pathlength = len(path)
+            if pathlength not in temp:
+                temp[pathlength] = set()
+            temp[pathlength].add(tuple(path))
+        for length,pathset in temp.items():
+            prob_all_paths_of_length = 1.
+            for path in pathset:
+                lastnode = None
+                prob = 1.
+                for node in path:
+                    if lastnode is None:
+                        lastnode = node
+                    else:
+                        factor = self.G[lastnode][node]['weight'] if lastnode in self.G and node in self.G[lastnode] else None
+                        if factor is None:
+                            factor = self.G[node][lastnode]['weight'] if node in self.G and lastnode in self.G[node] else None
+                        if factor is not None:
+                            prob*=factor
+                        else:
+                            print(f"error, nodes {node} and {lastnode} have no connection in G but are in path {path}")
+                        lastnode = node
+                prob_all_paths_of_length *= (1.-prob)
+            lengths_to_probabilities[length] = 1.-prob_all_paths_of_length
+       # if len(lengths_to_probabilities) > 0:
+           # print(f"node {node1} to {node2} lengths to probabilities are {lengths_to_probabilities}")
+        return lengths_to_probabilities
+                
+    def clumpiness_given_lengths(self,lengths_to_probabilities):
+        #Probability of a packet traveling through paths of different sizes between two nodes
+        cumulative_isnts = 1.
+        clumpiness = 0.
+        for length,prob in lengths_to_probabilities.items():
+            clumpiness += length*cumulative_isnts*prob
+            cumulative_isnts *=(1.-prob)
+        clumpiness += cumulative_isnts * self.infinity
+        return clumpiness
+
+ 
+    def compute_clumpiness3(self, compute_hoprank = True):
+        #Just sample 
+        n=1
+        hoprank = {}
+        probs_by_lens = {}
+        clumpiness = {}
+        clump = 0.
+        count = 0
+        for node1 in self.G.nodes:
+            #for each agent choose a random n agents
+            nodes = random.sample(self.G.nodes,n+1)
+            if node1 in nodes:
+                nodes.remove(node1)
+            else:
+                del(nodes[0])
+            for node2 in nodes:
+                if node1 < node2:
+                    firstnode = node1
+                    secondnode = node2
+                else:
+                    firstnode = node2
+                    secondnode = node1
+                #print("firstnode")
+                #print(firstnode)
+                #print("secondnode")
+                #print (secondnode)
+                if firstnode not in clumpiness:
+                    clumpiness[firstnode]={}
+                    probs_by_lens[firstnode] = {}
+                if secondnode not in clumpiness[firstnode]:
+                    pl= self.probabilities_by_individual_lengths(firstnode,secondnode)
+                    clump += self.clumpiness_given_lengths (pl)
+                    count += 1
+                    if compute_hoprank:
+                        probs_by_lens[firstnode][secondnode] = pl
+        clump/=count
+
+        if compute_hoprank:
+            for node in self.G.nodes:
+                pl = self.probabilities_by_grouped_lengths(node,probs_by_lens)
+                hoprank[node] = self.clumpiness_given_lengths(pl)
+            
+        return (clump,hoprank)
+                  
         
 def build_district(name, model, population_size, building_capacity, unit_capacity,
                    occupacy_rate, contagion_probability, home_district_list=[]):
@@ -1188,4 +1394,4 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     print ("school_districts")
     print (school_districts)
 
- 
+

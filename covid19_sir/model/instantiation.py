@@ -124,6 +124,7 @@ class HomophilyRelationshipFactory:
         self.vector_to_office = {}
         self.vector_to_restaurant = {}
         self.unit_info_map = self.unit_info_map()
+        self.strid_to_human = self.strid_to_human()
         n_vec = population_size 
         blobs,assignments = make_blobs(
             n_samples=n_vec,
@@ -137,9 +138,11 @@ class HomophilyRelationshipFactory:
         self.n_blobs = n_blobs
         self.home_district_in_position = home_district_in_position
         self.blob_dict ={}
+        self.vector_to_blob = {}
         for vec,assignment in zip(blobs,assignments):
             if assignment not in self.blob_dict:
                 self.blob_dict[assignment] = []
+            self.vector_to_blob[tuple(vec)] = assignment
             self.blob_dict[assignment].append(vec)
         self.vectors = blobs
         #self.vectors = KeyedVectors(n_features)
@@ -556,6 +559,13 @@ class HomophilyRelationshipFactory:
                     unit_info_map[unit.strid]["building"]= building 
                     unit_info_map[unit.strid]["unit"]= unit 
         return unit_info_map
+
+    def strid_to_human(self):
+        strid_to_human = {}
+        humans = [agent for agent in self.model.agents if isinstance(agent,Human)]
+        for human in humans:
+            strid_to_human [human.strid] = human
+        return strid_to_human
 
 
     def allocate_home(self, home,family):
