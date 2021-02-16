@@ -7,6 +7,7 @@ import statistics
 from statistics import mean
 from model.base import random_selection, roulette_selection, linear_rescale
 from model.human import Human, Infant, Toddler, K12Student, Adult, Elder
+from model.utils import WorkClasses
 from model.location import District
 from sklearn.datasets import make_blobs
 from gensim.models import KeyedVectors
@@ -124,6 +125,7 @@ class HomophilyRelationshipFactory:
         self.vector_to_office = {}
         self.vector_to_restaurant = {}
         self.unit_info_map = self.unit_info_map()
+        self.teachers_per_classroom = 1
         n_vec = population_size 
         blobs,assignments = make_blobs(
             n_samples=n_vec,
@@ -638,6 +640,7 @@ class HomophilyRelationshipFactory:
         for school_district in school_districts:
             included_set = set()
             students=set()
+            teachers_candidates=set()
             for school in school_district.locations:
                 for classroom in school.locations:
                     if "vector" in self.unit_info_map[classroom.strid]:
@@ -651,12 +654,24 @@ class HomophilyRelationshipFactory:
                         for human in apartment.allocation:
                             if isinstance(human,K12Student):
                                 students.add(human)
+                            # No adult is assigned to be a teacher in human's factory. This method 'converts'
+                            # adult's work info to be a TEACHER. So if an adult is already set to be a teacher
+                            # it means it has already been selected as a teacher hence it can't be selected again
+                            elif isinstance(human, Adult) and human.work_info.work_class != WorkClasses.TEACHER:
+                                teachers_candidates.add(human)
             #print (f"{len(students)} to be allocated into school districts")
+            teachers_candidates = list(teachers_candidates)
             self.allocate_schools(included_set,students,temperature)
             for school in school_district.locations:
                 for classroom in school.locations:
                     if len(classroom.allocation) > 0: 
-                        room_sizes[count]= len(classroom.allocation)
+                        for i in range(self.teachers_per_classroom):
+                            teacher = random_selection(teachers_candidates)
+                            teacher.change_work_info_to_teacher()
+                            self.allocate_workplace(classroom.strid, teacher)
+                            if self.teachers_per_classroom > 1:
+                                teachers_candidates.remove(teacher)
+                        room_sizes[count] = len(classroom.allocation)
                         count +=1
                     for student in classroom.allocation:
                         tup_vec1 = self.unit_info_map[classroom.strid]["vector"]
@@ -710,7 +725,7 @@ class HomophilyRelationshipFactory:
                 for apartment_building in home_district.locations:
                     for apartment in apartment_building.locations:
                         for human in apartment.allocation:
-                            if isinstance(human,Adult):
+                            if isinstance(human,Adult) and human.work_district is None:
                                 workers.add(human)
             self.allocate_workplaces(included_set,workers,temperature)
             room_sizes = {}

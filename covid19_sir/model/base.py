@@ -284,7 +284,9 @@ class SimulationParameters:
                        'min_behaviors_to_copy': kwargs.get("min_behaviors_to_copy", 3),
                        'num_communities': kwargs.get("num_communities",1),
                        'num_features':kwargs.get("num_features",10),
-                       'temperature':kwargs.get("temperature",-1)}
+                       'temperature':kwargs.get("temperature",-1),
+                       'vaccine_immunization_rate':kwargs.get("vaccine_immunization_rate",0.8),
+                       'vaccine_symptom_attenuation':kwargs.get("vaccine_symptom_attenuation",0.8)}
 
     def get(self, key):
         return self.params[key]
