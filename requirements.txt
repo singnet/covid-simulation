@@ -13,3 +13,4 @@ cython
 geopandas
 rtree==0.9.4
 geojson_utils
+gensim
