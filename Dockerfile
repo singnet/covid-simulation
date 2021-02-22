@@ -54,6 +54,8 @@ RUN cd /tmp && \
     make && \
     make install
 
+RUN python3 -m pip install -U pip
+
 ADD ./requirements.txt ${SINGNET_DIR}
 
 RUN cd ${SINGNET_DIR} && \

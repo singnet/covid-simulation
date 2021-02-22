@@ -10,6 +10,7 @@ from model.utils import SimulationState, WeekDay
 LOG_FILE_NAME = './simulation.log'
 LOGGING_LEVEL = logging.CRITICAL
 
+ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS = True
 
 def flip_coin(prob):
     if np.random.random() < prob:

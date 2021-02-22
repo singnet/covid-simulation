@@ -20,8 +20,8 @@ class WorkClasses(Enum):
     HOUSEBOUND = auto()
     FACTORY = auto()
     RETAIL = auto()
-    ESSENTIAL = auto()
     TEACHER = auto()
+    HOSPITAL = auto()
 
 
 class WeekDay(Enum):
