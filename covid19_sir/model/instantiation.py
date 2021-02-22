@@ -5,13 +5,12 @@ import random
 import sys
 import statistics
 from statistics import mean
-from model.base import random_selection, roulette_selection, linear_rescale
+from model.base import random_selection, roulette_selection, linear_rescale, ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS
 from model.human import Human, Infant, Toddler, K12Student, Adult, Elder
 from model.utils import WorkClasses
-from model.location import District
+from model.location import District, Hospital
 from sklearn.datasets import make_blobs
 from gensim.models import KeyedVectors
-
 
 class FamilyFactory:
 
@@ -665,12 +664,13 @@ class HomophilyRelationshipFactory:
             for school in school_district.locations:
                 for classroom in school.locations:
                     if len(classroom.allocation) > 0: 
-                        for i in range(self.teachers_per_classroom):
-                            teacher = random_selection(teachers_candidates)
-                            teacher.change_work_info_to_teacher()
-                            self.allocate_workplace(classroom.strid, teacher)
-                            if self.teachers_per_classroom > 1:
-                                teachers_candidates.remove(teacher)
+                        if ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS:
+                            for i in range(self.teachers_per_classroom):
+                                teacher = random_selection(teachers_candidates)
+                                teacher.change_work_info_to_teacher()
+                                self.allocate_workplace(classroom.strid, teacher)
+                                if self.teachers_per_classroom > 1:
+                                    teachers_candidates.remove(teacher)
                         room_sizes[count] = len(classroom.allocation)
                         count +=1
                     for student in classroom.allocation:
@@ -726,7 +726,11 @@ class HomophilyRelationshipFactory:
                     for apartment in apartment_building.locations:
                         for human in apartment.allocation:
                             if isinstance(human,Adult) and human.work_district is None:
-                                workers.add(human)
+                                if human.work_info.work_class == WorkClasses.HOSPITAL and ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS:
+                                    human.work_district = human.hospital_district
+                                    human.work_district.allocate([human], building_type=Hospital)
+                                else:
+                                    workers.add(human)
             self.allocate_workplaces(included_set,workers,temperature)
             room_sizes = {}
             count = 0
