@@ -647,8 +647,8 @@ class Network:
         blobranks = {}
         avg_blobranks = {}
         for node,hops in hoprank.items():
-            if node in model.strid_to_human:
-                blob = model.vector_to_blob[model.feature_vector[model.strid_to_human[node]]]
+            if node in model.hrf.strid_to_human:
+                blob = model.vector_to_blob[model.feature_vector[model.hrf.strid_to_human[node]]]
                 if blob not in blobranks:
                     blobranks[blob] = []
                 blobranks[blob].append(hops)
@@ -667,9 +667,9 @@ class Network:
         for node,hops in hoprank.items():
             if "Restaurant" in node:
                 ranks["Restaurant"][node]=[hops]
-            elif node in model.unit_info_map and len(model.unit_info_map[node]["unit"].allocation)> 1:
+            elif node in model.hrf.unit_info_map and len(model.hrf.unit_info_map[node]["unit"].allocation)> 1:
                 if "Home" in node:
-                    did = model.unit_info_map[node]["district"].strid 
+                    did = model.hrf.unit_info_map[node]["district"].strid 
                     if did not in home_districts:
                         home_districts[did]=[]
                     home_districts[did].append(hops)

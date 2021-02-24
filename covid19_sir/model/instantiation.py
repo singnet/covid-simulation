@@ -5,7 +5,7 @@ import random
 import sys
 import statistics
 from statistics import mean
-from model.base import random_selection, roulette_selection, linear_rescale,flip_coin,get_parameters
+from model.base import random_selection, roulette_selection, linear_rescale,ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS,flip_coin,get_parameters
 from model.human import Human, Infant, Toddler, K12Student, Adult, Elder
 from model.location import District
 from sklearn.datasets import make_blobs
@@ -125,9 +125,8 @@ class HomophilyRelationshipFactory:
         self.vector_to_office = {}
         self.vector_to_restaurant = {}
         self.unit_info_map = self.unit_info_map()
-        self.model.unit_info_map = self.unit_info_map
+        self.teachers_per_classroom = 1
         self.strid_to_human = self.strid_to_human()
-        self.model.strid_to_human = self.strid_to_human
         n_vec = population_size 
         blobs,assignments = make_blobs(
             n_samples=n_vec,
