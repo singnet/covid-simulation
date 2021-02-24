@@ -1,11 +1,10 @@
 import math
 import numpy as np
 
-from model.base import (AgentBase, flip_coin, get_parameters, unique_id, linear_rescale, random_selection,
-                        beta_distribution, logger)
+from model.base import (AgentBase, flip_coin, get_parameters, unique_id, linear_rescale, roulette_selection,
+                        beta_distribution, logger, ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS)
 from model.utils import (WorkClasses, WeekDay, DiseaseSeverity, SocialPolicy, SocialPolicyUtil, InfectionStatus,
                          SimulationState, Dilemma, DilemmaDecisionHistory, TribeSelector, RestaurantType)
-
 
 class WorkInfo:
     work_class = None
@@ -112,6 +111,7 @@ class Human(AgentBase):
         self.home_district = None
         self.work_district = None
         self.school_district = None
+        self.hospital_district = None
         self.age = age
         self.moderate_severity_prob = msp
         self.high_severity_prob = hsp
@@ -124,6 +124,7 @@ class Human(AgentBase):
         self.icu_duration = 0
         self.infection_status = InfectionStatus.SUSCEPTIBLE
         self.hospitalized = False
+        self.hospital = None
         self.work_info = None
         if self.is_worker():
             self.setup_work_info()
@@ -140,6 +141,7 @@ class Human(AgentBase):
         self.has_been_icu = False
         self.parameter_changed()
         self.social_event = None
+        self.vaccinated = False
         
 
     def initialize_individual_properties(self):
@@ -189,6 +191,16 @@ class Human(AgentBase):
             self.disease_evolution()
             #if not self.is_infected() and not self.is_dead and flip_coin(0.0002):
                     #self.infect()
+
+    def vaccinate(self):
+        self.vaccinated = True
+        if flip_coin(get_parameters().get('vaccine_immunization_rate')):
+            self.immune = True
+        else:
+            symptom_attenuation = get_parameters().get('vaccine_symptom_attenuation')
+            self.moderate_severity_prob = self.moderate_severity_prob * symptom_attenuation
+            self.high_severity_prob = self.moderate_severity_prob * symptom_attenuation
+
 
     def infect(self):
         # https://www.acpjournals.org/doi/10.7326/M20-0504
@@ -245,14 +257,7 @@ class Human(AgentBase):
                         self.disease_severity = DiseaseSeverity.MODERATE
                         self.covid_model.global_count.moderate_severity_count += 1
                         if not self.covid_model.reached_hospitalization_limit():
-                            self.covid_model.global_count.total_hospitalized += 1
-                            logger().info(f"{self} is now hospitalized")
-                            self.hospitalized = True
-                            self.has_been_hospitalized = True
-                            shape = get_parameters().get('hospitalization_period_duration_shape')
-                            scale = get_parameters().get('hospitalization_period_duration_scale')
-                            self.hospitalization_duration = np.random.gamma(shape, scale)
-                            logger().debug(f"Hospital duration of {self} is {self.hospitalization_duration}")
+                            self.hospitalize()
                         else:
                             logger().info(f"{self} couldn't be hospitalized (hospitalization limit reached)")
                     else:
@@ -293,8 +298,7 @@ class Human(AgentBase):
             self.covid_model.global_count.high_severity_count -= 1
         self.covid_model.global_count.infected_count -= 1
         if self.hospitalized:
-            self.covid_model.global_count.total_hospitalized -= 1
-            self.hospitalized = False
+            self.leave_hospital()
         self.infection_status = InfectionStatus.RECOVERED
         self.disease_severity = DiseaseSeverity.ASYMPTOMATIC
         self.covid_model.global_count.symptomatic_count -= 1
@@ -309,8 +313,7 @@ class Human(AgentBase):
         self.covid_model.global_count.infected_count -= 1
         self.covid_model.global_count.death_count += 1
         if self.hospitalized:
-            self.covid_model.global_count.total_hospitalized -= 1
-            self.hospitalized = False
+            self.leave_hospital()
         self.is_dead = True
 
     def is_infected(self):
@@ -327,6 +330,26 @@ class Human(AgentBase):
 
     def is_hospitalized(self):
         return self.hospitalized
+
+    def hospitalize(self):
+        self.hospitalized = True
+        self.has_been_hospitalized = True
+        if self.hospital_district is not None:
+            self.hospital = self.hospital_district.get_available_hospital()
+            self.hospital.patients.append(self)
+        self.covid_model.global_count.total_hospitalized += 1
+        logger().info(f"{self} is now hospitalized")
+        shape = get_parameters().get('hospitalization_period_duration_shape')
+        scale = get_parameters().get('hospitalization_period_duration_scale')
+        self.hospitalization_duration = np.random.gamma(shape, scale)
+        logger().debug(f"Hospital duration of {self} is {self.hospitalization_duration}")
+
+    def leave_hospital(self):
+        self.covid_model.global_count.total_hospitalized -= 1
+        self.hospitalized = False
+        if self.hospital_district is not None:
+            self.hospital.patients.remove(self)
+            self.hospital = None
 
     def _standard_decision(self, pd, hd):
         if hd is None:
@@ -418,18 +441,28 @@ class Human(AgentBase):
         pass
 
     def setup_work_info(self):
-        income = {
-            # Income (in [0..1]) when the people is working and when he/she is isolated at home
-            WorkClasses.OFFICE: (1.0, 0.0),
-            WorkClasses.HOUSEBOUND: (1.0, 0.0),
-            WorkClasses.FACTORY: (1.0, 1.0),
-            WorkClasses.RETAIL: (1.0, 1.0),
-            WorkClasses.ESSENTIAL: (1.0, 1.0),
-        }
-        self.work_info = WorkInfo()
+        # Teachers are kept out of roulette because they are assigned by hand depending on the number of classrooms
+        work_class_base_info = [
+            # (class, weight, income, income when in lockdown)
+            (WorkClasses.OFFICE, 1, 1, 0),
+            (WorkClasses.HOUSEBOUND, 1, 1, 1),
+            (WorkClasses.FACTORY, 1, 1, 0),
+            (WorkClasses.RETAIL, 1, 1, 0)
+        ]
+        if ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS:
+            work_class_base_info.append((WorkClasses.HOSPITAL, 0.1, 1, 1))
 
+        work_classes = []
+        work_classes_weights = [] # used to determine the number of workers of each class
+        income = {}
+        for work_class, income_no_lockdown, income_lockdown, weight in work_class_base_info:
+            work_classes.append(work_class)
+            work_classes_weights.append(weight)
+            income[work_class] = (income_no_lockdown, income_lockdown)
+
+        self.work_info = WorkInfo()
         # TODO change to use some realistic distribution
-        selected_class = random_selection([key for key in income.keys()])
+        selected_class = roulette_selection(work_classes, work_classes_weights)
         self.work_info.work_class = selected_class
         self.work_info.base_income, self.work_info.income_loss_isolated = income[selected_class]
 
@@ -439,19 +472,30 @@ class Human(AgentBase):
 
         self.work_info.meet_non_coworkers_at_work = \
             selected_class == WorkClasses.RETAIL or \
-            selected_class == WorkClasses.ESSENTIAL
+            selected_class == WorkClasses.HOSPITAL
 
         self.work_info.essential_worker = \
-            selected_class == WorkClasses.ESSENTIAL
+            selected_class == WorkClasses.HOSPITAL
 
         self.work_info.fixed_work_location = \
             selected_class == WorkClasses.OFFICE or \
             selected_class == WorkClasses.HOUSEBOUND or \
             selected_class == WorkClasses.FACTORY or \
             selected_class == WorkClasses.RETAIL or \
-            selected_class == WorkClasses.ESSENTIAL
+            selected_class == WorkClasses.HOSPITAL
 
-        self.work_info.house_bound_worker = WorkClasses.HOUSEBOUND
+        self.work_info.house_bound_worker = selected_class == WorkClasses.HOUSEBOUND
+
+
+    def change_work_info_to_teacher(self):
+        self.work_info = WorkInfo()
+        self.work_info.work_class = WorkClasses.TEACHER
+        self.work_info.base_income, self.work_info.income_loss_isolated = (1.0, 0.0)
+        self.work_info.can_work_from_home = False
+        self.work_info.meet_non_coworkers_at_work = True
+        self.work_info.essential_worker = False
+        self.work_info.fixed_work_location = True
+        self.work_info.house_bound_worker = False
 
 
 class Infant(Human):
