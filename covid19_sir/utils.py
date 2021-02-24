@@ -500,10 +500,12 @@ class Network:
         #self.G = nx.DiGraph()
         self.old_clumpiness = []
         self.clumpiness = [] 
-        self.location_hopranks = []
-        self.blob_hopranks = []
+        self.location_hopranks = {}
+        self.blob_hopranks = {}
         self.print_cycle = 5
-        self.infinity =9
+        #for old clumpiness put num_nodes
+        self.infinity = 80 
+        #self.infinity= 9
         self.fname = fname
         self.compute_hoprank = compute_hoprank
 
@@ -556,14 +558,15 @@ class Network:
         #print("computing new clumpiness...")
         #clumpiness,hoprank = self.compute_clumpiness3(compute_hoprank = self.compute_hoprank)
         #print("ending cycle...")
-        #if self.compute_hoprank:
-            #self.location_hopranks.append(self.location_hopranks(model,hoprank))
-            #self.blob_hopranks.append(self.blob_hopranks(model,hoprank))
-            #if model.global_count.day_count % self.print_cycle==0:
-                #self.print_hopranks()
+        if self.compute_hoprank:
+            self.location_hopranks=self.compute_location_hopranks(model,hoprank)
+            self.blob_hopranks=self.compute_blob_hopranks(model,hoprank)
+            if model.global_count.day_count % self.print_cycle==0:
+                self.print_hopranks()
 
         #To run new clumpiness comment the following:
         clumpiness = self.compute_clumpiness2()
+        print (f"clumpiness {clumpiness}")
         self.clumpiness.append(clumpiness)
                 
                 
@@ -584,73 +587,99 @@ class Network:
         k = 100
         avg_len = 0
         disconnects = 0
+        shortest_paths = []
+        avg_len_no_infinity = 0
+        max_len_no_infinity = 0
+        min_len_no_infinity=1000
         for i in range (k):
             nodes = random.sample(self.G.nodes, 2)
             try:
                 shortest_path = nx.dijkstra_path(self.G,nodes[0],nodes[1], weight = "weight")
                 shortest_path_len = len(shortest_path)
+                if shortest_path_len > max_len_no_infinity:
+                    max_len_no_infinity = shortest_path_len
+                if shortest_path_len < min_len_no_infinity:
+                    min_len_no_infinity = shortest_path_len
+                avg_len_no_infinity += shortest_path_len
+                shortest_paths.append(shortest_path)
             except(nx.NetworkXNoPath):
                 shortest_path_len =self.infinity 
                 disconnects += 1
 
             avg_len += shortest_path_len
+        shortest_paths.sort(key=len)
         avg_len /= k
+        if disconnects < k:
+            avg_len_no_infinity /=(k-disconnects) 
+        #pathlens = [len(p) for p in shortest_paths]
         #avg_len /= k*num_nodes
         disconnects /= k
-
-        #print ("disconnects")
-        #print (disconnects)
+        #print ("max_len_no_infinity")
+        #print (max_len_no_infinity)
+        #print ("avg_len_no_infinity")
+        #print (avg_len_no_infinity)
+        #print ("min_len_no_infinity")
+        #print (min_len_no_infinity)
+        print ("disconnects")
+        print (disconnects)
+        #print ("pathlens")
+        #print (pathlens)
 
         return avg_len
 
     def print_hopranks(self):
-        df = pd.DataFrame(data = self.location_hopranks["Restaurant"])
+        #print ('self.blob_hopranks')
+        #print (self.blob_hopranks)
+        #print ('self.location_hopranks')
+        #print (self.location_hopranks)
+        df = pd.DataFrame.from_dict(data = self.location_hopranks["Restaurant"],orient='index')
         df.to_csv(f"{self.fname}-restaurant_hopranks.csv")
-        df = pd.DataFrame(data = self.location_hopranks["School"])
+        df = pd.DataFrame.from_dict(data = self.location_hopranks["School"],orient='index')
         df.to_csv(f"{self.fname}-school_hopranks.csv")
-        df = pd.DataFrame(data = self.location_hopranks["Office"])
+        df = pd.DataFrame.from_dict(data = self.location_hopranks["Office"], orient='index')
         df.to_csv("office_hopranks.csv")
-        df = pd.DataFrame(data = self.location_hopranks["Home_District"])
+        df = pd.DataFrame.from_dict(data = self.location_hopranks["Home_District"], orient='index')
         df.to_csv(f"{self.fname}-home_district_hopranks.csv")
-        df = pd.DataFrame(data=self.blob_hopranks)
+        df = pd.DataFrame.from_dict(data=self.blob_hopranks, orient='index')
         df.to_csv(f"{self.fname}-blob_hopranks.csv")
 
-    def blob_hopranks(self,model,hoprank):
+    def compute_blob_hopranks(self,model,hoprank):
         blobranks = {}
         avg_blobranks = {}
         for node,hops in hoprank.items():
             if node in model.strid_to_human:
-                blob = model.vector_to_blob[model.feature_vector(model.strid_to_human[node])]
+                blob = model.vector_to_blob[model.feature_vector[model.strid_to_human[node]]]
                 if blob not in blobranks:
                     blobranks[blob] = []
                 blobranks[blob].append(hops)
-        for blob,hoplist in blobranks.itms():
-            avg_blobranks[blob] = np.mean(hoplist)
+        for blob,hoplist in blobranks.items():
+            avg_blobranks[blob] = [np.mean(hoplist)]
         return avg_blobranks
 
-    def location_hopranks(self,model,hoprank):
+    def compute_location_hopranks(self,model,hoprank):
         ranks = {}
         ranks["School"] = {}
         ranks["Office"]= {}
         ranks["Home_District"] ={}
-        ranks["Restuarant"] = {}
+        ranks["Restaurant"] = {}
 
         home_districts = {}
         for node,hops in hoprank.items():
-            if node in model.unit_info_map and model.unit_info_map[node]["unit"].allocation > 1:
+            if "Restaurant" in node:
+                ranks["Restaurant"][node]=[hops]
+            elif node in model.unit_info_map and len(model.unit_info_map[node]["unit"].allocation)> 1:
                 if "Home" in node:
                     did = model.unit_info_map[node]["district"].strid 
                     if did not in home_districts:
                         home_districts[did]=[]
                     home_districts[did].append(hops)
                 elif "School" in node:
-                    ranks["School"][node]=hops
+                    ranks["School"][node]=[hops]
                 elif "Work" in node:
-                    ranks["Office"][node]=hops
-                elif "Restaurant" in node:
-                    ranks["Restuarant"][node]=hops
+                    ranks["Office"][node]=[hops]
+
         for did,hoplist in home_districts.items():
-            ranks["Home_District"][did]= np.mean(hoplist)
+            ranks["Home_District"][did]= [np.mean(hoplist)]
 
         return ranks
 
@@ -677,12 +706,18 @@ class Network:
                 
 
     def probabilities_by_individual_lengths(self,node1,node2):
-        #print(f"finding all simple_paths from node {node1} to {node2}")
-        all_simple_paths = nx.all_simple_paths(self.G,node1,node2,cutoff=self.infinity-1.)
-        #test= nx.pagerank(self.G)
-        #print(f"pagerank: {test}")
-        pathlist = list(all_simple_paths)
+        print(f"finding simple_paths from node {node1} to {node2}")
+        try:
+            #all_simple_paths = nx.shortest_simple_paths(self.G, node1,node2)
+            all_simple_paths = nx.all_simple_paths(self.G,node1,node2,cutoff=self.infinity-1.)
+            #test= nx.pagerank(self.G)
+            #print(f"pagerank: {test}")
+            pathlist = list(all_simple_paths)
+        except(nx.NetworkXNoPath):
+            pathlist = []
+            print("no path found")        
         num_paths = len(pathlist)
+        
         if num_paths > 0:
             maxlen = 0
             for path in pathlist:
@@ -963,14 +998,24 @@ def setup_grid_layout(model, population_size,
     #Since this is just a way to allocate human interactions, no label is needed and
     #the grid need not be saved, for interactions to occur, although this inforamtion
     #may be useful for visualizations.    
-    work_building_capacity = 20
-    office_capacity = 10
+    #work_building_capacity = 20
+    #office_capacity = 10
+    #work_building_occupacy_rate = 0.5
+    #appartment_building_capacity = 20
+    #appartment_capacity = 5
+    #appartment_building_occupacy_rate = 0.5
+    #school_capacity = 50
+    #classroom_capacity = 20
+    #school_occupacy_rate = 0.5
+
+    work_building_capacity = 3
+    office_capacity = 20
     work_building_occupacy_rate = 0.5
     appartment_building_capacity = 20
     appartment_capacity = 5
     appartment_building_occupacy_rate = 0.5
-    school_capacity = 50
-    classroom_capacity = 20
+    school_capacity = 1
+    classroom_capacity = 30
     school_occupacy_rate = 0.5
 
     # Build empty districts
@@ -1177,20 +1222,31 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     # smaller home district sizes for higher resolution.  An empty list assumes one work district.  Each list in 
     # the list of lists is one of the work or school districts. Represent the districts with a list of tuples
     #(x,y) where x is the place among the width and y is the place along the height.
-    
-     
-    work_building_capacity = 70
-    office_capacity =3 
-    work_building_occupacy_rate = 1.0 
+ 
+    work_building_capacity = 3
+    office_capacity = 20
+    work_building_occupacy_rate = 0.5
     appartment_building_capacity = 20
     appartment_capacity = 5
     appartment_building_occupacy_rate = 0.5
+    school_capacity = 1
+    classroom_capacity = 30
+    school_occupacy_rate = 0.5
+
+   
+     
+    #work_building_capacity = 70
+    #office_capacity =3 
+    #work_building_occupacy_rate = 1.0 
+    #appartment_building_capacity = 20
+    #appartment_capacity = 5
+    #appartment_building_occupacy_rate = 0.5
     #school_capacity = 6
     #classroom_capacity = 5
     #school_occupacy_rate = 1.0
-    school_capacity = 70
-    classroom_capacity = 3
-    school_occupacy_rate = 1.0
+    #school_capacity = 70
+    #classroom_capacity = 3
+    #school_occupacy_rate = 1.0
     num_favorite_restaurants =2 
     family_temperature =  get_parameters().params['temperature']
     home_room_temperature = get_parameters().params['temperature']
@@ -1207,8 +1263,8 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     school_districts = []
     home_district_in_position = {}
     agents_per_home_district = math.ceil(population_size/(home_grid_width*home_grid_height))
-    agents_per_school_district = math.ceil((0.25*population_size) /len(school_home_list))
-    agents_per_work_district = math.ceil((0.5*population_size)/len(work_home_list))
+    agents_per_school_district = math.ceil((0.33 *population_size) /len(school_home_list))
+    agents_per_work_district = math.ceil((0.65*population_size)/len(work_home_list))
 
     for hw in range(home_grid_width):
         for hh in range(home_grid_height):
@@ -1335,7 +1391,7 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     hrf.allocate_work_districts(work_districts, work_temperature)
     hrf.allocate_favorite_restaurants(all_adults, restaurant_temperature, num_favorite_restaurants)
 
-
+   
     # Set tribes
 
     adult_friend_similarity = []
@@ -1394,4 +1450,5 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     print ("school_districts")
     print (school_districts)
 
+    hrf.infect_blob(0)
 

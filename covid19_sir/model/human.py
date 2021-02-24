@@ -187,8 +187,8 @@ class Human(AgentBase):
             return
         if self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
             self.disease_evolution()
-            if not self.is_infected() and not self.is_dead and flip_coin(0.0002):
-                    self.infect()
+            #if not self.is_infected() and not self.is_dead and flip_coin(0.0002):
+                    #self.infect()
 
     def infect(self):
         # https://www.acpjournals.org/doi/10.7326/M20-0504
