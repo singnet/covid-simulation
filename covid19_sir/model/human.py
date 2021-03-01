@@ -198,8 +198,8 @@ class Human(AgentBase):
             self.immune = True
         else:
             symptom_attenuation = get_parameters().get('vaccine_symptom_attenuation')
-            self.moderate_severity_prob = self.moderate_severity_prob * symptom_attenuation
-            self.high_severity_prob = self.moderate_severity_prob * symptom_attenuation
+            self.moderate_severity_prob = self.moderate_severity_prob * (1 - symptom_attenuation)
+            self.high_severity_prob = self.moderate_severity_prob * (1 - symptom_attenuation)
 
 
     def infect(self):
