@@ -39,10 +39,11 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             'hospitalization': 'orange',
             'icu': 'red',
             'income': 'magenta',
-            'clumpiness':'purple'
+            'clumpiness':'purple',
+            'maxlen':'yellow'
         }
     if desired_stats is None:
-        desired_stats = ["susceptible", "infected", "recovered", "hospitalization", "icu", "death", "income","clumpiness"]
+        desired_stats = ["susceptible", "infected", "recovered", "hospitalization", "icu", "death", "income","clumpiness","maxlen"]
     randomlist = random.sample(range(10000), num_runs) if len(seeds) == 0  else seeds
     if do_print:
         print("Save these seeds if you want to rerun a scenario")
@@ -95,9 +96,12 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             model.step()
         #print("clumpiness:")
         #print (getattr(network,"clumpiness"))
+        network.print_infections()
         for stat in desired_stats:
             if stat is "clumpiness":
                 all_runs[stat][s]=copy.deepcopy(getattr(network,"clumpiness"))
+            elif stat is "maxlen":
+                all_runs[stat][s]=copy.deepcopy(getattr(network,"maxlen"))
             else:
                 all_runs[stat][s] = getattr(statistics, stat)
             if stat is "income":
@@ -498,13 +502,14 @@ class Network:
         self.G = nx.Graph()
         #self.G = nx.MultiGraph()
         #self.G = nx.DiGraph()
-        self.old_clumpiness = []
+        #self.old_clumpiness = []
+        self.maxlen = []
         self.clumpiness = [] 
         self.location_hopranks = {}
         self.blob_hopranks = {}
-        self.print_cycle = 5
+        self.hoprank_cycle =get_parameters().params['hoprank_cycle'] 
         #for old clumpiness put num_nodes
-        self.infinity = 80 
+        self.infinity =  get_parameters().params['infinity'] 
         #self.infinity= 9
         self.fname = fname
         self.compute_hoprank = compute_hoprank
@@ -558,17 +563,19 @@ class Network:
         #print("computing new clumpiness...")
         #clumpiness,hoprank = self.compute_clumpiness3(compute_hoprank = self.compute_hoprank)
         #print("ending cycle...")
-        if self.compute_hoprank:
+        self.actual_infections=model.actual_infections
+        if self.compute_hoprank and  model.global_count.day_count % self.hoprank_cycle==0:
+            hoprank=self.compute_maxprob_hoprank(model) 
             self.location_hopranks=self.compute_location_hopranks(model,hoprank)
             self.blob_hopranks=self.compute_blob_hopranks(model,hoprank)
-            if model.global_count.day_count % self.print_cycle==0:
-                self.print_hopranks()
+            self.print_hopranks(model.global_count.day_count)
 
         #To run new clumpiness comment the following:
-        clumpiness = self.compute_clumpiness2()
+        clumpiness,maxlen = self.compute_clumpiness2()
         print (f"clumpiness {clumpiness}")
         self.clumpiness.append(clumpiness)
-                
+        print (f"maxlen {maxlen}")
+        self.maxlen.append(maxlen)
                 
         self.G.clear()
         #self.G.remove_edges_from(self.G.edges())
@@ -584,13 +591,13 @@ class Network:
     def compute_clumpiness2(self):
         #Just sample 
         num_nodes = len(self.G.nodes)
-        k = 100
+        k = get_parameters().params["num_samples_clumpiness"] 
         avg_len = 0
         disconnects = 0
         shortest_paths = []
         avg_len_no_infinity = 0
         max_len_no_infinity = 0
-        min_len_no_infinity=1000
+        min_len_no_infinity=100000
         for i in range (k):
             nodes = random.sample(self.G.nodes, 2)
             try:
@@ -625,30 +632,47 @@ class Network:
         #print ("pathlens")
         #print (pathlens)
 
-        return avg_len
+        return avg_len,max_len_no_infinity
 
-    def print_hopranks(self):
+    def print_infections(self):
+        df = pd.DataFrame.from_dict(data = self.actual_infections)
+        df.to_csv(f"{self.fname}-actual_infections.csv")
+
+
+    def print_hopranks(self, day):
+        pr = nx.pagerank(self.G)
+        df = pd.DataFrame.from_dict(data = pr,orient='index')
+        df["pred"] = day
+        df.to_csv(f"{self.fname}-{day}-pagerank.csv")
+        #print(f"pagerank: {test}")
         #print ('self.blob_hopranks')
         #print (self.blob_hopranks)
         #print ('self.location_hopranks')
         #print (self.location_hopranks)
         df = pd.DataFrame.from_dict(data = self.location_hopranks["Restaurant"],orient='index')
-        df.to_csv(f"{self.fname}-restaurant_hopranks.csv")
+        df["pred"] = day
+        df.to_csv(f"{self.fname}-{day}-restaurant_hopranks.csv")
         df = pd.DataFrame.from_dict(data = self.location_hopranks["School"],orient='index')
-        df.to_csv(f"{self.fname}-school_hopranks.csv")
+        df["pred"] = day
+        df.to_csv(f"{self.fname}-{day}-school_hopranks.csv")
         df = pd.DataFrame.from_dict(data = self.location_hopranks["Office"], orient='index')
-        df.to_csv("office_hopranks.csv")
+        df["pred"] = day
+        df.to_csv(f"{self.fname}-{day}-office_hopranks.csv")
         df = pd.DataFrame.from_dict(data = self.location_hopranks["Home_District"], orient='index')
-        df.to_csv(f"{self.fname}-home_district_hopranks.csv")
+        df["pred"] = day
+        df.to_csv(f"{self.fname}-{day}-home_district_hopranks.csv")
         df = pd.DataFrame.from_dict(data=self.blob_hopranks, orient='index')
-        df.to_csv(f"{self.fname}-blob_hopranks.csv")
+        df["pred"] = day
+        df.to_csv(f"{self.fname}-{day}-blob_hopranks.csv")
+        self.print_infections()
+
 
     def compute_blob_hopranks(self,model,hoprank):
         blobranks = {}
         avg_blobranks = {}
         for node,hops in hoprank.items():
             if node in model.hrf.strid_to_human:
-                blob = model.vector_to_blob[model.feature_vector[model.hrf.strid_to_human[node]]]
+                blob = model.hrf.vector_to_blob[model.hrf.feature_vector[model.hrf.strid_to_human[node]]]
                 if blob not in blobranks:
                     blobranks[blob] = []
                 blobranks[blob].append(hops)
@@ -768,6 +792,75 @@ class Network:
             cumulative_isnts *=(1.-prob)
         clumpiness += cumulative_isnts * self.infinity
         return clumpiness
+
+
+    def sample_from_infected_nodes(self,n,model):
+        to_sample= []
+        returnlist = []
+        for blob_num in model.hrf.infected_blobs:
+            to_sample.extend( model.hrf.blob_dict[blob_num])
+        tups_to_sample = [model.hrf.vector_to_human[tuple(v)].strid for v in to_sample] 
+        num_remaining = n-len(tups_to_sample)
+        if num_remaining > 0:
+            returnlist.extend(random.sample(list(set(self.G.nodes)-set(tups_to_sample)),num_remaining))
+            n -= num_remaining
+        returnlist.extend(random.sample(tups_to_sample,n))
+        return returnlist
+
+
+    def compute_maxprob_hoprank(self,model):
+        #Just sample 
+        number_to_hoprank= get_parameters().params["number_to_hoprank"]
+        n=get_parameters().params["num_samples_clumpiness"]
+        ratio_sample_from_infected=get_parameters().params["hoprank_infected_sample_ratio"]
+        n_from_infected = math.ceil(n*ratio_sample_from_infected)
+        hops = {}
+        hoprank = {}
+        clumpiness = {}
+        to_be_hopranked = random.sample(self.G.nodes,number_to_hoprank)
+
+        #nodes1=self.sample_from_infected_nodes(number_to_hoprank,model
+                #) if sample_from_infected else random.sample(self.G.nodes,n)
+        for node1 in to_be_hopranked:
+            #for each agent choose a random n agents
+            #nodes = random.sample(self.G.nodes,n+1)
+            nodes=self.sample_from_infected_nodes(n_from_infected,model)
+            #print (f"infected samples: {len(nodes)}")
+            nodes.extend(random.sample(list(set(self.G.nodes) - set(nodes)-set(node1)),n-n_from_infected))
+            #print (f"all samples:{len(nodes)}")
+            avg_len = 0
+            for node2 in nodes:
+                if node1 < node2:
+                    firstnode = node1
+                    secondnode = node2
+                else:
+                    firstnode = node2
+                    secondnode = node1
+                #print("firstnode")
+                #print(firstnode)
+                #print("secondnode")
+                #print (secondnode)
+                if firstnode not in clumpiness:
+                    clumpiness[firstnode]={}
+                if secondnode not in clumpiness[firstnode]:
+                    try:
+                        shortest_path = nx.dijkstra_path(self.G,firstnode,secondnode, weight = "weight")
+                        shortest_path_len = len(shortest_path)
+                    except(nx.NetworkXNoPath):
+                        shortest_path_len =self.infinity 
+                    clumpiness[firstnode][secondnode] = shortest_path_len
+        for node1,node2_dict in clumpiness.items():
+            for node2,clump in node2_dict.items():
+                if node1 not in hops:
+                    hops[node1] = []
+                if node2 not in hops:
+                    hops[node2] = []
+                hops[node1].append(clump)
+                hops[node2].append(clump)
+        for node,clumplist in hops.items():
+            if len(clumplist) > n:
+                hoprank[node] = np.mean(clumplist)
+        return hoprank
 
  
     def compute_clumpiness3(self, compute_hoprank = True):
@@ -1222,7 +1315,8 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     # smaller home district sizes for higher resolution.  An empty list assumes one work district.  Each list in 
     # the list of lists is one of the work or school districts. Represent the districts with a list of tuples
     #(x,y) where x is the place among the width and y is the place along the height.
- 
+
+    # Loose scenario
     work_building_capacity = 3
     office_capacity = 20
     work_building_occupacy_rate = 0.5
@@ -1234,19 +1328,17 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     school_occupacy_rate = 0.5
 
    
-     
+    #Tight scenario 
     #work_building_capacity = 70
     #office_capacity =3 
     #work_building_occupacy_rate = 1.0 
     #appartment_building_capacity = 20
     #appartment_capacity = 5
     #appartment_building_occupacy_rate = 0.5
-    #school_capacity = 6
-    #classroom_capacity = 5
-    #school_occupacy_rate = 1.0
     #school_capacity = 70
     #classroom_capacity = 3
     #school_occupacy_rate = 1.0
+
     num_favorite_restaurants =2 
     family_temperature =  get_parameters().params['temperature']
     home_room_temperature = get_parameters().params['temperature']
@@ -1449,6 +1541,7 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     print (work_districts)
     print ("school_districts")
     print (school_districts)
-
-    hrf.infect_blob(0)
-
+    for i in range(1): #20
+        blobnum = np.random.randint(get_parameters().params['num_communities'])
+        hrf.infect_blob(blobnum)
+        hrf.infected_blobs.append(blobnum)

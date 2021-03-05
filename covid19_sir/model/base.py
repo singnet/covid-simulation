@@ -284,7 +284,12 @@ class SimulationParameters:
                        'min_behaviors_to_copy': kwargs.get("min_behaviors_to_copy", 3),
                        'num_communities': kwargs.get("num_communities",1),
                        'num_features':kwargs.get("num_features",10),
-                       'temperature':kwargs.get("temperature",-1)}
+                       'temperature':kwargs.get("temperature",-1),
+                       'infinity':kwargs.get("infinity",80),
+                       'hoprank_cycle':kwargs.get("hoprank_cycle",100),
+                       'number_to_hoprank':kwargs.get("number_to_hoprank",1000),
+                       'hoprank_infected_sample_ratio':kwargs.get("hoprank_infected_sample_ratio",0.5),
+                       'num_samples_clumpiness':kwargs.get("num_samples_clumpiness",100)}
 
     def get(self, key):
         return self.params[key]
@@ -332,6 +337,11 @@ class AgentBase(Agent):
 class CovidModel(Model):
     def __init__(self, debug=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.actual_infections = {}
+        self.actual_infections["strid"] = []
+        self.actual_infections["blob"] =[]
+        self.actual_infections["day"]=[]
+        self.actual_infections["unit"]=[]
         self.debug = debug
         self.debug_each_n_cycles = 1
         self.agents = []

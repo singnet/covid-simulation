@@ -5,7 +5,7 @@ import random
 import sys
 import statistics
 from statistics import mean
-from model.base import random_selection, roulette_selection, linear_rescale,ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS,flip_coin,get_parameters
+from model.base import random_selection, roulette_selection, linear_rescale,flip_coin,get_parameters
 from model.human import Human, Infant, Toddler, K12Student, Adult, Elder
 from model.location import District
 from sklearn.datasets import make_blobs
@@ -116,9 +116,9 @@ class HomophilyRelationshipFactory:
     def __init__(self, model, population_size,n_blobs, n_features,home_district_in_position,iseed=None):
 
         self.model = model
+        self.infected_blobs=[]
         self.roulette_distribution ={}
         self.feature_vector = {}
-        self.model.feature_vector = self.feature_vector
         self.vector_to_human = {}
         self.vector_to_home ={}
         self.vector_to_classroom = {}
@@ -141,7 +141,6 @@ class HomophilyRelationshipFactory:
         self.home_district_in_position = home_district_in_position
         self.blob_dict ={}
         self.vector_to_blob = {}
-        self.model.vector_to_blob = self.vector_to_blob
         for vec,assignment in zip(blobs,assignments):
             if assignment not in self.blob_dict:
                 self.blob_dict[assignment] = []
@@ -407,7 +406,7 @@ class HomophilyRelationshipFactory:
         for v in vectors:
             human = self.vector_to_human[tuple(v)]
             if flip_coin(get_parameters().get('initial_infection_rate')):
-                human.infect()
+                human.infect(None)
                 count += 1
         print (f"infected {count} agents in community {blob_num}")
 
