@@ -10,6 +10,7 @@ from model.utils import SimulationState, WeekDay
 LOG_FILE_NAME = './simulation.log'
 LOGGING_LEVEL = logging.CRITICAL
 
+ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS = False
 
 def flip_coin(prob):
     if np.random.random() < prob:
@@ -289,7 +290,9 @@ class SimulationParameters:
                        'hoprank_cycle':kwargs.get("hoprank_cycle",100),
                        'number_to_hoprank':kwargs.get("number_to_hoprank",1000),
                        'hoprank_infected_sample_ratio':kwargs.get("hoprank_infected_sample_ratio",0.5),
-                       'num_samples_clumpiness':kwargs.get("num_samples_clumpiness",100)}
+                       'num_samples_clumpiness':kwargs.get("num_samples_clumpiness",100),
+                       'vaccine_immunization_rate':kwargs.get("vaccine_immunization_rate",0.8),
+                       'vaccine_symptom_attenuation':kwargs.get("vaccine_symptom_attenuation",0.8)}
 
     def get(self, key):
         return self.params[key]

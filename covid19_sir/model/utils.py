@@ -20,7 +20,8 @@ class WorkClasses(Enum):
     HOUSEBOUND = auto()
     FACTORY = auto()
     RETAIL = auto()
-    ESSENTIAL = auto()
+    TEACHER = auto()
+    HOSPITAL = auto()
 
 
 class WeekDay(Enum):
@@ -46,8 +47,7 @@ class SocialPolicy(Enum):
 
 class SocialPolicyUtil:
     locked_work_classes = {
-        SocialPolicy.LOCKDOWN_ALL: [WorkClasses.OFFICE, WorkClasses.FACTORY, WorkClasses.RETAIL, WorkClasses.ESSENTIAL,
-                                    WorkClasses.HOUSEBOUND],
+        SocialPolicy.LOCKDOWN_ALL: [WorkClasses.OFFICE, WorkClasses.FACTORY, WorkClasses.RETAIL, WorkClasses.HOUSEBOUND],
         SocialPolicy.LOCKDOWN_OFFICE: [WorkClasses.OFFICE],
         SocialPolicy.LOCKDOWN_FACTORY: [WorkClasses.FACTORY],
         SocialPolicy.LOCKDOWN_RETAIL: [WorkClasses.RETAIL]

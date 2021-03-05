@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-from model.base import CovidModel, get_parameters, change_parameters, flip_coin, normal_cap, logger
+from model.base import CovidModel, get_parameters, change_parameters, flip_coin, normal_cap, logger, ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS
 from model.human import Elder, Adult, K12Student, Toddler, Infant
-from model.location import District, HomogeneousBuilding, BuildingUnit, Restaurant
+from model.location import District, HomogeneousBuilding, BuildingUnit, Restaurant, Hospital
 from model.instantiation import FamilyFactory, HomophilyRelationshipFactory
 from model.utils import TribeSelector, RestaurantType,SimulationState
 import model.utils
@@ -491,6 +491,38 @@ class Propaganda:
             if not (self.count % 3):
                 self.tick()
 
+class Vaccination:
+    def __init__(self, model, start_day, max_days_until_full_vaccination, work_class=None, age=None):
+        self.model = model
+        self.start_day = start_day
+        self.end_day = start_day + max_days_until_full_vaccination - 1
+        self.work_class = work_class
+
+    def start_cycle(self, model):
+        pass
+
+    def state_change(self,model):
+        pass
+
+    def tick(self):
+        candidates = []
+        for agent in self.model.agents:
+            if work_class is None or isinstance(agent, Adult) and agent.work_info.work_class == self.work_class:
+                if age is None or isinstance(agent, Human) and agent.age >= age:
+                    candidates.append(agent)
+        if self.model.global_count.day_count >= self.end_day:
+            prob = 1
+        else:
+            prob = (self.model.global_count.day_count - self.start_day + 1) / (self.end_day - self.start_day + 1)
+        for human in candidates:
+            if not human.vaccinated:
+                if flip_coin(prob):
+                    human.vaccinate()
+
+    def end_cycle(self, model):
+        if self.model.global_count.day_count >= self.start_day and self.model.global_count.day_count <= self.end_day:
+            self.tick()
+
 
 import networkx as nx
 
@@ -959,6 +991,10 @@ def setup_city_layout(model, population_size):
     work_district.debug = model.debug
     school_district.debug = model.debug
 
+    hospital = Hospital(10, 0.01, model, 'HospitalBuilding', 'unique', beta_range(0.001, 0.06))
+    hospital_container = District('HospitalContainer', model, 'HospitalContainer', 'unique', [])
+    hospital_container.locations.append(hospital)
+
     # Add Restaurants to work_district
 
     for i in range(get_parameters().params['restaurant_count_per_work_district']):
@@ -1041,6 +1077,7 @@ def setup_city_layout(model, population_size):
     count = 0
     for family in family_factory.families:
         for human in family:
+            human.hospital_district = hospital_container
             count += 1
             human.tribe[TribeSelector.AGE_GROUP] = age_group_sets[type(human)]
             human.tribe[TribeSelector.FAMILY] = family
@@ -1123,6 +1160,11 @@ def setup_grid_layout(model, population_size,
     school_grid_width = math.ceil(home_grid_width/school_width)
     work_grid_height = math.ceil(home_grid_height/work_height)
     work_grid_width = math.ceil(home_grid_width/work_width)
+
+    if ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS:
+        hospital = Hospital(10, 0.01, model, 'HospitalBuilding', 'unique', beta_range(0.001, 0.06))
+        hospital_container = District('HospitalContainer', model, 'HospitalContainer', 'unique', [])
+        hospital_container.locations.append(hospital)
 
     for hw in range(home_grid_width):
         for hh in range(home_grid_height):
@@ -1254,6 +1296,8 @@ def setup_grid_layout(model, population_size,
             age_group_sets[type(human)].append(human)
             human.home_district = home_district
             home_district.get_buildings(human)[0].get_unit(human).humans.append(human)
+            if ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS:
+                human.hospital_district = hospital_container
         for adult in adults:
             adult.work_district = work_district
             all_adults.append(adult)
@@ -1357,6 +1401,11 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     agents_per_home_district = math.ceil(population_size/(home_grid_width*home_grid_height))
     agents_per_school_district = math.ceil((0.33 *population_size) /len(school_home_list))
     agents_per_work_district = math.ceil((0.65*population_size)/len(work_home_list))
+
+    if ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS:
+        hospital = Hospital(10, 0.01, model, 'HospitalBuilding', 'unique', beta_range(0.001, 0.06))
+        hospital_container = District('HospitalContainer', model, 'HospitalContainer', 'unique', [])
+        hospital_container.locations.append(hospital)
 
     for hw in range(home_grid_width):
         for hh in range(home_grid_height):
@@ -1471,6 +1520,8 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
             age_group_sets[type(human)].append(human)
             #human.home_district = home_district
             #home_district.get_buildings(human)[0].get_unit(human).humans.append(human)
+            if ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS:
+                human.hospital_district = hospital_container
         for adult in adults:
             #adult.work_district = work_district
             all_adults.append(adult)

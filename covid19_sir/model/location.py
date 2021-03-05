@@ -110,6 +110,49 @@ class HomogeneousBuilding(Location):
     def get_unit(self, human):
         return self.allocation[human]
 
+class Hospital(HomogeneousBuilding):
+    # n: number of co-workers each worker interacts with during a day of work
+    # r: (r * TOTAL_NUMBER_OF_PATIENTS_IN_THE_HOSPITAL) is approx the number of patients each worker
+    #    interacts with during a day of work
+    def __init__(self, n, r, covid_model, strid_prefix, strid_suffix, contagion_probability, **kwargs):
+        inf = 10000
+        super().__init__(inf, covid_model, strid_prefix, strid_suffix, **kwargs)
+        self.patients = []
+        self.patient_interaction_rate = r
+        for i in range(inf):
+            self.locations.append(BuildingUnit(n + 1, covid_model, strid_prefix, f"hospital-unit-{i}",
+                                  contagion_probability=contagion_probability))
+
+    def spread_infection(self):
+        if len(self.patients) > 0:
+            logger().info(f"{self} is spreading infection patients -> workers")
+            print(f"{self} is spreading infection patients -> workers")
+            for worker in humans:
+                for patient in patients:
+                    if not flip_coin(r):
+                        continue
+                    logger().debug(f"Check to see if patient {patient} can infect worker {worker} in {self}")
+                    print(f"Check to see if patient {patient} can infect worker {worker} in {self}")
+                    if not worker.is_infected():
+                        logger().debug(f"contagion_probability = {self.get_parameter('contagion_probability')}")
+                        if flip_coin(self.get_parameter('contagion_probability')):
+                            if worker.strid not in self.covid_model.global_count.infection_info:
+                                self.covid_model.global_count.infection_info[worker.strid] = self
+                            logger().debug(f"Infection succeeded - {patient} has infected {worker} in {self} with contagion "
+                                           f"probability {self.get_parameter('contagion_probability')}")
+                            print(f"Infection succeeded - {patient} has infected {worker} in {self} with contagion "
+                                  f"probability {self.get_parameter('contagion_probability')}")
+                            patient.count_infected_humans += 1
+                            worker.infect()
+                        else:
+                            logger().debug(f"Infection failed - {self} didn't pass contagion_probability check with contagion "
+                                           f"probability {self.get_parameter('contagion_probability')}")
+                            print(f"Infection failed - {self} didn't pass contagion_probability check with contagion "
+                                  f"probability {self.get_parameter('contagion_probability')}")
+                    else:
+                        logger().debug(f"Infection failed - infectee {worker} is already infected")
+                        print(f"Infection failed - infectee {worker} is already infected")
+        super().spread_infection() # amongst workers only
 
 class Restaurant(Location):
     def __init__(self, capacity, restaurant_type, is_outdoor, covid_model, strid_prefix, strid_suffix, **kwargs):
@@ -175,6 +218,12 @@ class District(Location):
         if human in self.allocation:
             return self.allocation[human]
         return []
+
+    def get_available_hospital(self):
+        for location in self.locations:
+            if isinstance(location, Hospital):
+                return location
+        return None
 
     def get_available_restaurant(self, people_count, outdoor, restaurant_type,favorites):
         #print ("favorites")
