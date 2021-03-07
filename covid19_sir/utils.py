@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import pandas as pd
 from model.base import CovidModel, get_parameters, change_parameters, flip_coin, normal_cap, logger, ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS
-from model.human import Elder, Adult, K12Student, Toddler, Infant
+from model.human import Elder, Adult, K12Student, Toddler, Infant, Human
 from model.location import District, HomogeneousBuilding, BuildingUnit, Restaurant, Hospital
 from model.instantiation import FamilyFactory, HomophilyRelationshipFactory
 from model.utils import TribeSelector, RestaurantType,SimulationState
@@ -430,9 +430,8 @@ class RemovePolicyInfectedRateWindow:
                 get_parameters().get('social_policies').remove(self.policy)
                 self.state = 1
 
-class RemovePolicyVaccinationTarget
+class RemovePolicyVaccinationTarget:
     # Removes a policy after the infection rate has been below a value for n cycles
-    
     def __init__(self, model, policy, target_rate, work_class, age):
         assert bool(work_class is None) != bool(age is None) # Logical XOR. Exactly one is supposed to be None
         self.model = model
@@ -496,15 +495,17 @@ class Propaganda:
                 self.tick()
 
 class Vaccination:
-    def __init__(self, model, start_day, capacity_per_day, total_capacity, campaign_stages):
+    def __init__(self, model, start_day, capacity_per_month, total_capacity, campaign_stages):
         self.model = model
+        self.finished = False
         self.start_day = start_day
-        self.capacity_per_day = capacity_per_day
+        self.capacity_per_day = capacity_per_month / 30
         self.total_capacity = total_capacity
         self.stages = campaign_stages
         self.vaccinated_count = 0
         self.current_stage = -1
-        self.allowed_work_classes = []
+        self.days_left_in_current_stage = 0
+        self.allowed_work_classes = set()
         self.allowed_age = 1000 # infinity
 
     def start_cycle(self, model):
@@ -532,34 +533,26 @@ class Vaccination:
                 self.vaccinated_count += 1
 
     def cleared_current_stage(self):
-        if self.current_stage < 0:
-            return True
-        rate, work_class, age = self.stages[self.current_stage]
-        total = 0
-        vacinated = 0
-        for human in [agent for agent in self.model.agents if isinstance(agent, Human)]:
-            if (age is not None and human.age >= age) or \
-            (work_class is not None and isinstance(human, Adult) and human.work_info.work_class == work_class):
-                total += 1
-                if human.vaccinated:
-                    vaccinated += 1
-        if total == 0:
+        if self.current_stage < 0 or self.days_left_in_current_stage == 0:
             return True
         else:
-            return (vaccinated / total) >= rate
+            self.days_left_in_current_stage -= 1
+            return False
 
     def end_cycle(self, model):
-        if self.model.global_count.day_count >= self.start_day and self.vaccinated_count < self.total_capacity:
+        if self.model.global_count.day_count >= self.start_day and self.vaccinated_count < self.total_capacity and not self.finished:
             if self.cleared_current_stage():
                 self.current_stage += 1
                 if self.current_stage < len(self.stages):
-                    rate, work_class, age = self.stages[self.current_stage]
-                    assert bool(work_class is None) != bool(age is None) # Logical XOR. Exactly one is supposed to be None
-                    if work_class is None:
-                        assert age < self.allowed_age
+                    num_days, work_classes, age = self.stages[self.current_stage]
+                    assert work_classes is not None or age is not None
+                    if work_classes is not None:
+                        self.allowed_work_classes = self.allowed_work_classes.union(work_classes)
+                    if age is not None:
                         self.allowed_age = age
-                    else:
-                        self.allowed_work_classes.append(work_class)
+                    self.days_left_in_current_stage = num_days
+                else:
+                    self.finished = True
             self.tick()
 
 
