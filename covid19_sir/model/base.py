@@ -289,6 +289,7 @@ class SimulationParameters:
                        'infinity':kwargs.get("infinity",80),
                        'hoprank_cycle':kwargs.get("hoprank_cycle",100),
                        'number_to_hoprank':kwargs.get("number_to_hoprank",1000),
+                       'num_blobs_to_infect':kwargs.get("num_blobs_to_infect",1),
                        'hoprank_infected_sample_ratio':kwargs.get("hoprank_infected_sample_ratio",0.5),
                        'num_samples_clumpiness':kwargs.get("num_samples_clumpiness",100),
                        'vaccine_immunization_rate':kwargs.get("vaccine_immunization_rate",0.8),

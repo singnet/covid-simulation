@@ -1592,7 +1592,7 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     print (work_districts)
     print ("school_districts")
     print (school_districts)
-    for i in range(1): #20
+    for i in range( get_parameters().params['num_blobs_to_infect']): 
         blobnum = np.random.randint(get_parameters().params['num_communities'])
         hrf.infect_blob(blobnum)
         hrf.infected_blobs.append(blobnum)
