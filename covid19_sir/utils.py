@@ -485,7 +485,7 @@ class RemovePolicyVaccinationTarget:
             if (age is not None and human.age >= age) or \
             (work_class is not None and isinstance(human, Adult) and human.work_info.work_class == work_class):
                 total += 1
-                if human.vaccinated:
+                if human.vaccinated():
                     vaccinated += 1
         if total == 0 or (vaccinated / total) >= target_rate:
             if self.policy in get_parameters().get('social_policies'):
@@ -531,11 +531,12 @@ class Vaccination:
         self.capacity_per_day = capacity_per_month / 30
         self.total_capacity = total_capacity
         self.stages = campaign_stages
-        self.vaccinated_count = 0
+        self.vaccine_shots_count = 0
         self.current_stage = -1
         self.days_left_in_current_stage = 0
-        self.allowed_work_classes = set()
+        self.allowed_work_classes = []
         self.allowed_age = 1000 # infinity
+        self.allowed_shot = 1000 # infinity
 
     def start_cycle(self, model):
         pass
@@ -546,7 +547,7 @@ class Vaccination:
     def tick(self):
         candidates = []
         for human in [agent for agent in self.model.agents if isinstance(agent, Human)]:
-            if human.vaccinated:
+            if human.vaccinated() or human.vaccine_shots_taken() >= self.allowed_shot:
                 continue
             if human.age >= self.allowed_age or (isinstance(human, Adult) and human.work_info.work_class in self.allowed_work_classes):
                 candidates.append(human)
@@ -557,9 +558,9 @@ class Vaccination:
         else:
             prob = self.capacity_per_day / len(candidates)
         for human in candidates:
-            if self.vaccinated_count < self.total_capacity and flip_coin(prob):
+            if self.vaccine_shots_count < self.total_capacity and flip_coin(prob):
                 human.vaccinate()
-                self.vaccinated_count += 1
+                self.vaccine_shots_count += 1
 
     def cleared_current_stage(self):
         if self.current_stage < 0 or self.days_left_in_current_stage == 0:
@@ -569,16 +570,18 @@ class Vaccination:
             return False
 
     def end_cycle(self, model):
-        if self.model.global_count.day_count >= self.start_day and self.vaccinated_count < self.total_capacity and not self.finished:
+        if self.model.global_count.day_count >= self.start_day and self.vaccine_shots_count < self.total_capacity and not self.finished:
             if self.cleared_current_stage():
                 self.current_stage += 1
                 if self.current_stage < len(self.stages):
-                    num_days, work_classes, age = self.stages[self.current_stage]
-                    assert work_classes is not None or age is not None
+                    num_days, work_classes, age, shot_number = self.stages[self.current_stage]
+                    assert work_classes is not None or age is not None or shot_number is not None
                     if work_classes is not None:
-                        self.allowed_work_classes = self.allowed_work_classes.union(work_classes)
+                        self.allowed_work_classes = work_classes
                     if age is not None:
                         self.allowed_age = age
+                    if shot_number is not None:
+                        self.allowed_shot = shot_number
                     self.days_left_in_current_stage = num_days
                 else:
                     self.finished = True

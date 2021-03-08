@@ -141,7 +141,7 @@ class Human(AgentBase):
         self.has_been_icu = False
         self.parameter_changed()
         self.social_event = None
-        self.vaccinated = False
+        self.vaccination_days = []
         
 
     def initialize_individual_properties(self):
@@ -192,14 +192,24 @@ class Human(AgentBase):
             #if not self.is_infected() and not self.is_dead and flip_coin(0.0002):
                     #self.infect()
 
+    def vaccinated(self):
+        return len(self.vaccination_days) == len(get_parameters().get('vaccine_immunization_rate'))
+
+    def vaccine_shots_taken(self):
+        return len(self.vaccination_days)
+
     def vaccinate(self):
-        self.vaccinated = True
-        if flip_coin(get_parameters().get('vaccine_immunization_rate')):
+        if self.vaccinated():
+            return
+        
+        shots_taken = len(self.vaccination_days)
+        if flip_coin(get_parameters().get('vaccine_immunization_rate')[shots_taken]):
             self.immune = True
         else:
-            symptom_attenuation = get_parameters().get('vaccine_symptom_attenuation')
+            symptom_attenuation = get_parameters().get('vaccine_symptom_attenuation')[shots_taken]
             self.moderate_severity_prob = self.moderate_severity_prob * (1 - symptom_attenuation)
             self.high_severity_prob = self.moderate_severity_prob * (1 - symptom_attenuation)
+        self.vaccination_days.append(self.covid_model.global_count.day_count)
 
 
     def infect(self, unit=None):
