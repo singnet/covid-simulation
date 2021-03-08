@@ -115,6 +115,8 @@ class Human(AgentBase):
         self.age = age
         self.moderate_severity_prob = msp
         self.high_severity_prob = hsp
+        self.base_moderate_severity_prob = msp
+        self.base_high_severity_prob = hsp
         self.death_mark = mfd
         self.infection_days_count = 0
         self.infection_latency = 0
@@ -207,8 +209,8 @@ class Human(AgentBase):
             self.immune = True
         else:
             symptom_attenuation = get_parameters().get('vaccine_symptom_attenuation')[shots_taken]
-            self.moderate_severity_prob = self.moderate_severity_prob * (1 - symptom_attenuation)
-            self.high_severity_prob = self.moderate_severity_prob * (1 - symptom_attenuation)
+            self.moderate_severity_prob = self.base_moderate_severity_prob * (1 - symptom_attenuation)
+            self.high_severity_prob = self.base_moderate_severity_prob * (1 - symptom_attenuation)
         self.vaccination_days.append(self.covid_model.global_count.day_count)
 
 
