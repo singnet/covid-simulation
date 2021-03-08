@@ -280,12 +280,18 @@ class SimulationParameters:
                        'extroversion_mean': kwargs.get("extroversion_mean", 0.5),
                        'extroversion_stdev': kwargs.get("extroversion_stdev", 0.3),
                        'restaurant_count_per_work_district': kwargs.get("restaurant_count_per_work_district", 10),
-                       'restaurant_capacity_mean': kwargs.get("restaurant_capacity_mean", 50),
-                       'restaurant_capacity_stdev': kwargs.get("restaurant_capacity_stdev", 20),
+                       'restaurant_capacity_mean': kwargs.get("restaurant_capacity_mean", 30),
+                       'restaurant_capacity_stdev': kwargs.get("restaurant_capacity_stdev", 10),
                        'min_behaviors_to_copy': kwargs.get("min_behaviors_to_copy", 3),
                        'num_communities': kwargs.get("num_communities",1),
                        'num_features':kwargs.get("num_features",10),
                        'temperature':kwargs.get("temperature",-1),
+                       'infinity':kwargs.get("infinity",80),
+                       'hoprank_cycle':kwargs.get("hoprank_cycle",100),
+                       'number_to_hoprank':kwargs.get("number_to_hoprank",1000),
+                       'num_blobs_to_infect':kwargs.get("num_blobs_to_infect",1),
+                       'hoprank_infected_sample_ratio':kwargs.get("hoprank_infected_sample_ratio",0.5),
+                       'num_samples_clumpiness':kwargs.get("num_samples_clumpiness",100),
                        'vaccine_immunization_rate':kwargs.get("vaccine_immunization_rate",0.8),
                        'vaccine_symptom_attenuation':kwargs.get("vaccine_symptom_attenuation",0.8)}
 
@@ -335,6 +341,11 @@ class AgentBase(Agent):
 class CovidModel(Model):
     def __init__(self, debug=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.actual_infections = {}
+        self.actual_infections["strid"] = []
+        self.actual_infections["blob"] =[]
+        self.actual_infections["day"]=[]
+        self.actual_infections["unit"]=[]
         self.debug = debug
         self.debug_each_n_cycles = 1
         self.agents = []

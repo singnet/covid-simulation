@@ -98,8 +98,8 @@ class Human(AgentBase):
             covid_model.global_count.immune_count += 1
         else:
             covid_model.global_count.susceptible_count += 1
-        if flip_coin(get_parameters().get('initial_infection_rate')):
-            human.infect()
+        #if flip_coin(get_parameters().get('initial_infection_rate')):
+            #human.infect()
         return human
 
     def __init__(self, covid_model, age, msp, hsp, mfd):
@@ -189,8 +189,8 @@ class Human(AgentBase):
             return
         if self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
             self.disease_evolution()
-            if not self.is_infected() and not self.is_dead and flip_coin(0.0002):
-                    self.infect()
+            #if not self.is_infected() and not self.is_dead and flip_coin(0.0002):
+                    #self.infect()
 
     def vaccinate(self):
         self.vaccinated = True
@@ -202,7 +202,7 @@ class Human(AgentBase):
             self.high_severity_prob = self.moderate_severity_prob * (1 - symptom_attenuation)
 
 
-    def infect(self):
+    def infect(self,unit):
         # https://www.acpjournals.org/doi/10.7326/M20-0504
         # https://media.tghn.org/medialibrary/2020/06/ISARIC_Data_Platform_COVID-19_Report_8JUN20.pdf
         # https://www.ecdc.europa.eu/en/covid-19/latest-evidence
@@ -210,6 +210,15 @@ class Human(AgentBase):
             # Evolve disease severity based in this human's specific
             # attributes and update global counts
             logger().info(f"Infected {self}")
+            vec = self.covid_model.hrf.feature_vector[self]
+            blob = self.covid_model.hrf.vector_to_blob[vec]
+            
+            if blob is not None:
+                self.covid_model.actual_infections["blob"].append(blob)
+                self.covid_model.actual_infections["strid"].append(self.strid)
+                self.covid_model.actual_infections["unit"].append(unit.strid if unit is not None else None)
+                self.covid_model.actual_infections["day"].append(self.covid_model.global_count.day_count)
+
             self.covid_model.global_count.infected_count += 1
             self.covid_model.global_count.non_infected_count -= 1
             self.covid_model.global_count.susceptible_count -= 1
@@ -599,7 +608,22 @@ class Adult(Human):
             self.days_since_last_social_event += 1
 
     def non_working_day(self):
-        pass
+        if self.covid_model.current_state == SimulationState.MAIN_ACTIVITY:
+            if self.personal_decision(Dilemma.INVITE_FRIENDS_TO_RESTAURANT):
+                self.invite_friends_to_restaurant()
+        elif self.covid_model.current_state == SimulationState.COMMUTING_TO_POST_WORK_ACTIVITY:
+            if self.social_event is not None and self.work_district is not None:
+                table, restaurant = self.social_event
+                self.home_district.move_to(self, restaurant)
+                self.work_district.move_to(self, restaurant)
+        elif self.covid_model.current_state == SimulationState.COMMUTING_TO_HOME:
+            if self.social_event is not None:
+                table, restaurant = self.social_event
+                self.home_district.move_from(self, restaurant)
+                restaurant.available += 1
+                self.days_since_last_social_event = 0
+                self.social_event = None
+                #print ("social event on weekend")
 
     def step(self):
         super().step()
