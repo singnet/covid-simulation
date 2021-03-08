@@ -524,12 +524,13 @@ class Propaganda:
                 self.tick()
 
 class Vaccination:
-    def __init__(self, model, start_day, capacity_per_month, total_capacity, campaign_stages):
+    def __init__(self, model, start_day, capacity_per_month, total_capacity, interval_between_shots, campaign_stages):
         self.model = model
         self.finished = False
         self.start_day = start_day
         self.capacity_per_day = capacity_per_month / 30
         self.total_capacity = total_capacity
+        self.interval_between_shots = interval_between_shots
         self.stages = campaign_stages
         self.vaccine_shots_count = 0
         self.current_stage = -1
@@ -547,8 +548,14 @@ class Vaccination:
     def tick(self):
         candidates = []
         for human in [agent for agent in self.model.agents if isinstance(agent, Human)]:
-            if human.vaccinated() or human.vaccine_shots_taken() >= self.allowed_shot:
+            shots_taken = human.vaccine_shots_taken()
+            if human.vaccinated() or shots_taken >= self.allowed_shot:
                 continue
+            if shots_taken > 0:
+                last_shot_date = human.vaccination_days[shots_taken - 1]
+                today = self.model.global_count.day_count
+                if (today - last_shot_date) < self.interval_between_shots:
+                    continue
             if human.age >= self.allowed_age or (isinstance(human, Adult) and human.work_info.work_class in self.allowed_work_classes):
                 candidates.append(human)
         if len(candidates) == 0:
