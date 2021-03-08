@@ -98,8 +98,8 @@ class Human(AgentBase):
             covid_model.global_count.immune_count += 1
         else:
             covid_model.global_count.susceptible_count += 1
-        #if flip_coin(get_parameters().get('initial_infection_rate')):
-            #human.infect()
+        if flip_coin(get_parameters().get('initial_infection_rate')):
+            human.infect()
         return human
 
     def __init__(self, covid_model, age, msp, hsp, mfd):
@@ -202,7 +202,7 @@ class Human(AgentBase):
             self.high_severity_prob = self.moderate_severity_prob * (1 - symptom_attenuation)
 
 
-    def infect(self,unit):
+    def infect(self, unit=None):
         # https://www.acpjournals.org/doi/10.7326/M20-0504
         # https://media.tghn.org/medialibrary/2020/06/ISARIC_Data_Platform_COVID-19_Report_8JUN20.pdf
         # https://www.ecdc.europa.eu/en/covid-19/latest-evidence
@@ -210,14 +210,15 @@ class Human(AgentBase):
             # Evolve disease severity based in this human's specific
             # attributes and update global counts
             logger().info(f"Infected {self}")
-            vec = self.covid_model.hrf.feature_vector[self]
-            blob = self.covid_model.hrf.vector_to_blob[vec]
-            
-            if blob is not None:
-                self.covid_model.actual_infections["blob"].append(blob)
-                self.covid_model.actual_infections["strid"].append(self.strid)
-                self.covid_model.actual_infections["unit"].append(unit.strid if unit is not None else None)
-                self.covid_model.actual_infections["day"].append(self.covid_model.global_count.day_count)
+
+            # Commented because covid_model doesn't have `hrf`
+            #vec = self.covid_model.hrf.feature_vector[self]
+            #blob = self.covid_model.hrf.vector_to_blob[vec]
+            #if blob is not None:
+            #    self.covid_model.actual_infections["blob"].append(blob)
+            #    self.covid_model.actual_infections["strid"].append(self.strid)
+            #    self.covid_model.actual_infections["unit"].append(unit.strid if unit is not None else None)
+            #    self.covid_model.actual_infections["day"].append(self.covid_model.global_count.day_count)
 
             self.covid_model.global_count.infected_count += 1
             self.covid_model.global_count.non_infected_count -= 1
