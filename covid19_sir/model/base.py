@@ -300,8 +300,8 @@ class SimulationParameters:
                        'num_blobs_to_infect':kwargs.get("num_blobs_to_infect",1),
                        'hoprank_infected_sample_ratio':kwargs.get("hoprank_infected_sample_ratio",0.5),
                        'num_samples_clumpiness':kwargs.get("num_samples_clumpiness",100),
-                       'vaccine_immunization_rate':kwargs.get("vaccine_immunization_rate",0.8),
-                       'vaccine_symptom_attenuation':kwargs.get("vaccine_symptom_attenuation",0.8)}
+                       'vaccine_immunization_rate':kwargs.get("vaccine_immunization_rate",[0.4, 0.8]),
+                       'vaccine_symptom_attenuation':kwargs.get("vaccine_symptom_attenuation",[0.4, 0.3])}
 
     def get(self, key):
         return self.params[key]

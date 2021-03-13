@@ -143,7 +143,7 @@ class Hospital(HomogeneousBuilding):
                             print(f"Infection succeeded - {patient} has infected {worker} in {self} with contagion "
                                   f"probability {self.get_parameter('contagion_probability')}")
                             patient.count_infected_humans += 1
-                            worker.infect()
+                            worker.infect(patient)
                         else:
                             logger().debug(f"Infection failed - {self} didn't pass contagion_probability check with contagion "
                                            f"probability {self.get_parameter('contagion_probability')}")
