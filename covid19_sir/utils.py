@@ -1,3 +1,5 @@
+
+from gensim.models import KeyedVectors
 import matplotlib.pyplot as plt
 import pandas as pd
 from model.base import CovidModel, get_parameters, change_parameters, flip_coin, normal_cap, logger, ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS
@@ -83,14 +85,14 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
         np.random.seed(s + 1)
         random.seed(s + 2)
         model.reset_randomizer(s)
-        setup_homophilic_layout(model,population_size,home_grid_height,home_grid_width,work_home_list,school_home_list)
+        network_info = setup_homophilic_layout(model,population_size,home_grid_height,home_grid_width,work_home_list,school_home_list)
         #setup_grid_layout(model, population_size, home_grid_height, 
         #home_grid_width,work_height,work_width, school_height, school_width)
         if do_print:
             print("run with seed {0}:".format(str(s)))
         statistics = BasicStatistics(model)
         model.add_listener(statistics)
-        network = Network(model,fname,compute_hoprank)
+        network = Network(model,fname,network_info,compute_hoprank)
         model.add_listener(network)
         for i in range(simulation_cycles):
             model.step()
@@ -528,8 +530,9 @@ import networkx as nx
 
 
 class Network:
-    def __init__(self, model,fname, compute_hoprank = False):
+    def __init__(self, model,fname,network_info, compute_hoprank = False):
         #self.model = model      
+        self.network_info = network_info
         self.districts = [ agent for agent in model.agents if isinstance(agent,District)]
         self.G = nx.Graph()
         #self.G = nx.MultiGraph()
@@ -566,7 +569,8 @@ class Network:
                         #print (f"edge added betweem {human.strid} and {room.strid}")
                 for human in building.humans:
                     if model.current_state == SimulationState.POST_WORK_ACTIVITY:
-                        sim = model.hrf.similarity(model.hrf.feature_vector[human],model.hrf.unit_info_map[building.strid]["vector"])
+                        sim = self.similarity(self.network_info['feature_vector'][human
+                            ],self.network_info['unit_info_map'][building.strid]["vector"])
                         similarities.append(sim)
                     if human.strid not in self.G.nodes:
                         self.G.add_node(human.strid)
@@ -595,7 +599,7 @@ class Network:
         #print("computing new clumpiness...")
         #clumpiness,hoprank = self.compute_clumpiness3(compute_hoprank = self.compute_hoprank)
         #print("ending cycle...")
-        self.actual_infections=model.actual_infections
+        self.actual_infections=model.global_count.actual_infections
         if self.compute_hoprank and  model.global_count.day_count % self.hoprank_cycle==0:
             hoprank=self.compute_maxprob_hoprank(model) 
             self.location_hopranks=self.compute_location_hopranks(model,hoprank)
@@ -611,6 +615,13 @@ class Network:
                 
         self.G.clear()
         #self.G.remove_edges_from(self.G.edges())
+ 
+    def similarity(self,tup_vec1, tup_vec2):
+        vec1 = np.array(list(tup_vec1))
+        vec2 = np.array(list(tup_vec2))
+        sim = KeyedVectors.cosine_similarities(vec1,[vec2])
+        return sim[0]
+
 
     def compute_clumpiness1(self):
         avg_path = 0
@@ -703,8 +714,10 @@ class Network:
         blobranks = {}
         avg_blobranks = {}
         for node,hops in hoprank.items():
-            if node in model.hrf.strid_to_human:
-                blob = model.hrf.vector_to_blob[model.hrf.feature_vector[model.hrf.strid_to_human[node]]]
+            if node in self.network_info['strid_to_human']:
+                blob = self.network_info['vector_to_blob'][
+                        self.network_info['feature_vector'][
+                        self.network_info['strid_to_human'][node]]]
                 if blob not in blobranks:
                     blobranks[blob] = []
                 blobranks[blob].append(hops)
@@ -723,9 +736,9 @@ class Network:
         for node,hops in hoprank.items():
             if "Restaurant" in node:
                 ranks["Restaurant"][node]=[hops]
-            elif node in model.hrf.unit_info_map and len(model.hrf.unit_info_map[node]["unit"].allocation)> 1:
+            elif node in self.network_info['unit_info_map'] and len(self.network_info['unit_info_map'][node]["unit"].allocation)> 1:
                 if "Home" in node:
-                    did = model.hrf.unit_info_map[node]["district"].strid 
+                    did = self.network_info['unit_info_map'][node]["district"].strid 
                     if did not in home_districts:
                         home_districts[did]=[]
                     home_districts[did].append(hops)
@@ -829,9 +842,9 @@ class Network:
     def sample_from_infected_nodes(self,n,model):
         to_sample= []
         returnlist = []
-        for blob_num in model.hrf.infected_blobs:
-            to_sample.extend( model.hrf.blob_dict[blob_num])
-        tups_to_sample = [model.hrf.vector_to_human[tuple(v)].strid for v in to_sample] 
+        for blob_num in self.network_info['infected_blobs']:
+            to_sample.extend( self.network_info['blob_dict'][blob_num])
+        tups_to_sample = [self.network_info['vector_to_human'][tuple(v)].strid for v in to_sample] 
         num_remaining = n-len(tups_to_sample)
         if num_remaining > 0:
             returnlist.extend(random.sample(list(set(self.G.nodes)-set(tups_to_sample)),num_remaining))
@@ -1490,7 +1503,6 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     # print(family_factory)
     hrf = HomophilyRelationshipFactory(model,family_factory.human_count,get_parameters().params['num_communities'],
         get_parameters().params['num_features'],home_district_in_position)
-    model.hrf = hrf
     hrf.assign_features_to_families(family_factory.families,family_temperature)
     hrf.map_home_districts_to_blobs(home_grid_height,home_grid_width)
     hrf.assign_features_to_homes(home_room_temperature)
@@ -1540,6 +1552,8 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     adult_friend_similarity = []
     student_friend_similarity = []
     count = 0
+    model.global_count.feature_vector = hrf.feature_vector
+    model.global_count.vector_to_blob = hrf.vector_to_blob
     for family in family_factory.families:
         for human in family:
             count += 1
@@ -1583,6 +1597,9 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
                 human.unique_id = "Infant" + str(count)
             elif isinstance(human, Toddler):
                 human.unique_id = "Toddler" + str(count)
+            if flip_coin(get_parameters().get('initial_infection_rate')):
+                human.infect(None)
+
     avg_adult_sim = np.mean(adult_friend_similarity)
     avg_student_sim = np.mean(student_friend_similarity)
     print (f"Average friend similarity for adults: {avg_adult_sim} for kids: {avg_student_sim}")
@@ -1592,7 +1609,17 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     print (work_districts)
     print ("school_districts")
     print (school_districts)
-    for i in range( get_parameters().params['num_blobs_to_infect']): 
-        blobnum = np.random.randint(get_parameters().params['num_communities'])
-        hrf.infect_blob(blobnum)
-        hrf.infected_blobs.append(blobnum)
+    if get_parameters().params['blob_infection_rate'] > 0:
+        for i in range( get_parameters().params['num_blobs_to_infect']): 
+            blobnum = np.random.randint(get_parameters().params['num_communities'])
+            hrf.infect_blob(blobnum)
+            hrf.infected_blobs.append(blobnum)
+    network_info = {}
+    network_info['feature_vector'] = hrf.feature_vector
+    network_info['vector_to_blob'] = hrf.vector_to_blob
+    network_info['strid_to_human'] = hrf.strid_to_human
+    network_info['unit_info_map'] = hrf.unit_info_map
+    network_info['infected_blobs'] = hrf.infected_blobs
+    network_info['blob_dict'] = hrf.blob_dict
+    network_info['vector_to_human'] = hrf.vector_to_human
+    return network_info
