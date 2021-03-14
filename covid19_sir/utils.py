@@ -42,10 +42,13 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             'icu': 'red',
             'income': 'magenta',
             'clumpiness':'purple',
-            'maxlen':'yellow'
+            'maxlen':'yellow',
+            'giant':'darkblue',
+            'disconnects':'pink'
         }
     if desired_stats is None:
-        desired_stats = ["susceptible", "infected", "recovered", "hospitalization", "icu", "death", "income","clumpiness","maxlen"]
+        desired_stats = ["susceptible", "infected", "recovered", "hospitalization", "icu", "death", 
+                "income","clumpiness","maxlen","giant","disconnects"]
     randomlist = random.sample(range(10000), num_runs) if len(seeds) == 0  else seeds
     if do_print:
         print("Save these seeds if you want to rerun a scenario")
@@ -104,6 +107,10 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
                 all_runs[stat][s]=copy.deepcopy(getattr(network,"clumpiness"))
             elif stat is "maxlen":
                 all_runs[stat][s]=copy.deepcopy(getattr(network,"maxlen"))
+            elif stat is "giant":
+                all_runs[stat][s]=copy.deepcopy(getattr(network,"giant"))
+            elif stat is "disconnects":
+                all_runs[stat][s]=copy.deepcopy(getattr(network,"disconnects"))
             else:
                 all_runs[stat][s] = getattr(statistics, stat)
             if stat is "income":
@@ -539,7 +546,9 @@ class Network:
         #self.G = nx.DiGraph()
         #self.old_clumpiness = []
         self.maxlen = []
+        self.giant = []
         self.clumpiness = [] 
+        self.disconnects =[]
         self.location_hopranks = {}
         self.blob_hopranks = {}
         self.hoprank_cycle =get_parameters().params['hoprank_cycle'] 
@@ -607,11 +616,16 @@ class Network:
             self.print_hopranks(model.global_count.day_count)
 
         #To run new clumpiness comment the following:
-        clumpiness,maxlen = self.compute_clumpiness2()
+        clumpiness,maxlen,disconnects = self.compute_clumpiness2()
+        giant = len(max(nx.connected_components(self.G), key=len))
         print (f"clumpiness {clumpiness}")
         self.clumpiness.append(clumpiness)
         print (f"maxlen {maxlen}")
         self.maxlen.append(maxlen)
+        print(f"giant component {giant}")
+        self.giant.append(giant)
+        print (f"disconnects {disconnects}")
+        self.disconnects.append(disconnects)
                 
         self.G.clear()
         #self.G.remove_edges_from(self.G.edges())
@@ -670,12 +684,10 @@ class Network:
         #print (avg_len_no_infinity)
         #print ("min_len_no_infinity")
         #print (min_len_no_infinity)
-        print ("disconnects")
-        print (disconnects)
         #print ("pathlens")
         #print (pathlens)
 
-        return avg_len,max_len_no_infinity
+        return avg_len,max_len_no_infinity,disconnects
 
     def print_infections(self):
         df = pd.DataFrame.from_dict(data = self.actual_infections)
