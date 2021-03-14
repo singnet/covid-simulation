@@ -98,6 +98,7 @@ class Human(AgentBase):
             covid_model.global_count.immune_count += 1
         else:
             covid_model.global_count.susceptible_count += 1
+          
         return human
 
     def __init__(self, covid_model, age, msp, hsp, mfd):
@@ -113,6 +114,8 @@ class Human(AgentBase):
         self.age = age
         self.moderate_severity_prob = msp
         self.high_severity_prob = hsp
+        self.base_moderate_severity_prob = msp
+        self.base_high_severity_prob = hsp
         self.death_mark = mfd
         self.infection_days_count = 0
         self.infection_latency = 0
@@ -139,7 +142,7 @@ class Human(AgentBase):
         self.has_been_icu = False
         self.parameter_changed()
         self.social_event = None
-        self.vaccinated = False
+        self.vaccination_days = []
         
 
     def initialize_individual_properties(self):
@@ -190,17 +193,27 @@ class Human(AgentBase):
             if not self.is_infected() and not self.is_dead and flip_coin(get_parameters().get('exogenous_infection_rate')):
                 self.infect(None)
 
+    def vaccinated(self):
+        return len(self.vaccination_days) == len(get_parameters().get('vaccine_immunization_rate'))
+
+    def vaccine_shots_taken(self):
+        return len(self.vaccination_days)
+
     def vaccinate(self):
-        self.vaccinated = True
-        if flip_coin(get_parameters().get('vaccine_immunization_rate')):
+        if self.vaccinated():
+            return
+        
+        shots_taken = len(self.vaccination_days)
+        if flip_coin(get_parameters().get('vaccine_immunization_rate')[shots_taken]):
             self.immune = True
         else:
-            symptom_attenuation = get_parameters().get('vaccine_symptom_attenuation')
-            self.moderate_severity_prob = self.moderate_severity_prob * symptom_attenuation
-            self.high_severity_prob = self.moderate_severity_prob * symptom_attenuation
+            symptom_attenuation = get_parameters().get('vaccine_symptom_attenuation')[shots_taken]
+            self.moderate_severity_prob = self.base_moderate_severity_prob * (1 - symptom_attenuation)
+            self.high_severity_prob = self.base_moderate_severity_prob * (1 - symptom_attenuation)
+        self.vaccination_days.append(self.covid_model.global_count.day_count)
 
 
-    def infect(self,unit):
+    def infect(self, unit=None):
         # https://www.acpjournals.org/doi/10.7326/M20-0504
         # https://media.tghn.org/medialibrary/2020/06/ISARIC_Data_Platform_COVID-19_Report_8JUN20.pdf
         # https://www.ecdc.europa.eu/en/covid-19/latest-evidence
