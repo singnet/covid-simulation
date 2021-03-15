@@ -685,7 +685,7 @@ class Network:
 
         #To run new clumpiness comment the following:
         clumpiness,maxlen,disconnects = self.compute_clumpiness2()
-        giant = len(max(nx.connected_components(self.G), key=len))
+        giant = len(max(nx.connected_components(self.G), key=len))/len(self.G.nodes)
         print (f"clumpiness {clumpiness}")
         self.clumpiness.append(clumpiness)
         print (f"maxlen {maxlen}")
@@ -936,7 +936,7 @@ class Network:
     def compute_maxprob_hoprank(self,model):
         #Just sample 
         number_to_hoprank= get_parameters().params["number_to_hoprank"]
-        n=get_parameters().params["num_samples_clumpiness"]
+        n=get_parameters().params["num_samples_hoprank"]
         ratio_sample_from_infected=get_parameters().params["hoprank_infected_sample_ratio"]
         n_from_infected = math.ceil(n*ratio_sample_from_infected)
         hops = {}
