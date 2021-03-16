@@ -12,6 +12,51 @@ from model.location import District, Hospital
 from sklearn.datasets import make_blobs
 from gensim.models import KeyedVectors
 
+
+class Demographics:
+    def __init__(self, demographics_dict):
+        allowed_keys = ['total_population', 'age_distribution']
+        assert all([key in allowed_keys for key in
+                    demographics_dict.keys()]), "Demographics dictionary keys ({}) should be contained in {}.".format(
+            list(demographics_dict.keys()), allowed_keys)
+
+        self.demographics_dict = demographics_dict
+        self.agent_ages = None
+        self.total_population = None
+        if 'age_distribution' in demographics_dict.keys():
+            self.age_distribution = demographics_dict['age_distribution']
+            assert 'total_population' in demographics_dict.keys(), "Total population is necessary to do age calculations"
+            self.total_population = demographics_dict['total_population']
+            self.agent_ages = self.convert_age_dict()
+
+    def convert_age_dict(self):
+        # Calculates the number of agents in each age range using given weights
+        weight_array = np.array(list(self.age_distribution.values()))
+        percent_array = weight_array / np.sum(weight_array)
+        agents_by_age_range = []
+        for p in percent_array:
+            agents_by_age_range.append(int(p * self.total_population))
+        population = sum(agents_by_age_range)
+
+        # Fixes rounding errors by changing the highest number only
+        agents_by_age_range[agents_by_age_range.index(max(agents_by_age_range))] += self.total_population - population
+        population = sum(agents_by_age_range)
+        assert population == self.total_population
+
+        # Gets random ages for each age range according to their respective number of agents
+        age_range_array = np.array([0] + list(self.age_distribution.keys()))
+        agent_ages_by_range = []
+        for i, age in enumerate(age_range_array):
+            if i == 0:
+                continue
+            agent_ages_by_range.append(np.random.randint(low=age_range_array[i - 1] + 1,
+                                                         high=age_range_array[i] + 1,
+                                                         size=agents_by_age_range[i - 1]))
+        all_agent_ages = np.concatenate(agent_ages_by_range)
+        assert len(all_agent_ages) == self.total_population
+        return all_agent_ages
+
+
 class FamilyFactory:
 
     def __init__(self, model):
@@ -61,15 +106,22 @@ class FamilyFactory:
 
     def _assign(self, human, family, schema):
         family.append(human)
-        schema.remove(type(human))
+        self.remove = schema.remove(type(human))
         if not schema:
             self.pending.remove((schema, family))
             self.families.append(family)
             self.human_count += len(family)
 
-    def factory(self, population_size):
-        for i in range(population_size):
-            self._push(Human.factory(self.covid_model, None))
+    def factory(self, population_size, demographics=None):
+        if getattr(demographics, 'agent_ages', None):
+            for age in demographics.agent_ages:
+                human = Human.factory(self.covid_model, age)
+                self._push(human)
+        else:
+            age = None
+            for i in range(population_size):
+                human = Human.factory(self.covid_model, age)
+                self._push(human)
         self._flush_pending_families()
 
     def _flush_pending_families(self):
