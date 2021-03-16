@@ -5,7 +5,7 @@ import random
 import sys
 import statistics
 from statistics import mean
-from model.base import random_selection, roulette_selection, linear_rescale, ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS
+from model.base import random_selection, roulette_selection, linear_rescale,ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS,flip_coin,get_parameters
 from model.human import Human, Infant, Toddler, K12Student, Adult, Elder
 from model.utils import WorkClasses
 from model.location import District, Hospital
@@ -168,6 +168,7 @@ class HomophilyRelationshipFactory:
     def __init__(self, model, population_size,n_blobs, n_features,home_district_in_position,iseed=None):
 
         self.model = model
+        self.infected_blobs=[]
         self.roulette_distribution ={}
         self.feature_vector = {}
         self.vector_to_human = {}
@@ -177,6 +178,7 @@ class HomophilyRelationshipFactory:
         self.vector_to_restaurant = {}
         self.unit_info_map = self.unit_info_map()
         self.teachers_per_classroom = 1
+        self.strid_to_human = self.strid_to_human()
         n_vec = population_size 
         blobs,assignments = make_blobs(
             n_samples=n_vec,
@@ -190,9 +192,11 @@ class HomophilyRelationshipFactory:
         self.n_blobs = n_blobs
         self.home_district_in_position = home_district_in_position
         self.blob_dict ={}
+        self.vector_to_blob = {}
         for vec,assignment in zip(blobs,assignments):
             if assignment not in self.blob_dict:
                 self.blob_dict[assignment] = []
+            self.vector_to_blob[tuple(vec)] = assignment
             self.blob_dict[assignment].append(vec)
         self.vectors = blobs
         #self.vectors = KeyedVectors(n_features)
@@ -448,6 +452,15 @@ class HomophilyRelationshipFactory:
                 if district.strid not in self.home_districts_to_blobs:
                     self.home_districts_to_blobs[district.strid]=blobnum
 
+    def infect_blob(self,blob_num):
+        count = 0
+        vectors = self.blob_dict[blob_num]
+        for v in vectors:
+            human = self.vector_to_human[tuple(v)]
+            if flip_coin(get_parameters().get('initial_infection_rate')):
+                human.infect(None)
+                count += 1
+        print (f"infected {count} agents in community {blob_num}")
 
     def assign_features_to_homes(self,temperature=-0.9):
         #print("temperature - assign features to homes")
@@ -481,12 +494,13 @@ class HomophilyRelationshipFactory:
                             self.unit_info_map[apartment.strid]["vector"] = tup_vec1
                         else:
                             tup_vec2 = self.choice(tup_vec1,keepset,temperature)
-                            keepset.remove(tup_vec2)
-                            if tup_vec2 not in self.vector_to_home:
-                                self.vector_to_home [tup_vec2] = []
-                            self.vector_to_home[tup_vec2].append(apartment.strid)
-                            self.unit_info_map[apartment.strid]["vector"] = tup_vec2
-                                                        #self.remove_tup_vec(distribution,tup_vec1)
+                            if tup_vec2 is not None:
+                                keepset.remove(tup_vec2)
+                                if tup_vec2 not in self.vector_to_home:
+                                    self.vector_to_home [tup_vec2] = []
+                                self.vector_to_home[tup_vec2].append(apartment.strid)
+                                self.unit_info_map[apartment.strid]["vector"] = tup_vec2
+                                                            #self.remove_tup_vec(distribution,tup_vec1)
                             #self.remove_column(distribution,tup_vec1)
                             tup_vec1=tup_vec2
                         self.home_keepset.add(tup_vec1)
@@ -603,12 +617,20 @@ class HomophilyRelationshipFactory:
                 unit_info_map[building.strid]= {}
                 unit_info_map[building.strid]["district"] = district
                 unit_info_map[building.strid]["building"] = building
+                unit_info_map[building.strid]["unit"] = building
                 for unit in building.locations:
                     unit_info_map[unit.strid] = {}
                     unit_info_map[unit.strid]["district"]= district 
                     unit_info_map[unit.strid]["building"]= building 
                     unit_info_map[unit.strid]["unit"]= unit 
         return unit_info_map
+
+    def strid_to_human(self):
+        strid_to_human = {}
+        humans = [agent for agent in self.model.agents if isinstance(agent,Human)]
+        for human in humans:
+            strid_to_human [human.strid] = human
+        return strid_to_human
 
 
     def allocate_home(self, home,family):

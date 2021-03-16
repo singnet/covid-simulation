@@ -59,7 +59,7 @@ class Location(AgentBase):
                                        f"probability {self.get_parameter('contagion_probability')}")
 
                         h1.count_infected_humans += 1
-                        h2.infect()
+                        h2.infect(self)
                     else:
                         if h1.is_wearing_mask():
                             logger().debug(f"Infection failed - infector {h1} wearing mask")
@@ -143,7 +143,7 @@ class Hospital(HomogeneousBuilding):
                             print(f"Infection succeeded - {patient} has infected {worker} in {self} with contagion "
                                   f"probability {self.get_parameter('contagion_probability')}")
                             patient.count_infected_humans += 1
-                            worker.infect()
+                            worker.infect(patient)
                         else:
                             logger().debug(f"Infection failed - {self} didn't pass contagion_probability check with contagion "
                                            f"probability {self.get_parameter('contagion_probability')}")
