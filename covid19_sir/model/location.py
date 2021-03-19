@@ -110,6 +110,18 @@ class HomogeneousBuilding(Location):
     def get_unit(self, human):
         return self.allocation[human]
 
+#
+# class VacationBuilding(HomogeneousBuilding):
+#     def __init__(self, covid_model, strid_prefix, strid_suffix, contagion_probability, **kwargs):
+#         inf = 100000
+#         unit_capacity = 10  # Enough to accommodate whole families
+#         super().__init__(inf, covid_model, strid_prefix, strid_suffix, **kwargs)
+#         self.contagion_probability = contagion_probability
+#         for i in range(inf):
+#             self.locations.append(BuildingUnit(unit_capacity, covid_model, strid_prefix, f"vacation-unit-{i}",
+#                                   contagion_probability=contagion_probability))
+#
+
 class Hospital(HomogeneousBuilding):
     # n: number of co-workers each worker interacts with during a day of work
     # r: (r * TOTAL_NUMBER_OF_PATIENTS_IN_THE_HOSPITAL) is approx the number of patients each worker
