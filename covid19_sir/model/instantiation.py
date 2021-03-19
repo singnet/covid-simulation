@@ -28,6 +28,7 @@ class Demographics:
             assert 'total_population' in demographics_dict.keys(), "Total population is necessary to do age calculations"
             self.total_population = demographics_dict['total_population']
             self.agent_ages = self.convert_age_dict()
+            random.shuffle(self.agent_ages)
 
     def convert_age_dict(self):
         # Calculates the number of agents in each age range using given weights
