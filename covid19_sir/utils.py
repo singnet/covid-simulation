@@ -119,11 +119,12 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
     ax.set_ylim((-0.1,1.1))
     ax.axhline(y=get_parameters().get('icu_capacity'), c="black", ls='--', label='Critical limit')
 
-    fig3, ax3 = plt.subplots(figsize=(8,5))
-    ax3.set_title('Clumpiness')
-    ax3.set_xlim((0, simulation_cycles))
-    #ax3.set_ylim((-0.1,1.1))
-    #ax3.axhline(y=get_parameters().get('icu_capacity'), c="black", ls='--', label='Critical limit')
+    if "clumpiness" in desired_stats:
+        fig3, ax3 = plt.subplots(figsize=(8,5))
+        ax3.set_title('Clumpiness')
+        ax3.set_xlim((0, simulation_cycles))
+        #ax3.set_ylim((-0.1,1.1))
+        #ax3.axhline(y=get_parameters().get('icu_capacity'), c="black", ls='--', label='Critical limit')
 
 
     if zoomed_plot:
@@ -162,11 +163,13 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             ax2.plot(upper[stat], color=color[stat], linewidth=.3)
             ax2.fill_between(np.arange(simulation_cycles), lower[stat], upper[stat], color=color[stat],
                              alpha=.1)  # std curves.
-    ax3.plot(lower["clumpiness"], color=color["clumpiness"], linewidth=.3)  # mean curve.
-    ax3.plot(average["clumpiness"], color=color["clumpiness"], linewidth=2, label="clumpiness")
-    ax3.plot(upper["clumpiness"], color=color["clumpiness"], linewidth=.3)
-    ax3.fill_between(np.arange(simulation_cycles), lower["clumpiness"], upper["clumpiness"], color=color["clumpiness"],
-                             alpha=.1)  # std curves.
+
+    if "clumpiness" in desired_stats:
+        ax3.plot(lower["clumpiness"], color=color["clumpiness"], linewidth=.3)  # mean curve.
+        ax3.plot(average["clumpiness"], color=color["clumpiness"], linewidth=2, label="clumpiness")
+        ax3.plot(upper["clumpiness"], color=color["clumpiness"], linewidth=.3)
+        ax3.fill_between(np.arange(simulation_cycles), lower["clumpiness"], upper["clumpiness"], color=color["clumpiness"],
+                                 alpha=.1)  # std curves.
 
 
 
@@ -193,16 +196,17 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
         fig2.show()
         fig2.savefig(fname + ".png")
 
-    ax3.set_xlabel("Days")
-    #ax3.set_ylabel("Ratio of Population")
-    handles, labels = ax3.get_legend_handles_labels()
-        # Shrink current axis by 20%
-    box = ax3.get_position()
-    ax3.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-        # Put a legend to the right of the current axis
-    ax3.legend(handles, labels, loc='center left', bbox_to_anchor=(1, 0.5))
-    fig3.show()
-    fig3.savefig(fname + ".png")
+    if "clumpiness" in desired_stats:
+        ax3.set_xlabel("Days")
+        #ax3.set_ylabel("Ratio of Population")
+        handles, labels = ax3.get_legend_handles_labels()
+            # Shrink current axis by 20%
+        box = ax3.get_position()
+        ax3.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+            # Put a legend to the right of the current axis
+        ax3.legend(handles, labels, loc='center left', bbox_to_anchor=(1, 0.5))
+        fig3.show()
+        fig3.savefig(fname + ".png")
 
 
     if do_print:
@@ -356,6 +360,48 @@ class RemovePolicy:
                 if self.policy in get_parameters().get('social_policies'):
                     get_parameters().get('social_policies').remove(self.policy)
                 self.state = 1
+
+
+class Vacation:
+    def __init__(self, model, start_day, end_day, percent_families, contagion_probability, risk_tolerance_threshold):
+        self.model = model
+        assert end_day > start_day, "End day for vacations must be greater than start day."
+        self.start_day = start_day
+        self.end_day = end_day
+        self.percent_families = percent_families
+        self.contagion_probability = contagion_probability
+        self.risk_tolerance_threshold = risk_tolerance_threshold
+        self.state = 0  # Goes to 1 once activated and doesn't go back to 0 anymore
+
+    def start_cycle(self, model):
+        if self.state == 0:
+            if self.model.global_count.day_count == self.start_day:
+                self.send_families_on_vacation()
+                self.state = 1
+        else:
+            if self.model.global_count.day_count == self.end_day:
+                self.retrieve_families_from_vacation()
+
+    def state_change(self, model):
+        pass
+
+    def end_cycle(self, model):
+        pass
+
+    def send_families_on_vacation(self):
+
+        # HOW TO ACCESS FAMILIES HAVING ONLY THE MODEL? do I need to also provide data from Family Factory?
+        # About the selection of families: since I have to check if they're symptomatic already, the proportions would be off:
+        # if not symptomatic:
+        #    if random < percent families:
+        # ... wrong
+        # The 
+        self.percent_families
+        self.risk_tolerance_threshold
+
+    def retrieve_families_from_vacation(self):
+        self.contagion_probability
+
 
 class AddPolicy:
     def __init__(self, model, policy, n):
