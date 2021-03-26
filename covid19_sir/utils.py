@@ -132,6 +132,10 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
     ax3.set_xlim((0, simulation_cycles))
     #ax3.set_ylim((-0.1,1.1))
     #ax3.axhline(y=get_parameters().get('icu_capacity'), c="black", ls='--', label='Critical limit')
+	
+    fig4, ax4 = plt.subplots(figsize=(8,5))
+    ax4.set_title('Giant Component')
+    ax4.set_xlim((0, simulation_cycles))
 
 
     if zoomed_plot:
@@ -160,6 +164,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
         #print (lower[stat])
         #print (upper[stat])
 #Plotting:
+    for stat in desired_stats[:-4]:
         ax.plot(lower[stat], color=color[stat], linewidth=.3) #mean curve.
         ax.plot(average[stat], color=color[stat], linewidth=2, label=stat)
         ax.plot(upper[stat], color=color[stat], linewidth=.3)
@@ -170,11 +175,19 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             ax2.plot(upper[stat], color=color[stat], linewidth=.3)
             ax2.fill_between(np.arange(simulation_cycles), lower[stat], upper[stat], color=color[stat],
                              alpha=.1)  # std curves.
-    ax3.plot(lower["clumpiness"], color=color["clumpiness"], linewidth=.3)  # mean curve.
-    ax3.plot(average["clumpiness"], color=color["clumpiness"], linewidth=2, label="clumpiness")
-    ax3.plot(upper["clumpiness"], color=color["clumpiness"], linewidth=.3)
-    ax3.fill_between(np.arange(simulation_cycles), lower["clumpiness"], upper["clumpiness"], color=color["clumpiness"],
-                             alpha=.1)  # std curves.
+    for stat in desired_stats[-4:-3]:
+        ax3.plot(lower[stat], color=color[stat], linewidth=.3)  # mean curve.
+        ax3.plot(average[stat], color=color[stat], linewidth=2, label=stat)
+        ax3.plot(upper[stat], color=color[stat], linewidth=.3)
+        ax3.fill_between(np.arange(simulation_cycles), lower[stat], upper[stat], color=color[stat],
+                                 alpha=.1)  # std curves.
+    for stat in desired_stats[-2:]:
+        ax4.plot(lower[stat], color=color[stat], linewidth=.3)  # mean curve.
+        ax4.plot(average[stat], color=color[stat], linewidth=2, label=stat)
+        ax4.plot(upper[stat], color=color[stat], linewidth=.3)
+        ax4.fill_between(np.arange(simulation_cycles), lower[stat], upper[stat], color=color[stat],
+                                 alpha=.1)  # std curves.
+
 
 
         			
@@ -211,6 +224,19 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
     ax3.legend(handles, labels, loc='center left', bbox_to_anchor=(1, 0.5))
     fig3.show()
     fig3.savefig(fname + ".png")
+
+    ax4.set_xlabel("Days")
+    #ax3.set_ylabel("Ratio of Population")
+    handles, labels = ax4.get_legend_handles_labels()
+        # Shrink current axis by 20%
+    box = ax4.get_position()
+    ax4.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        # Put a legend to the right of the current axis
+    ax4.legend(handles, labels, loc='center left', bbox_to_anchor=(1, 0.5))
+    fig4.show()
+    fig4.savefig(fname + ".png")
+
+
 
 
     if do_print:
@@ -678,13 +704,13 @@ class Network:
         #print("ending cycle...")
         self.actual_infections=model.global_count.actual_infections
         if self.compute_hoprank and  model.global_count.day_count % self.hoprank_cycle==0:
-            hoprank=self.compute_maxprob_hoprank(model) 
+            hoprank=self.compute_maxprob_hoprank4(model) 
             self.location_hopranks=self.compute_location_hopranks(model,hoprank)
             self.blob_hopranks=self.compute_blob_hopranks(model,hoprank)
             self.print_hopranks(model.global_count.day_count)
 
         #To run new clumpiness comment the following:
-        clumpiness,maxlen,disconnects = self.compute_clumpiness2()
+        clumpiness,maxlen,disconnects = self.compute_clumpiness4()
         giant = len(max(nx.connected_components(self.G), key=len))/len(self.G.nodes)
         print (f"clumpiness {clumpiness}")
         self.clumpiness.append(clumpiness)
@@ -932,6 +958,66 @@ class Network:
         returnlist.extend(random.sample(tups_to_sample,n))
         return returnlist
 
+    def compute_maxprob_hoprank4(self,model):
+        number_to_hoprank= get_parameters().params["number_to_hoprank"]
+        n=get_parameters().params["num_samples_hoprank"]
+        ratio_sample_from_infected=get_parameters().params["hoprank_infected_sample_ratio"]
+        n_from_infected = math.ceil(n*ratio_sample_from_infected)
+        hops = {}
+        hoprank = {}
+        clumpiness = {}
+        to_be_hopranked = random.sample(self.G.nodes,number_to_hoprank)
+        #print("to_be_hopranked")
+        #print(to_be_hopranked)
+        #nodes1=self.sample_from_infected_nodes(number_to_hoprank,model
+                #) if sample_from_infected else random.sample(self.G.nodes,n)
+        for node1 in to_be_hopranked:
+            #for each agent choose a random n agents
+            #nodes = random.sample(self.G.nodes,n+1)
+            nodes=self.sample_from_infected_nodes(n_from_infected,model)
+            #print (f"infected samples: {len(nodes)}")
+            nodes.extend(random.sample(list(set(self.G.nodes) - set(nodes)-set(node1)),n-n_from_infected))
+            #print (f"all samples:{len(nodes)}")
+            avg_len = 0
+            for node2 in nodes:
+                if node1 < node2:
+                    firstnode = node1
+                    secondnode = node2
+                else:
+                    firstnode = node2
+                    secondnode = node1
+                #print("firstnode")
+                #print(firstnode)
+                #print("secondnode")
+                #print (secondnode)
+                if firstnode not in clumpiness:
+                    clumpiness[firstnode]={}
+                if secondnode not in clumpiness[firstnode]:
+                    try:
+                        shortest_path = nx.dijkstra_path(self.G,firstnode,secondnode, weight = "weight")
+                        shortest_path_len = len(shortest_path)
+                        inv_shortest_path_len = 1./shortest_path_len
+                    except(nx.NetworkXNoPath):
+                        inv_shortest_path_len = 0
+                    clumpiness[firstnode][secondnode] = inv_shortest_path_len
+        for node1,node2_dict in clumpiness.items():
+            for node2,clump in node2_dict.items():
+                if node1 not in hops:
+                    hops[node1] = []
+                if node2 not in hops:
+                    hops[node2] = []
+                hops[node1].append(clump)
+                hops[node2].append(clump)
+        #print ("hops")
+        #print(hops)
+        for node,clumplist in hops.items():
+           # if len(clumplist) > n:
+            hoprank[node] = 1.-np.mean(clumplist)
+        #print("hoprank")
+        #print(hoprank)
+        return hoprank
+
+
 
     def compute_maxprob_hoprank(self,model):
         #Just sample 
@@ -943,7 +1029,8 @@ class Network:
         hoprank = {}
         clumpiness = {}
         to_be_hopranked = random.sample(self.G.nodes,number_to_hoprank)
-
+        #print("to_be_hopranked")
+        #print(to_be_hopranked)
         #nodes1=self.sample_from_infected_nodes(number_to_hoprank,model
                 #) if sample_from_infected else random.sample(self.G.nodes,n)
         for node1 in to_be_hopranked:
@@ -982,9 +1069,13 @@ class Network:
                     hops[node2] = []
                 hops[node1].append(clump)
                 hops[node2].append(clump)
+        #print ("hops")
+        #print(hops)
         for node,clumplist in hops.items():
-            if len(clumplist) > n:
-                hoprank[node] = np.mean(clumplist)
+           # if len(clumplist) > n:
+            hoprank[node] = np.mean(clumplist)
+        #print("hoprank")
+        #print(hoprank)
         return hoprank
 
  
@@ -1031,7 +1122,33 @@ class Network:
                 hoprank[node] = self.clumpiness_given_lengths(pl)
             
         return (clump,hoprank)
-                  
+ 
+    def compute_clumpiness4(self):
+        #Just sample 
+        num_nodes = len(self.G.nodes)
+        k = get_parameters().params["num_samples_clumpiness"] 
+        avg_len = 0
+        disconnects = 0
+        max_len_no_infinity = 0
+        for i in range (k):
+            nodes = random.sample(self.G.nodes, 2)
+            try:
+                shortest_path = nx.dijkstra_path(self.G,nodes[0],nodes[1], weight = "weight")
+                shortest_path_len = len(shortest_path)
+                inv_shortest_path_len = 1./shortest_path_len
+                if shortest_path_len > max_len_no_infinity:
+                    max_len_no_infinity = shortest_path_len
+            except(nx.NetworkXNoPath):
+                inv_shortest_path_len = 0 
+                disconnects += 1
+
+            avg_len += inv_shortest_path_len
+        avg_len /= k
+        clumpiness  = 1. - avg_len
+        disconnects /= k
+
+        return clumpiness,max_len_no_infinity,disconnects
+                 
         
 def build_district(name, model, population_size, building_capacity, unit_capacity,
                    occupacy_rate, contagion_probability, home_district_list=[]):
