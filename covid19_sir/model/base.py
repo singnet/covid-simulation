@@ -243,7 +243,13 @@ class SimulationStatus:
         self.total_income = 0.0
         self.new_symptomatic_count = {}
         self.infection_info = {}
-
+        self.actual_infections = {}
+        self.actual_infections["strid"] = []
+        self.actual_infections["blob"] =[]
+        self.actual_infections["day"]=[]
+        self.actual_infections["unit"]=[]
+        self.feature_vector ={}
+        self.vector_to_blob ={}
 
 class SimulationParameters:
     def __init__(self, **kwargs):
@@ -252,6 +258,8 @@ class SimulationParameters:
                        'mask_efficacy': kwargs.get("mask_efficacy", 0.0),
                        'imune_rate': kwargs.get("imune_rate", 0.01),
                        'initial_infection_rate': kwargs.get("initial_infection_rate", 0.01),
+                       'blob_infection_rate':kwargs.get("blob_infection_rate",0.1),
+                       'exogenous_infection_rate':kwargs.get("exogenous_infection_rate",0.0002),
                        'hospitalization_capacity': kwargs.get("hospitalization_capacity", 0.50),
                        'icu_capacity': kwargs.get("icu_capacity", 0.03),
                        'icu_period_duration_shape': kwargs.get("icu_period_duration_shape", 10.0),
@@ -286,12 +294,13 @@ class SimulationParameters:
                        'num_communities': kwargs.get("num_communities",1),
                        'num_features':kwargs.get("num_features",10),
                        'temperature':kwargs.get("temperature",-1),
-                       'infinity':kwargs.get("infinity",80),
+                       'infinity':kwargs.get("infinity",100),
                        'hoprank_cycle':kwargs.get("hoprank_cycle",100),
                        'number_to_hoprank':kwargs.get("number_to_hoprank",1000),
                        'num_blobs_to_infect':kwargs.get("num_blobs_to_infect",1),
                        'hoprank_infected_sample_ratio':kwargs.get("hoprank_infected_sample_ratio",0.5),
-                       'num_samples_clumpiness':kwargs.get("num_samples_clumpiness",100),
+                        'num_samples_clumpiness':kwargs.get("num_samples_clumpiness",100),
+                        'num_samples_hoprank':kwargs.get("num_samples_hoprank",100),
                        'vaccine_immunization_rate':kwargs.get("vaccine_immunization_rate",[0.4, 0.8]),
                        'vaccine_symptom_attenuation':kwargs.get("vaccine_symptom_attenuation",[0.4, 0.3])}
 
@@ -341,11 +350,6 @@ class AgentBase(Agent):
 class CovidModel(Model):
     def __init__(self, debug=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.actual_infections = {}
-        self.actual_infections["strid"] = []
-        self.actual_infections["blob"] =[]
-        self.actual_infections["day"]=[]
-        self.actual_infections["unit"]=[]
         self.debug = debug
         self.debug_each_n_cycles = 1
         self.agents = []

@@ -98,8 +98,7 @@ class Human(AgentBase):
             covid_model.global_count.immune_count += 1
         else:
             covid_model.global_count.susceptible_count += 1
-        if flip_coin(get_parameters().get('initial_infection_rate')):
-            human.infect()
+          
         return human
 
     def __init__(self, covid_model, age, msp, hsp, mfd):
@@ -191,8 +190,8 @@ class Human(AgentBase):
             return
         if self.covid_model.current_state == SimulationState.EVENING_AT_HOME:
             self.disease_evolution()
-            #if not self.is_infected() and not self.is_dead and flip_coin(0.0002):
-                    #self.infect()
+            if not self.is_infected() and not self.is_dead and flip_coin(get_parameters().get('exogenous_infection_rate')):
+                self.infect(None)
 
     def vaccinated(self):
         return len(self.vaccination_days) == len(get_parameters().get('vaccine_immunization_rate'))
@@ -219,19 +218,19 @@ class Human(AgentBase):
         # https://media.tghn.org/medialibrary/2020/06/ISARIC_Data_Platform_COVID-19_Report_8JUN20.pdf
         # https://www.ecdc.europa.eu/en/covid-19/latest-evidence
         if not self.immune and not self.is_infected():
-            # Evolve disease severity based in this human's specific
+
+            vec = self.covid_model.global_count.feature_vector[self]
+            blob = self.covid_model.global_count.vector_to_blob[vec]
+
+            if blob is not None:
+                self.covid_model.global_count.actual_infections["blob"].append(blob)
+                self.covid_model.global_count.actual_infections["strid"].append(self.strid)
+                self.covid_model.global_count.actual_infections["unit"].append(unit.strid if unit is not None else None)
+                self.covid_model.global_count.actual_infections["day"].append(self.covid_model.global_count.day_count)
+    
+        # Evolve disease severity based in this human's specific
             # attributes and update global counts
             logger().info(f"Infected {self}")
-
-            # Commented because covid_model doesn't have `hrf`
-            #vec = self.covid_model.hrf.feature_vector[self]
-            #blob = self.covid_model.hrf.vector_to_blob[vec]
-            #if blob is not None:
-            #    self.covid_model.actual_infections["blob"].append(blob)
-            #    self.covid_model.actual_infections["strid"].append(self.strid)
-            #    self.covid_model.actual_infections["unit"].append(unit.strid if unit is not None else None)
-            #    self.covid_model.actual_infections["day"].append(self.covid_model.global_count.day_count)
-
             self.covid_model.global_count.infected_count += 1
             self.covid_model.global_count.non_infected_count -= 1
             self.covid_model.global_count.susceptible_count -= 1
@@ -252,7 +251,8 @@ class Human(AgentBase):
             scale = get_parameters().get('mild_period_duration_scale')
             self.mild_duration = np.random.gamma(shape, scale)
             logger().debug(f"Mild duration of {self} is {self.mild_duration}")
-
+    
+    
     def disease_evolution(self):
         # https://media.tghn.org/medialibrary/2020/06/ISARIC_Data_Platform_COVID-19_Report_8JUN20.pdf
         # https://www.ecdc.europa.eu/en/covid-19/latest-evidence

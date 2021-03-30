@@ -405,7 +405,7 @@ class HomophilyRelationshipFactory:
         vectors = self.blob_dict[blob_num]
         for v in vectors:
             human = self.vector_to_human[tuple(v)]
-            if flip_coin(get_parameters().get('initial_infection_rate')):
+            if flip_coin(get_parameters().get('blob_infection_rate')):
                 human.infect(None)
                 count += 1
         print (f"infected {count} agents in community {blob_num}")
