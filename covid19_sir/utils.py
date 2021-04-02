@@ -227,7 +227,7 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
             print(np.median(x))
             print("95% confidence interval for the mean:")
             print("({0},{1})".format(low, high))
-    return avg.items, last.items, peak.items
+    return lower, average, upper, color, statistics, avg.items, last.items, peak.items
 
 
 class BasicStatistics:
