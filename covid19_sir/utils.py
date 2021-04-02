@@ -429,8 +429,113 @@ class RemovePolicyInfectedRateWindow:
             if remove and self.policy in get_parameters().get('social_policies'):
                 get_parameters().get('social_policies').remove(self.policy)
                 self.state = 1
-                
-                
+
+
+class Vacation:
+    def __init__(self, model, start_day, end_day, selection_probability, contagion_probability):
+        """
+        A listener that sends a group of families on vacation (to a separate building inside the listener).
+        Families are selected based on their risk_tolerance and
+
+        Parameters:
+            model (CovidModel): the simulation model
+            start_day (int): Starting day for vacation
+            end_day (int): End day of vacation
+            selection_probability (float) : Probability of selecting a family to go on vacation out of the ones that
+                                            have other prerequisites. See the description on "select_families".
+            contagion_probability (float) : Probability of infecting a human that went on vacation.
+        """
+        self.start_day = start_day  # TODO: make it so that start and end day are stochastic
+        self.end_day = end_day
+        self.model = model
+        self.contagion_probability = contagion_probability
+        self.selection_probability = selection_probability
+        self.vacation_building = self.create_vacation_building()
+        self.families = []
+        self.selected_families = []
+
+    def create_vacation_building(self):
+        building_capacity = 100000  # inf
+        unit_capacity = 10  # Enough to accommodate whole families
+        name = "Vacation"
+        contagion_probability = beta_range(0.021, 0.12)
+        building = HomogeneousBuilding(building_capacity, self.model, name, '1')
+        for j in range(building_capacity):
+            unit = BuildingUnit(unit_capacity, self.model, name, str(j),
+                                contagion_probability=contagion_probability)
+            building.locations.append(unit)
+        return building
+
+    def log_humans_on_vacation(self):
+        num = 0
+        infected_num = 0
+        for unit in self.vacation_building.locations:
+            num += len(unit.humans)
+        for family in self.selected_families:
+            infected_num += len([human for human in family if human.is_infected()])
+        print("HUMANS ON VACATION: {} \t INFECTED: {}".format(num, infected_num))
+
+    def get_all_families(self):
+        families = []
+        home_districts = [agent for agent in self.model.agents if isinstance(agent, District) and 'Home' in agent.strid]
+        for home_district in home_districts:
+            for apartment_buildings in home_district.locations:
+                for apartment in apartment_buildings.locations:
+                    if apartment.allocation:
+                        families.append(apartment.allocation)
+        # homogeneous_buildings = [loc for loc in home_districts_locations if isinstance(loc, HomogeneousBuilding)]
+        return families
+
+    def select_families(self):
+        """
+        Selects families that go on vacation. Families are selected if:
+            1. The first adult of the family has risk_tolerance above mean
+            2. That adult is not infected
+            3. If a randomly generated number is smaller than the parameter "selection_probability"
+
+        # TODO: improve the selection strategy. Right now it's very hard to control the amount of people that go on
+        # vacation based on the total population of the simulation due to all the conditions.
+        """
+        # Get all families
+        families = self.get_all_families()
+        # Select families to travel
+        for family in families:
+            for human in family:
+                if isinstance(human, Adult) \
+                        and human.properties.risk_tolerance > get_parameters().get('risk_tolerance_mean')\
+                        and not human.is_infected() \
+                        and np.random.random() <= self.selection_probability:
+                    self.selected_families.append(family)
+        print("NUMBER OF SELECTED FAMILIES FOR VACATIONS {} \n"
+              "TOTAL NUMBER OF FAMILIES {}".format(len(self.selected_families), len(families)))
+
+    def start_cycle(self, model):
+        if self.model.global_count.day_count == self.start_day:
+            print("Starting vacation on day {}".format(self.start_day))
+            # Select families to travel
+            self.select_families()
+            # Send selected families to vacation building
+            for i, family in enumerate(self.selected_families):
+                for human in family:
+                    human.home_district.move_to(human, self.vacation_building.locations[i])
+
+        if self.model.global_count.day_count == self.end_day:
+            print("End day {}".format(self.end_day))
+            for i, family in enumerate(self.selected_families):
+                for human in family:
+                    # Randomly infect humans
+                    if np.random.random() <= self.contagion_probability:
+                        human.infect()
+                    # Return to home district
+                    human.home_district.move_from(human, self.vacation_building.locations[i])
+
+
+    def state_change(self,model):
+        pass
+
+    def end_cycle(self, model):
+        pass
+
 
 class Propaganda:
     def __init__(self, model, n):
