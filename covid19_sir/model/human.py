@@ -450,10 +450,10 @@ class Human(AgentBase):
             (WorkClasses.RETAIL, 1, 1, 0)
         ]
         if ENABLE_WORKER_CLASS_SPECIAL_BUILDINGS:
-            work_class_base_info.append((WorkClasses.HOSPITAL, 0.1, 1, 1))
+            work_class_base_info.append((WorkClasses.HOSPITAL, 0.3, 1, 1))
 
         work_classes = []
-        work_classes_weights = [] # used to determine the number of workers of each class
+        work_classes_weights = []  # used to determine the number of workers of each class
         income = {}
         for work_class, income_no_lockdown, income_lockdown, weight in work_class_base_info:
             work_classes.append(work_class)
