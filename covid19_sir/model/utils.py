@@ -40,6 +40,7 @@ class SocialPolicy(Enum):
     LOCKDOWN_OFFICE = auto()
     LOCKDOWN_FACTORY = auto()
     LOCKDOWN_RETAIL = auto()
+    LOCKDOWN_HOUSEBOUND = auto()
     LOCKDOWN_ELEMENTARY_SCHOOL = auto()
     LOCKDOWN_MIDDLE_SCHOOL = auto()
     LOCKDOWN_HIGH_SCHOOL = auto()
@@ -50,7 +51,8 @@ class SocialPolicyUtil:
         SocialPolicy.LOCKDOWN_ALL: [WorkClasses.OFFICE, WorkClasses.FACTORY, WorkClasses.RETAIL, WorkClasses.HOUSEBOUND],
         SocialPolicy.LOCKDOWN_OFFICE: [WorkClasses.OFFICE],
         SocialPolicy.LOCKDOWN_FACTORY: [WorkClasses.FACTORY],
-        SocialPolicy.LOCKDOWN_RETAIL: [WorkClasses.RETAIL]
+        SocialPolicy.LOCKDOWN_RETAIL: [WorkClasses.RETAIL],
+        SocialPolicy.LOCKDOWN_HOUSEBOUND: [WorkClasses.HOUSEBOUND]
     }
     locked_student_ages = {
         SocialPolicy.LOCKDOWN_ALL: (5, 18),
