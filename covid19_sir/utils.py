@@ -30,7 +30,7 @@ def confidence_interval(data, confidence=0.95):
 def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=[], debug=False, desired_stats=None,
                   fname="scenario", listeners=[], do_print=False, home_grid_height=1, home_grid_width=1,
                   work_home_list=[[(0,0)]], school_home_list=[[(0,0)]], temperature = -1, zoomed_plot=True,
-                  zoomed_plot_ylim=(-0.01, .12)):
+                  zoomed_plot_ylim=(-0.01, .12), demographics=None):
     color = {
             'susceptible': 'lightblue',
             'infected': 'gray',
@@ -82,7 +82,8 @@ def multiple_runs(params, population_size, simulation_cycles, num_runs=5, seeds=
         np.random.seed(s + 1)
         random.seed(s + 2)
         model.reset_randomizer(s)
-        setup_homophilic_layout(model,population_size,home_grid_height,home_grid_width,work_home_list,school_home_list)
+        setup_homophilic_layout(model,population_size,home_grid_height,home_grid_width,work_home_list,school_home_list,
+                                demographics=demographics)
         #setup_grid_layout(model, population_size, home_grid_height, 
         #home_grid_width,work_height,work_width, school_height, school_width)
         if do_print:
@@ -982,7 +983,7 @@ def setup_grid_layout(model, population_size,
 
 
 def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_width,work_home_list=[],school_home_list=[],
-         temperature=-1):
+         temperature=-1, demographics=None):
     # This is made to be implemented on a realistic map.  The input is meant to describe a realistic map.
     # Send a grid shape of home districts and two list of lists of grid tuples of the home district representing 
     # the school and work districts that the homes belong in.  Non-grids shapes can be projected onto a grid with 
@@ -1099,7 +1100,7 @@ def setup_homophilic_layout(model, population_size,home_grid_height, home_grid_w
     # Build families
 
     family_factory = FamilyFactory(model)
-    family_factory.factory(population_size)
+    family_factory.factory(population_size, demographics)
     model.global_count.total_population = family_factory.human_count
     #print ("family_factory.human_count")
     #print (family_factory.human_count)
